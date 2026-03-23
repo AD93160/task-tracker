@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { auth, provider, db } from "./firebase";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged, OAuthProvider, FacebookAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
 const PRIORITIES = ["Haute", "Moyenne", "Basse"];
@@ -36,6 +36,10 @@ export default function App() {
   const [user,         setUser]         = useState(null);
   const [syncing,      setSyncing]      = useState(false);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
+  const [showAuthMenu, setShowAuthMenu] = useState(false);
+  const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
+  const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
+  const [authError,    setAuthError]    = useState(null);
 
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
@@ -69,7 +73,7 @@ export default function App() {
       { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#3a2a55", border:"#2a1a3a" },
     ],
     light: [
-      { name:"Hermès",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
+      { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
       { name:"Papier",     bg:"#f8f8f4", bgLeft:"#f0f0ea", bgCard:"#ffffff", accent:"#5050dd", text:"#1a1a2e", textMuted:"#9090a0", border:"#e0e0e8" },
       { name:"Sauge",      bg:"#f4f8f4", bgLeft:"#ebf2eb", bgCard:"#ffffff", accent:"#2a8a2a", text:"#0a1a0a", textMuted:"#7a9a7a", border:"#d0e8d0" },
       { name:"Terracotta", bg:"#faf5f2", bgLeft:"#f5ede8", bgCard:"#ffffff", accent:"#cc4820", text:"#1a0a08", textMuted:"#aa8878", border:"#e8d5cc" },
@@ -95,9 +99,10 @@ export default function App() {
     const today = todayStr();
     const inTom = tomorrowIds.map(e => e.id).includes(task.id);
     if (task.due) {
-      if (task.due > today)   return GREEN;
+      if (task.due < today) return RED;
       if (task.due === today) return GOLD;
-      return RED;
+      if (todayIds.includes(task.id)) return GOLD;
+      return GREEN;
     }
     if (inTom) return GREEN;
     if (todayIds.includes(task.id)) {
@@ -187,14 +192,26 @@ export default function App() {
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted]);
 
   const loginGoogle = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch(e) {
-      console.error("Auth error:", e.code, e.message);
-      alert("Erreur connexion: " + e.message);
-    }
+    try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
+    catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
   };
-  const logout = () => signOut(auth);
+  const loginApple = async () => {
+    try { const p=new OAuthProvider("apple.com"); await signInWithPopup(auth, p); setShowAuthMenu(false); setAuthError(null); }
+    catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
+  };
+  const loginFacebook = async () => {
+    try { const p=new FacebookAuthProvider(); await signInWithPopup(auth, p); setShowAuthMenu(false); setAuthError(null); }
+    catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
+  };
+  const loginEmail = async () => {
+    if (!emailForm.email||!emailForm.password) return;
+    try {
+      if (emailMode==="register") await createUserWithEmailAndPassword(auth, emailForm.email, emailForm.password);
+      else await signInWithEmailAndPassword(auth, emailForm.email, emailForm.password);
+      setShowAuthMenu(false); setAuthError(null); setEmailForm({email:"",password:""});
+    } catch(e) { setAuthError(e.message); }
+  };
+  const logout = () => { signOut(auth); setShowAuthMenu(false); };
 
   useEffect(() => {
     const today = todayStr();
@@ -413,7 +430,18 @@ export default function App() {
     return "list";
   };
 
-  const onDragStart = (e, id, src) => { dragRef.current={id,src}; e.dataTransfer.effectAllowed="move"; };
+  const onDragStart = (e, id, src) => {
+    dragRef.current={id,src}; e.dataTransfer.effectAllowed="move";
+    const task = getTask(id);
+    const col = STATUS_DOT[task?.status||"À faire"];
+    const num = tasks.findIndex(t=>t.id===id)+1;
+    const el = document.createElement("div");
+    el.style.cssText = `width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 35%,${col}cc,${col});display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;position:fixed;top:-100px;left:-100px;`;
+    el.textContent = String(num);
+    document.body.appendChild(el);
+    e.dataTransfer.setDragImage(el, 27, 27);
+    setTimeout(()=>{ if(document.body.contains(el)) document.body.removeChild(el); }, 0);
+  };
   const onDragEnd   = (e) => {
     const {id,src} = dragRef.current; dragRef.current={}; setDropZone(null); if (!id) return;
     if (leftRef.current) {
@@ -630,13 +658,68 @@ export default function App() {
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
           {user ? (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <img src={user.photoURL} alt="" style={{ width:26, height:26, borderRadius:"50%", border:`1px solid ${theme.border}` }} />
-              <button onClick={logout} style={{ background:"transparent", border:`1px solid ${theme.border}`, borderRadius:8, padding:"4px 10px", color:theme.textMuted, fontSize:10, cursor:"pointer" }}>Déco</button>
+              {user.photoURL
+                ? <img src={user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55` }} />
+                : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:theme.accent }}>👤</div>
+              }
+              <span style={{ fontSize:10,color:theme.textMuted,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user.displayName||user.email}</span>
+              <button onClick={logout} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"4px 10px",color:theme.textMuted,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",gap:4 }}>
+                <span style={{ fontSize:11 }}>↩</span> Déco
+              </button>
             </div>
           ) : (
-            <button onClick={loginGoogle} style={{ background:theme.accent, border:"none", borderRadius:8, padding:"5px 12px", color:"#fff", fontSize:11, cursor:"pointer" }}>
-              🔑 Connexion
-            </button>
+            <div style={{ position:"relative" }}>
+              {showAuthMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowAuthMenu(false)}/>}
+              <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 13px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+                Connexion
+              </button>
+              {showAuthMenu && (
+                <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
+                  {authError && (
+                    <div style={{ fontSize:10,color:"#cc3030",marginBottom:10,padding:"6px 10px",background:"#cc303022",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                      <span>{authError}</span>
+                      <button onClick={()=>setAuthError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button>
+                    </div>
+                  )}
+                  {/* Google */}
+                  <button onClick={loginGoogle} style={{ width:"100%",background:theme.mode==="dark"?"#1a1a2e":"#fff",border:`1px solid ${theme.border}`,borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:7,color:theme.text,fontSize:12 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Continuer avec Google
+                  </button>
+                  {/* Apple */}
+                  <button onClick={loginApple} style={{ width:"100%",background:theme.mode==="dark"?"#1a1a1a":"#000",border:"none",borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:7,color:"#fff",fontSize:12 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                    Continuer avec Apple
+                  </button>
+                  {/* Facebook */}
+                  <button onClick={loginFacebook} style={{ width:"100%",background:"#1877F2",border:"none",borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:10,color:"#fff",fontSize:12 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    Continuer avec Facebook
+                  </button>
+                  {/* Divider */}
+                  <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+                    <div style={{ flex:1,height:1,background:theme.border }}/>
+                    <span style={{ fontSize:10,color:theme.textMuted }}>ou</span>
+                    <div style={{ flex:1,height:1,background:theme.border }}/>
+                  </div>
+                  {/* Email tabs */}
+                  <div style={{ display:"flex",gap:4,marginBottom:8 }}>
+                    {[{v:"login",l:"Connexion"},{v:"register",l:"Inscription"}].map(({v,l})=>(
+                      <button key={v} onClick={()=>setEmailMode(v)} style={{ flex:1,background:emailMode===v?theme.accent+"22":"transparent",border:`1px solid ${emailMode===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px",color:emailMode===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>{l}</button>
+                    ))}
+                  </div>
+                  <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))}
+                    style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13,marginBottom:6 }} />
+                  <div style={{ display:"flex",gap:6 }}>
+                    <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))}
+                      onKeyDown={e=>e.key==="Enter"&&loginEmail()}
+                      style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13 }} />
+                    <button onClick={loginEmail} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"7px 12px",color:"#fff",fontSize:12,cursor:"pointer" }}>→</button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>📊</button>
           <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>⚙️</button>
