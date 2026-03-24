@@ -649,12 +649,21 @@ export default function App() {
         .bubble.over { transform:scale(1.18); box-shadow:0 0 20px #5050dd88 !important; }
         .delbtn:hover { background:#3a1a1a !important; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @media (max-width:640px) {
+          body { overflow-x:hidden; }
+          .app-header { flex-direction:column !important; align-items:flex-start !important; gap:10px; padding:12px 14px 10px !important; }
+          .app-title { font-size:22px !important; letter-spacing:2px !important; white-space:nowrap; width:100%; }
+          .app-header-right { width:100%; flex-wrap:wrap; justify-content:flex-start; }
+          .split-layout { flex-direction:column !important; height:auto !important; overflow-y:auto; flex:1; }
+          .left-panel { width:100% !important; border-right:none !important; max-height:45vh; }
+          .today-section { min-height:0 !important; }
+        }
       `}</style>
 
       {/* Header */}
-      <div style={{ padding:"20px 28px 14px", borderBottom:`1px solid ${theme.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3 }}>TASK TRACKER PRO</div>
-        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+      <div className="app-header" style={{ padding:"20px 28px 14px", borderBottom:`1px solid ${theme.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div className="app-title" style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3 }}>TASK TRACKER PRO</div>
+        <div className="app-header-right" style={{ display:"flex", gap:10, alignItems:"center" }}>
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
           {user ? (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -730,13 +739,14 @@ export default function App() {
       {renderGhost()}
 
       {/* Split layout */}
-      <div style={{ display:"flex", flex:1, height:"calc(100vh - 61px)" }}>
+      <div className="split-layout" style={{ display:"flex", flex:1, height:"calc(100vh - 61px)" }}>
 
         {/* ── LEFT ── */}
-        <div ref={leftRef} style={{ width:"38%", borderRight:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", overflowY:"auto" }}>
+        <div ref={leftRef} className="left-panel" style={{ width:"38%", borderRight:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", overflowY:"auto" }}>
 
           {/* TODAY */}
           <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
+            className="today-section"
             style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight:"45%" }}>
             <div style={{ marginBottom:14 }}>
               <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
