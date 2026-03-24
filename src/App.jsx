@@ -40,6 +40,14 @@ export default function App() {
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
   const [authError,    setAuthError]    = useState(null);
+  const [isMobile,     setIsMobile]     = useState(() => window.innerWidth <= 640);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width:640px)");
+    const handler = e => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
@@ -649,21 +657,21 @@ export default function App() {
         .bubble.over { transform:scale(1.18); box-shadow:0 0 20px #5050dd88 !important; }
         .delbtn:hover { background:#3a1a1a !important; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-        @media (max-width:640px) {
-          body { overflow-x:hidden; }
-          .app-header { flex-direction:column !important; align-items:flex-start !important; gap:10px; padding:12px 14px 10px !important; }
-          .app-title { font-size:22px !important; letter-spacing:2px !important; white-space:nowrap; width:100%; }
-          .app-header-right { width:100%; flex-wrap:wrap; justify-content:flex-start; }
-          .split-layout { flex-direction:column !important; height:auto !important; overflow-y:auto; flex:1; }
-          .left-panel { width:100% !important; border-right:none !important; max-height:45vh; }
-          .today-section { min-height:0 !important; }
-        }
+        body { overflow-x:hidden; }
       `}</style>
 
       {/* Header */}
-      <div className="app-header" style={{ padding:"20px 28px 14px", borderBottom:`1px solid ${theme.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div className="app-title" style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3 }}>TASK TRACKER PRO</div>
-        <div className="app-header-right" style={{ display:"flex", gap:10, alignItems:"center" }}>
+      <div style={{
+        padding: isMobile ? "12px 14px 10px" : "20px 28px 14px",
+        borderBottom:`1px solid ${theme.border}`,
+        display:"flex",
+        flexDirection: isMobile ? "column" : "row",
+        justifyContent: isMobile ? "flex-start" : "space-between",
+        alignItems: isMobile ? "flex-start" : "center",
+        gap: isMobile ? 10 : 0,
+      }}>
+        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 20 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 2 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
           {user ? (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -739,15 +747,14 @@ export default function App() {
       {renderGhost()}
 
       {/* Split layout */}
-      <div className="split-layout" style={{ display:"flex", flex:1, height:"calc(100vh - 61px)" }}>
+      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 61px)", overflowY: isMobile ? "auto" : "visible" }}>
 
         {/* ── LEFT ── */}
-        <div ref={leftRef} className="left-panel" style={{ width:"38%", borderRight:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", overflowY:"auto" }}>
+        <div ref={leftRef} style={{ width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY:"auto", maxHeight: isMobile ? "45vh" : "none" }}>
 
           {/* TODAY */}
           <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-            className="today-section"
-            style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight:"45%" }}>
+            style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
             <div style={{ marginBottom:14 }}>
               <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
               <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
