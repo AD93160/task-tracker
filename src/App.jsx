@@ -40,13 +40,13 @@ export default function App() {
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
   const [authError,    setAuthError]    = useState(null);
-  const [isMobile,     setIsMobile]     = useState(() => window.innerWidth <= 640);
+  const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
+  const [isMobile,     setIsMobile]     = useState(checkMobile);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width:640px)");
-    const handler = e => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    const handler = () => setIsMobile(checkMobile());
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
   }, []);
 
   const [theme, setTheme] = useState({
