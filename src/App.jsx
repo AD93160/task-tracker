@@ -37,11 +37,15 @@ export default function App() {
   const [syncing,      setSyncing]      = useState(false);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
   const [authError,    setAuthError]    = useState(null);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
+  const [showDone,     setShowDone]     = useState(false);
+  const [sortBy,       setSortBy]       = useState(null);
+  const [sortDir,      setSortDir]      = useState("asc");
 
   useEffect(() => {
     const handler = () => setIsMobile(checkMobile());
@@ -91,11 +95,12 @@ export default function App() {
     ],
   };
 
-  const dragRef        = useRef({});
-  const leftRef        = useRef(null);
-  const ghostRef       = useRef(null);
-  const recognitionRef = useRef(null);
-  const fromFirestore  = useRef(false);
+  const dragRef          = useRef({});
+  const leftRef          = useRef(null);
+  const ghostRef         = useRef(null);
+  const recognitionRef   = useRef(null);
+  const fromFirestore    = useRef(false);
+  const longPressTimer   = useRef(null);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -307,15 +312,21 @@ export default function App() {
             if (!t.due) return "";
             const d = new Date(t.due);
             if (t.recurrence === "daily")   d.setDate(d.getDate()+1);
-            if (t.recurrence === "weekly")  d.setDate(d.getDate()+7);
             if (t.recurrence === "monthly") d.setMonth(d.getMonth()+1);
+            if (t.recurrence && /^weekly-\d+$/.test(t.recurrence)) {
+              const targetDay=parseInt(t.recurrence.split("-")[1]); // 1=Mon..7=Sun
+              d.setDate(d.getDate()+1);
+              while((d.getDay()||7)!==targetDay) d.setDate(d.getDate()+1);
+            }
+            if (t.recurrence === "weekly") d.setDate(d.getDate()+7);
             if (t.recurrence && t.recurrence.startsWith("monthly-day-")) {
               const day = parseInt(t.recurrence.split("-")[2]);
               d.setMonth(d.getMonth()+1); d.setDate(day);
             }
-            if (t.recurrence && t.recurrence.startsWith("yearly-")) {
-              const [,, mm, dd] = t.recurrence.split("-");
-              d.setFullYear(d.getFullYear()+1); d.setMonth(parseInt(mm)-1); d.setDate(parseInt(dd));
+            if (t.recurrence && t.recurrence.startsWith("monthly-ordinal-")) {
+              const parts=t.recurrence.split("-"); const ord=parseInt(parts[2]); const dow=parseInt(parts[3]);
+              d.setMonth(d.getMonth()+1); d.setDate(1);
+              let count=0; while(count<ord){ if((d.getDay()||7)===dow)count++; if(count<ord)d.setDate(d.getDate()+1); }
             }
             return d.toISOString().split("T")[0];
           })();
@@ -466,11 +477,29 @@ export default function App() {
   const onDropTomorrow = (e) => { e.preventDefault(); const {id,src}=dragRef.current; if((src==="list"||src==="bubble")&&id)addToTomorrow(id); setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
-  const onTouchStart = (e, id, src) => { const t=e.touches[0]; dragRef.current={id,src,startX:t.clientX,startY:t.clientY,moved:false}; setGhost({id,src,x:t.clientX,y:t.clientY}); };
-  const onTouchMove  = (e) => { const t=e.touches[0]; const {id,src}=dragRef.current; if(!id)return; dragRef.current.moved=true; setGhost({id,src,x:t.clientX,y:t.clientY}); setDropZone(getZoneAtPoint(t.clientX,t.clientY)); e.preventDefault(); };
+  const onTouchStart = (e, id, src) => {
+    const t=e.touches[0];
+    dragRef.current={id,src,startX:t.clientX,startY:t.clientY,curX:t.clientX,curY:t.clientY,moved:false,dragging:false};
+    longPressTimer.current = setTimeout(() => {
+      if (dragRef.current.id===id) {
+        dragRef.current.dragging=true;
+        setGhost({id,src,x:dragRef.current.curX,y:dragRef.current.curY});
+      }
+    }, 400);
+  };
+  const onTouchMove  = (e) => {
+    const t=e.touches[0]; const {id,src,dragging,startX,startY}=dragRef.current; if(!id)return;
+    dragRef.current.curX=t.clientX; dragRef.current.curY=t.clientY;
+    if (!dragging) {
+      if (Math.abs(t.clientX-startX)>10||Math.abs(t.clientY-startY)>10) { clearTimeout(longPressTimer.current); dragRef.current={}; }
+      return;
+    }
+    dragRef.current.moved=true; setGhost({id,src,x:t.clientX,y:t.clientY}); setDropZone(getZoneAtPoint(t.clientX,t.clientY)); e.preventDefault();
+  };
   const onTouchEnd   = (e) => {
-    const t=e.changedTouches[0]; const {id,src,moved}=dragRef.current; dragRef.current={}; setGhost(null); setDropZone(null);
-    if (!id||!moved) return;
+    clearTimeout(longPressTimer.current);
+    const t=e.changedTouches[0]; const {id,src,moved,dragging}=dragRef.current; dragRef.current={}; setGhost(null); setDropZone(null);
+    if (!id||!moved||!dragging) return;
     const zone=getZoneAtPoint(t.clientX,t.clientY);
     if (src==="list"&&zone==="today")         { addToToday(id); return; }
     if (src==="list"&&zone==="tomorrow")      { addToTomorrow(id); return; }
@@ -589,9 +618,9 @@ export default function App() {
       return (min<0?"−":"+")+p.join(" ");
     };
 
-    const StatRow = ({ emoji, label, value, color }) => (
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44` }}>
-        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}</span>
+    const StatRow = ({ emoji, label, value, color, onClick }) => (
+      <div onClick={onClick} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44`,cursor:onClick?"pointer":"default" }}>
+        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}{onClick?" →":""}</span>
         <span style={{ fontSize:13,fontWeight:700,color:color||theme.text }}>{value}</span>
       </div>
     );
@@ -612,7 +641,7 @@ export default function App() {
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
-        <StatRow emoji="✅" label="Terminées" value={done.length+"/"+total} />
+        <StatRow emoji="✅" label="Terminées" value={done.length+"/"+total} onClick={()=>setShowDone(true)} />
         <StatRow emoji="⚡" label="En avance"  value={early.length} color="#3aaa3a" />
         <StatRow emoji="🎯" label="À temps"     value={onTime.length} color="#ccaa00" />
         <StatRow emoji="⚠"  label="En retard"  value={late.length}  color="#cc3030" />
@@ -666,25 +695,33 @@ export default function App() {
 
       {/* Header */}
       <div style={{
-        padding: isMobile ? "12px 14px 10px" : "20px 28px 14px",
+        padding: isMobile ? "10px 12px 8px" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
         display:"flex",
-        flexDirection: isMobile ? "column" : "row",
-        justifyContent: isMobile ? "flex-start" : "space-between",
-        alignItems: isMobile ? "flex-start" : "center",
-        gap: isMobile ? 10 : 0,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
       }}>
-        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 20 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 2 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 15 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 1 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
           {user ? (
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              {user.photoURL
-                ? <img src={user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55` }} />
-                : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:theme.accent }}>👤</div>
-              }
-              <span style={{ fontSize:10,color:theme.textMuted,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user.displayName||user.email}</span>
-              <button onClick={logout} title="Se déconnecter" style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"4px 8px",color:theme.textMuted,fontSize:15,cursor:"pointer",lineHeight:1 }}>🚪</button>
+            <div style={{ position:"relative" }}>
+              {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
+              <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
+                {user.photoURL
+                  ? <img src={user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
+                  : <div style={{ width:30,height:30,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:theme.accent }}>
+                      {(user.displayName||user.email||"?")[0].toUpperCase()}
+                    </div>
+                }
+              </div>
+              {showUserMenu && (
+                <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
+                  <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
+                  <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ position:"relative" }}>
@@ -830,7 +867,7 @@ export default function App() {
           style={{ flex: isMobile ? "none" : 1, minWidth:0, minHeight: isMobile ? "calc(100vh - 61px)" : 0, padding:"20px 16px", overflowY: isMobile ? "visible" : "auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Top bar */}
-          <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"relative", width:"100%" }}>
+          <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
             <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               + Ajouter
@@ -922,28 +959,55 @@ export default function App() {
                       style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 11px",color:theme.text,fontSize:16,resize:"none",width:"100%" }} />
                     <div>
                       <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RÉCURRENCE</div>
-                      <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:8 }}>
-                        {[{v:"none",l:"Aucune"},{v:"daily",l:"Quotidien"},{v:"weekly",l:"Hebdo"},{v:"monthly",l:"Mensuel"}].map(({v,l})=>(
-                          <button key={v} onClick={()=>setForm(f=>({...f,recurrence:v}))}
-                            style={{ background:form.recurrence===v?theme.accent+"33":"transparent",border:`1px solid ${form.recurrence===v?theme.accent:theme.border}`,borderRadius:6,padding:"5px 10px",color:form.recurrence===v?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
+                      <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:10 }}>
+                        {[{v:"daily",l:"Quotidien"},{v:"weekly",l:"Hebdo"},{v:"monthly",l:"Mensuel"}].map(({v,l})=>(
+                          <button key={v} onClick={()=>setForm(f=>({...f,recurrence:f.recurrence===v?"none":v}))}
+                            style={{ background:String(form.recurrence).startsWith(v)&&form.recurrence!=="none"?theme.accent+"33":"transparent",border:`1px solid ${String(form.recurrence).startsWith(v)&&form.recurrence!=="none"?theme.accent:theme.border}`,borderRadius:6,padding:"5px 10px",color:String(form.recurrence).startsWith(v)&&form.recurrence!=="none"?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
                             {l}
                           </button>
                         ))}
+                        {form.recurrence&&form.recurrence!=="none" && <button onClick={()=>{setForm(f=>({...f,recurrence:"none"}));setRecurDay("");setRecurMonthDay("");}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
                       </div>
-                      {/* Jour fixe du mois */}
-                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
-                        <span style={{ fontSize:10,color:theme.textMuted,minWidth:120 }}>Tous les … du mois</span>
-                        <input type="number" min="1" max="31" placeholder="ex: 26" value={recurDay}
-                          onChange={e=>{setRecurDay(e.target.value);if(e.target.value)setForm(f=>({...f,recurrence:`monthly-day-${e.target.value}`}));}}
-                          style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("monthly-day")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:70 }} />
-                      </div>
-                      {/* Date fixe de l'année */}
-                      <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                        <span style={{ fontSize:10,color:theme.textMuted,minWidth:120 }}>Chaque année le</span>
-                        <input type="date" value={recurMonthDay ? `2000-${recurMonthDay}` : ""}
-                          onChange={e=>{const v=e.target.value.slice(5);setRecurMonthDay(v);if(v)setForm(f=>({...f,recurrence:"yearly-"+v}));}}
-                          style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("yearly")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,flex:1 }} />
-                      </div>
+                      {/* Hebdo : choix du jour */}
+                      {String(form.recurrence).startsWith("weekly") && (
+                        <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:8 }}>
+                          {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map((d,i)=>{
+                            const dayVal=`weekly-${i+1}`;
+                            return (
+                              <button key={i} onClick={()=>setForm(f=>({...f,recurrence:dayVal}))}
+                                style={{ background:form.recurrence===dayVal?theme.accent+"44":"transparent",border:`1px solid ${form.recurrence===dayVal?theme.accent:theme.border}`,borderRadius:5,padding:"4px 8px",color:form.recurrence===dayVal?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Mensuel : date du mois ET/OU Xe jour de semaine */}
+                      {String(form.recurrence).startsWith("monthly") && (
+                        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                            <span style={{ fontSize:10,color:theme.textMuted,minWidth:80 }}>Le … du mois</span>
+                            <input type="number" min="1" max="31" placeholder="1-31" value={recurDay}
+                              onChange={e=>{setRecurDay(e.target.value);setForm(f=>({...f,recurrence:e.target.value?`monthly-day-${e.target.value}`:"monthly"}));}}
+                              style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:65 }} />
+                            {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:"monthly"}));}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
+                          </div>
+                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+                            <span style={{ fontSize:10,color:theme.textMuted,minWidth:80 }}>Le … e</span>
+                            <select value={recurMonthDay.split("-")[0]||""} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"";setRecurMonthDay(o?`${o}-${d||"1"}`:d?`-${d}`:"");if(o||(d))setForm(f=>({...f,recurrence:`monthly-ordinal-${o||"1"}-${d||"1"}`}));}}
+                              style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                              <option value="">–</option>
+                              {["1er","2e","3e","4e","5e"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
+                            </select>
+                            <select value={recurMonthDay.split("-")[1]||""} onChange={e=>{const d=e.target.value,o=recurMonthDay.split("-")[0]||"1";setRecurMonthDay(d?`${o}-${d}`:"");if(d)setForm(f=>({...f,recurrence:`monthly-ordinal-${o}-${d}`}));}}
+                              style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                              <option value="">–</option>
+                              {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
+                            </select>
+                            {recurMonthDay&&<button onClick={()=>{setRecurMonthDay("");setForm(f=>({...f,recurrence:"monthly"}));}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
                       <div style={{ display:"flex",alignItems:"center",gap:8 }}>
@@ -1010,9 +1074,44 @@ export default function App() {
             </div>
           )}
 
+          {/* Sort bar */}
+          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+            <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
+            {[{v:"added",l:"Ajout"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"delay",l:"Retard"},{v:"status",l:"Statut"}].map(({v,l})=>(
+              <button key={v} onClick={()=>{ if(sortBy===v){setSortDir(d=>d==="asc"?"desc":"asc");}else{setSortBy(v);setSortDir("asc");} }}
+                style={{ background:sortBy===v?theme.accent+"33":"transparent",border:`1px solid ${sortBy===v?theme.accent:theme.border}`,borderRadius:5,padding:"3px 8px",color:sortBy===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                {l}{sortBy===v?(sortDir==="asc"?" ↑":" ↓"):""}
+              </button>
+            ))}
+            {sortBy && <button onClick={()=>setSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
+          </div>
+
           {/* Task rows */}
           <div style={{ display:"grid", gap:5 }}>
-            {tasks.map((task, idx) => {
+            {(() => {
+              const PRIO_ORDER = { "Haute":0, "Moyenne":1, "Basse":2 };
+              const STATUS_ORDER = { "En cours":0, "À faire":1, "Terminé":2 };
+              const today = todayStr();
+              let visible = tasks.filter(t => t.status !== "Terminé");
+              if (sortBy) {
+                visible = [...visible].sort((a,b) => {
+                  let va, vb;
+                  if (sortBy==="added")    { va=tasks.indexOf(a); vb=tasks.indexOf(b); }
+                  if (sortBy==="priority") { va=PRIO_ORDER[a.priority]??9; vb=PRIO_ORDER[b.priority]??9; }
+                  if (sortBy==="due") {
+                    const getEff = t => t.due ? t.due : (todayIds.includes(t.id)?today:(tomorrowIds.find(e=>e.id===t.id)?"9999-12-31":"9999-12-32"));
+                    va=getEff(a); vb=getEff(b);
+                  }
+                  if (sortBy==="delay") {
+                    va=a.due&&a.due<today?(new Date(today)-new Date(a.due)):0;
+                    vb=b.due&&b.due<today?(new Date(today)-new Date(b.due)):0;
+                  }
+                  if (sortBy==="status") { va=STATUS_ORDER[a.status]??9; vb=STATUS_ORDER[b.status]??9; }
+                  return sortDir==="asc" ? (va>vb?1:va<vb?-1:0) : (va<vb?1:va>vb?-1:0);
+                });
+              }
+              return visible;
+            })().map((task, idx) => {
               const inToday = todayIds.includes(task.id);
               const inTom   = tomorrowIds.map(e=>e.id).includes(task.id);
               const hl      = isHL(task.id);
@@ -1042,7 +1141,7 @@ export default function App() {
                       </span>
                       {inToday && <span style={{ fontSize:9,color:theme.accent,padding:"1px 5px",background:theme.accent+"22",borderRadius:3 }}>● aujourd'hui</span>}
                       {inTom   && <span style={{ fontSize:9,color:theme.accent+"88",padding:"1px 5px",background:theme.accent+"11",borderRadius:3 }}>○ demain</span>}
-                      {task.recurrence&&task.recurrence!=="none" && <span style={{ fontSize:9,color:"#ccaa00",padding:"1px 5px",background:"#ccaa0022",borderRadius:3 }}>🔁 {task.recurrence==="daily"?"quotidien":task.recurrence==="weekly"?"hebdo":task.recurrence==="monthly"?"mensuel":String(task.recurrence).startsWith("monthly-day")?"j."+task.recurrence.split("-")[2]+"/mois":String(task.recurrence).startsWith("yearly")?"annuel":""}</span>}
+                      {task.recurrence&&task.recurrence!=="none" && <span style={{ fontSize:9,color:"#ccaa00",padding:"1px 5px",background:"#ccaa0022",borderRadius:3 }}>🔁 {(()=>{const r=task.recurrence;if(r==="daily")return"quotidien";if(r==="monthly")return"mensuel";if(r==="weekly")return"hebdo";if(/^weekly-\d+$/.test(r))return["","Lun","Mar","Mer","Jeu","Ven","Sam","Dim"][parseInt(r.split("-")[1])]||"hebdo";if(r.startsWith("monthly-day-"))return"le "+r.split("-")[2]+"/mois";if(r.startsWith("monthly-ordinal-")){const p=r.split("-");return["","1er","2e","3e","4e","5e"][p[2]]+" "+["","Lun","Mar","Mer","Jeu","Ven","Sam","Dim"][p[3]];}return r;})()}</span>}
                     </div>
                     {task.status==="Terminé"&&task.completion ? (
                       <div style={{ display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap" }}>
@@ -1075,15 +1174,16 @@ export default function App() {
                     )}
                     {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                   </div>
-                  <div style={{ display:"flex",gap:4,flexShrink:0 }}>
-                    <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 7px",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>⧉</button>
-                    {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 7px",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>📅</button>}
-                    <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>✕</button>
+                  <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
+                    <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
+                    {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
+                    <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                   </div>
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
 
         </div>{/* end RIGHT */}
 
@@ -1099,6 +1199,34 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:320,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:20 }}>STATISTIQUES</div>
             {renderStats()}
+          </div>
+        </div>
+      )}
+
+      {/* Tâches terminées */}
+      {showDone && (
+        <div style={{ position:"fixed",inset:0,zIndex:250,background:"#000000bb",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,padding:"60px 16px 16px" }}
+          onClick={()=>setShowDone(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES TERMINÉES</div>
+              <button onClick={()=>setShowDone(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+            </div>
+            {[...tasks.filter(t=>t.status==="Terminé")].sort((a,b)=>tasks.indexOf(a)-tasks.indexOf(b)).map(t=>(
+              <div key={t.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:11,color:theme.textMuted,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>#{taskNum(t.id)} {t.title}</div>
+                  {t.completion && (
+                    <div style={{ fontSize:9,color:theme.textMuted,marginTop:2 }}>
+                      🏆 {t.completion.doneDate}
+                      {t.completion.deltaLabel && <span style={{ marginLeft:6,color:t.completion.deltaMin<0?"#3aaa3a":"#cc3030" }}>{t.completion.deltaMin<0?"⚡ ":"⚠ "}{t.completion.deltaLabel}</span>}
+                    </div>
+                  )}
+                </div>
+                <button onClick={()=>{ setTasks(p=>p.map(x=>x.id===t.id?{...x,status:"À faire",completion:null}:x)); }} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",marginLeft:10,flexShrink:0 }}>↩</button>
+              </div>
+            ))}
+            {tasks.filter(t=>t.status==="Terminé").length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche terminée</div>}
           </div>
         </div>
       )}
