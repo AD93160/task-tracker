@@ -11,20 +11,37 @@
 - Icône calendrier adaptée au thème sombre/clair
 - Nom app : Task Tracker
 - inputs fontSize 16px (no zoom iOS)
+- Dupliquer une tâche ⧉
+- Récurrence — quotidien / hebdo / mensuel / jour fixe du mois / date fixe annuelle 🔁
+- Export agenda .ics 📅 — compatible Apple Calendar / Google Calendar
+- Thème Hermès + mode clair par défaut
+- Firebase Auth Google 🔑
+- Firestore sync 🔄 — temps réel multi-appareils
 
 ---
 
-## 🔜 À faire — Web App (prochaines sessions)
+## 🔜 À faire — Prochaine session
+
+### UI / UX
+- [ ] **Logo de l'app** — créer un logo + l'afficher dans l'onglet navigateur (favicon) et sur l'écran d'accueil PWA
+- [ ] **Boutons Connexion / Déco** — retravailler le design, ajouter logo Google, plus jolis
+- [ ] **Renommer le thème "Hermès"** — éviter les problèmes de marque déposée
+- [ ] **Drag → bulle immédiate** — la carte se transforme en bulle dès le début du glissement
+- [ ] **Tâche future placée dans Aujourd'hui → couleur dorée immédiate** — ne pas attendre le jour J si manuellement glissée dans aujourd'hui
+
+### Auth
+- [ ] **Connexion Apple** — via Firebase Auth
+- [ ] **Connexion Facebook** — via Firebase Auth
+- [ ] **Connexion email/mot de passe** — option supplémentaire
+
+---
+
+## 🔜 À faire — Web App (sessions suivantes)
 
 ### Fonctionnalités
-- [ ] **1. Dupliquer une tâche** — rouvre formulaire pré-rempli (nom/priorité/statut), nouvelle échéance à choisir
-- [ ] **2. Récurrence** — quotidien / hebdo / mensuel, recrée la tâche automatiquement une fois terminée
-- [ ] **4. Export agenda (.ics)** — bouton "Ajouter à l'agenda" sur chaque tâche avec date, génère un fichier .ics compatible Apple Calendar / Google Calendar
-
-### Compte utilisateur & sync
-- [ ] Firebase Auth — connexion Google / Apple / Facebook
-- [ ] Firestore — base de données, sync multi-appareils
-- [ ] Chaque utilisateur a ses propres tâches
+- [ ] Autres langues (EN, ES, etc.) — fichier de traductions + sélecteur dans paramètres
+- [ ] Notifications push programmées à une heure précise
+- [ ] Assignation de tâche à un autre utilisateur (mode collaboratif)
 
 ### Monétisation
 - [ ] Modèle freemium — gratuit avec pub, abonnement pour supprimer pub + features pro
@@ -34,10 +51,11 @@
 
 ## 📱 À faire — App Native (Capacitor — après validation web app)
 
-- [ ] **3. Alarme système** — déclencher une vraie alarme via l'horloge du téléphone
-- [ ] **4. Sync agenda** — suppression automatique dans Apple/Google Calendar quand tâche supprimée ou terminée
-- [ ] **5. Notification par mail** — EmailJS ou Resend, l'utilisateur entre son adresse mail (Resend recommandé pour scale)
-- [ ] **Vrai bandeau pub AdMob** — remplacer le placeholder par Google AdMob
+- [ ] Alarme système — déclencher une vraie alarme via l'horloge du téléphone
+- [ ] Sync agenda automatique — suppression dans Apple/Google Calendar quand tâche supprimée ou terminée
+- [ ] Notification par mail — Resend (~20€/mois pour 50k mails)
+- [ ] Vrai bandeau pub AdMob — remplacer le placeholder
+- [ ] Outlook / Microsoft To Do — intégration via Microsoft Graph API + Azure
 - [ ] Soumission App Store (compte Apple 99€/an)
 - [ ] Soumission Play Store (compte Google 25€ unique)
 
@@ -46,7 +64,9 @@
 ## 💡 Notes techniques
 - Stack : React + Vite + Vercel
 - PWA : manifest.json + service worker
-- Auth future : Firebase Auth
-- DB future : Firestore
-- Mail future : Resend (~20€/mois pour 50k mails)
+- Auth : Firebase Auth (Google actif)
+- DB : Firestore (sync temps réel actif)
+- URL : task-tracker-alpha-teal.vercel.app
+- Clé API Firebase restreinte aux APIs nécessaires
+- Mail future : Resend
 - Pub : Google AdMob (intégration Capacitor)
