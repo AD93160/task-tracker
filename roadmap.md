@@ -33,7 +33,26 @@
 
 ## 🔜 À faire — Prochaine session
 
-_(rien pour l'instant — voir sections suivantes)_
+### 📱 Mobile uniquement
+- [ ] **Scroll sans drag** — allonger la durée de pression (long press) pour différencier scroll et drag & drop
+- [ ] **Boutons Supprimer / Dupliquer** — agrandir, trop petits sur mobile
+- [ ] **Header mobile** — garder les boutons Connexion, Stats et Réglages à droite (ne pas les empiler)
+
+### 🖥️ Desktop uniquement
+_(rien)_
+
+### 📱🖥️ Les deux
+
+- [ ] **Création logo App** — identité visuelle de l'application
+- [ ] **Charte graphique** — définir couleurs et polices officielles de l'app
+- [ ] **Monétiser le bandeau pub** — intégrer Google AdSense ou AdMob web
+- [ ] **Tâches terminées** — les faire disparaître de la liste principale + section dédiée accessible via "Terminées" dans les stats, triables par numéro de bulle (défaut) ou date de réalisation
+- [ ] **Système de tri des tâches** (bloc droit) — trier par : date d'ajout / priorité / date d'échéance (si dans aujourd'hui ou demain sans date = pris en compte) / retard / statut — ordre croissant ou décroissant — tâches sans date et non planifiées = fin de liste
+- [ ] **Déconnexion via nom utilisateur** — supprimer le bouton 🚪, remplacer par un clic sur le nom utilisateur → menu avec "Se déconnecter"
+- [ ] **Afficher uniquement l'initiale** dans le cercle utilisateur (au lieu du nom complet) — comme le comportement Google
+- [ ] **Configurer Auth Apple et Facebook** — activer dans la console Firebase + configurer les app IDs
+- [ ] **Refonte récurrence** — supprimer "tous les X du mois" et "chaque année le" et le bouton "Aucune" — Hebdo → menu déroulant jours de la semaine — Mensuel → deux menus : jour de la semaine + date du mois (indépendants, remise à zéro possible) — gérer "3e mercredi du mois" (semaine ordinale + jour)
+- [ ] **Bouton "Ajouter" figé** — rester visible en haut du bloc tâches pendant le scroll
 
 ---
 
