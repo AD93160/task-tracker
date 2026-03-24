@@ -95,6 +95,7 @@ export default function App() {
   const leftRef        = useRef(null);
   const ghostRef       = useRef(null);
   const recognitionRef = useRef(null);
+  const fromFirestore  = useRef(false);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -178,6 +179,7 @@ export default function App() {
     const ref = doc(db, "users", user.uid);
     const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
+        fromFirestore.current = true;
         const data = snap.data();
         if (data.tasks)        setTasks(data.tasks);
         if (data.todayIds)     setTodayIds(data.todayIds);
@@ -190,9 +192,10 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  // Sync local → Firestore à chaque changement
+  // Sync local → Firestore à chaque changement (sauf si la mise à jour vient de Firestore)
   useEffect(() => {
     if (!user) return;
+    if (fromFirestore.current) { fromFirestore.current = false; return; }
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     setDoc(ref, { tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted }, { merge: true })
