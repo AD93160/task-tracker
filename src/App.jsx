@@ -683,9 +683,7 @@ export default function App() {
                 : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:theme.accent }}>👤</div>
               }
               <span style={{ fontSize:10,color:theme.textMuted,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user.displayName||user.email}</span>
-              <button onClick={logout} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"4px 10px",color:theme.textMuted,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",gap:4 }}>
-                <span style={{ fontSize:11 }}>↩</span> Déco
-              </button>
+              <button onClick={logout} title="Se déconnecter" style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"4px 8px",color:theme.textMuted,fontSize:15,cursor:"pointer",lineHeight:1 }}>🚪</button>
             </div>
           ) : (
             <div style={{ position:"relative" }}>
@@ -750,10 +748,10 @@ export default function App() {
       {renderGhost()}
 
       {/* Split layout */}
-      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 61px)", overflowY: isMobile ? "auto" : "visible" }}>
+      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow:"hidden" }}>
 
         {/* ── LEFT ── */}
-        <div ref={leftRef} style={{ width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY:"auto", maxHeight: isMobile ? "45vh" : "none" }}>
+        <div ref={leftRef} style={{ width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0, maxHeight: isMobile ? "42vh" : "none" }}>
 
           {/* TODAY */}
           <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
@@ -792,7 +790,7 @@ export default function App() {
 
           {/* TOMORROW */}
           <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-            style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight:"45%" }}>
+            style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
             <div style={{ marginBottom:14 }}>
               <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
               <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -828,7 +826,7 @@ export default function App() {
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
-          style={{ flex:1, minWidth:0, padding:"20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          style={{ flex:1, minWidth:0, minHeight:0, padding:"20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Top bar */}
           <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"relative", width:"100%" }}>
