@@ -17,6 +17,9 @@
 - Thème Hermès + mode clair par défaut
 - Firebase Auth Google 🔑
 - Firestore sync 🔄 — temps réel multi-appareils
+- Layout mobile responsive — header empilé, panels en colonne, scroll indépendant
+- Règles de sécurité Firestore — lecture/écriture limitée à l'utilisateur authentifié
+- Nettoyage des fichiers dupliqués et obsolètes à la racine
 
 ---
 
@@ -67,6 +70,6 @@
 - Auth : Firebase Auth (Google actif)
 - DB : Firestore (sync temps réel actif)
 - URL : task-tracker-alpha-teal.vercel.app
-- Clé API Firebase restreinte aux APIs nécessaires
+- Clé API Firebase restreinte aux APIs nécessaires + domaines autorisés configurés
 - Mail future : Resend
 - Pub : Google AdMob (intégration Capacitor)
