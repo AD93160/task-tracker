@@ -20,22 +20,20 @@
 - Layout mobile responsive — header empilé, panels en colonne, scroll indépendant
 - Règles de sécurité Firestore — lecture/écriture limitée à l'utilisateur authentifié
 - Nettoyage des fichiers dupliqués et obsolètes à la racine
+- Logo de l'app — favicon.svg personnalisé + PWA icon
+- Boutons Connexion retravaillés — logos Google / Apple / Facebook + icône 🚪 déconnexion
+- Renommer le thème "Hermès" → "Cognac"
+- Drag → bulle immédiate — ghost circulaire dès le début du glissement
+- Tâche future glissée dans Aujourd'hui → couleur dorée immédiate
+- Connexion Apple via Firebase Auth
+- Connexion Facebook via Firebase Auth
+- Connexion email/mot de passe
 
 ---
 
 ## 🔜 À faire — Prochaine session
 
-### UI / UX
-- [ ] **Logo de l'app** — créer un logo + l'afficher dans l'onglet navigateur (favicon) et sur l'écran d'accueil PWA
-- [ ] **Boutons Connexion / Déco** — retravailler le design, ajouter logo Google, plus jolis
-- [ ] **Renommer le thème "Hermès"** — éviter les problèmes de marque déposée
-- [ ] **Drag → bulle immédiate** — la carte se transforme en bulle dès le début du glissement
-- [ ] **Tâche future placée dans Aujourd'hui → couleur dorée immédiate** — ne pas attendre le jour J si manuellement glissée dans aujourd'hui
-
-### Auth
-- [ ] **Connexion Apple** — via Firebase Auth
-- [ ] **Connexion Facebook** — via Firebase Auth
-- [ ] **Connexion email/mot de passe** — option supplémentaire
+_(rien pour l'instant — voir sections suivantes)_
 
 ---
 
