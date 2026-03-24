@@ -43,14 +43,14 @@ _(rien)_
 
 ### 📱🖥️ Les deux
 
-- [ ] **Création logo App** — identité visuelle de l'application
-- [ ] **Charte graphique** — définir couleurs et polices officielles de l'app
-- [ ] **Monétiser le bandeau pub** — intégrer Google AdSense ou AdMob web
+- [x] **Création logo App** — 3 bulles + coche sur fond dégradé orange (favicon.svg)
+- [ ] **Charte graphique** — à formaliser (base : thème Cognac, police titre Playfair Display, police texte DM Mono)
+- [x] **Monétiser le bandeau pub** — structure AdSense intégrée (remplacer ADSENSE_CLIENT et ADSENSE_SLOT dans App.jsx dès approbation du compte)
 - [ ] **Tâches terminées** — les faire disparaître de la liste principale + section dédiée accessible via "Terminées" dans les stats, triables par numéro de bulle (défaut) ou date de réalisation
 - [ ] **Système de tri des tâches** (bloc droit) — trier par : date d'ajout / priorité / date d'échéance (si dans aujourd'hui ou demain sans date = pris en compte) / retard / statut — ordre croissant ou décroissant — tâches sans date et non planifiées = fin de liste
 - [ ] **Déconnexion via nom utilisateur** — supprimer le bouton 🚪, remplacer par un clic sur le nom utilisateur → menu avec "Se déconnecter"
 - [ ] **Afficher uniquement l'initiale** dans le cercle utilisateur (au lieu du nom complet) — comme le comportement Google
-- [ ] **Configurer Auth Apple et Facebook** — activer dans la console Firebase + configurer les app IDs
+- [ ] **Configurer Auth Apple et Facebook** — code prêt, nécessite config externe : Apple (developer.apple.com → Sign In with Apple) + Facebook (developers.facebook.com → Facebook Login) + activer dans console Firebase
 - [ ] **Refonte récurrence** — supprimer "tous les X du mois" et "chaque année le" et le bouton "Aucune" — Hebdo → menu déroulant jours de la semaine — Mensuel → deux menus : jour de la semaine + date du mois (indépendants, remise à zéro possible) — gérer "3e mercredi du mois" (semaine ordinale + jour)
 - [ ] **Bouton "Ajouter" figé** — rester visible en haut du bloc tâches pendant le scroll
 

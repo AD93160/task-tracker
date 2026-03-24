@@ -3,6 +3,33 @@ import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, OAuthProvider, FacebookAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
+// Remplacer "ca-pub-XXXXXXXXXXXXXXXXX" par ton Publisher ID AdSense
+// et "XXXXXXXXXX" par ton Ad Unit ID
+const ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXXXX";
+const ADSENSE_SLOT   = "XXXXXXXXXX";
+
+function AdBanner() {
+  useEffect(() => {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+  }, []);
+  if (ADSENSE_CLIENT.includes("XXXXX")) {
+    // Placeholder tant que le compte AdSense n'est pas configuré
+    return (
+      <div style={{ width:"100%",height:50,display:"flex",alignItems:"center",justifyContent:"center",opacity:0.3 }}>
+        <span style={{ fontSize:9,letterSpacing:2,color:"#888" }}>ESPACE PUBLICITAIRE</span>
+      </div>
+    );
+  }
+  return (
+    <ins className="adsbygoogle"
+      style={{ display:"block", width:"100%", height:50 }}
+      data-ad-client={ADSENSE_CLIENT}
+      data-ad-slot={ADSENSE_SLOT}
+      data-ad-format="horizontal"
+      data-full-width-responsive="true" />
+  );
+}
+
 const PRIORITIES = ["Haute", "Moyenne", "Basse"];
 const STATUSES   = ["À faire", "En cours", "Terminé"];
 const STATUS_DOT = { "À faire":"#4a4a8a", "En cours":"#40a040", "Terminé":"#a040a0" };
@@ -1290,12 +1317,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Bandeau publicitaire */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, height:56, background:theme.mode==="dark"?"#0a0a18":"#f0f0ea", borderTop:`1px solid ${theme.border}`, display:"flex", alignItems:"center", justifyContent:"center", zIndex:300 }}>
-        <div style={{ width:"100%", height:40, background:theme.mode==="dark"?"#12122a":"#e8e8f0", borderRadius:0, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-          <span style={{ fontSize:9, color:theme.textMuted, letterSpacing:2 }}>PUBLICITÉ</span>
-          <span style={{ fontSize:11, color:theme.textMuted }}>Google AdMob — 728×90</span>
-        </div>
+      {/* Bandeau publicitaire AdSense */}
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:theme.mode==="dark"?"#0a0a18":"#f0f0ea", borderTop:`1px solid ${theme.border}`, display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, minHeight:56 }}>
+        <AdBanner />
       </div>
 
       {/* Spacer pour le bandeau pub */}
