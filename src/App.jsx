@@ -403,7 +403,8 @@ export default function App() {
         }
         return completed;
       }
-      return { ...t, status:next, completion:null };
+      // Retour depuis Terminé : conserver num d'origine (jamais en réassigner un nouveau)
+      return { ...t, status:next, completion:null, num:t.num };
     }));
   };
 
@@ -1314,7 +1315,17 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <button onClick={()=>{ setTasks(p=>p.map(x=>x.id===t.id?{...x,status:"À faire",completion:null}:x)); }} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",marginLeft:10,flexShrink:0 }}>↩</button>
+                <button onClick={()=>{
+                  if (t.num != null) {
+                    setTasks(p=>p.map(x=>x.id===t.id?{...x,status:"À faire",completion:null}:x));
+                  } else {
+                    setTaskCounter(c => {
+                      const n = c + 1;
+                      setTasks(p=>p.map(x=>x.id===t.id?{...x,status:"À faire",completion:null,num:n}:x));
+                      return n;
+                    });
+                  }
+                }} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",marginLeft:10,flexShrink:0 }}>↩</button>
               </div>
             ))}
             {tasks.filter(t=>t.status==="Terminé").length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche terminée</div>}
