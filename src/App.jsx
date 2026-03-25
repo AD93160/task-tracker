@@ -261,7 +261,8 @@ export default function App() {
     if (fromFirestore.current) { fromFirestore.current = false; return; }
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
-    setDoc(ref, { tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter }, { merge: true })
+    const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
+    setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter }), { merge: true })
       .finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter]);
 
@@ -440,7 +441,7 @@ export default function App() {
   };
 
   const duplicateTask = (task) => {
-    const newNum = numberingMode === "permanent" ? taskCounter + 1 : undefined;
+    const newNum = numberingMode === "permanent" ? taskCounter + 1 : null;
     if (numberingMode === "permanent") setTaskCounter(c => c + 1);
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
@@ -472,7 +473,7 @@ export default function App() {
       }
       setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
     } else {
-      const newNum = numberingMode === "permanent" ? taskCounter + 1 : undefined;
+      const newNum = numberingMode === "permanent" ? taskCounter + 1 : null;
       if (numberingMode === "permanent") setTaskCounter(c => c + 1);
       const newTask = {...form, id:Date.now(), num:newNum};
       setTasks(prev=>[...prev,newTask]); setPendingTask(newTask); setFormStep(2); setCustomDate("");
