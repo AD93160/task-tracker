@@ -93,7 +93,6 @@ export default function App() {
   const [showDone,     setShowDone]     = useState(false);
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
-  const [numberingMode,setNumberingMode]= useState(() => load("tt_numMode", "dynamic"));
   const [taskCounter,  setTaskCounter]  = useState(() => load("tt_counter", 0));
   const [recurError,   setRecurError]   = useState(null);
 
@@ -202,14 +201,10 @@ export default function App() {
   };
 
   const getTask = (id) => tasks.find(t => t.id === id);
-  // Numérotation : calculée une seule fois par render → bulle et carte lisent TOUJOURS la même valeur
+  // Numérotation permanente : chaque tâche garde son numéro à vie
   const numMap = (() => {
     const m = {};
-    if (numberingMode === "permanent") {
-      tasks.forEach(t => { m[t.id] = t.num != null ? t.num : "?"; });
-    } else {
-      tasks.forEach((t, i) => { m[t.id] = i + 1; });
-    }
+    tasks.forEach(t => { m[t.id] = t.num != null ? t.num : "?"; });
     return m;
   })();
   const taskNum = (id) => numMap[id] ?? "?";
@@ -222,7 +217,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_tomorrowIds",  JSON.stringify(tomorrowIds));  }, [tomorrowIds]);
   useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
   useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
-  useEffect(() => { localStorage.setItem("tt_numMode",      JSON.stringify(numberingMode)); }, [numberingMode]);
   useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
 
   const sendNotif = (title, body, tag) => {
@@ -255,7 +249,6 @@ export default function App() {
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
         if (data.theme)        setTheme(t => ({...t, ...data.theme}));
-        if (data.numberingMode) setNumberingMode(data.numberingMode);
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
       }
     });
@@ -269,9 +262,9 @@ export default function App() {
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
-    setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter }), { merge: true })
+    setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true })
       .finally(() => setSyncing(false));
-  }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter]);
+  }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
 
   const loginGoogle = async () => {
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
@@ -448,8 +441,8 @@ export default function App() {
   };
 
   const duplicateTask = (task) => {
-    const newNum = numberingMode === "permanent" ? taskCounter + 1 : null;
-    if (numberingMode === "permanent") setTaskCounter(c => c + 1);
+    const newNum = taskCounter + 1;
+    setTaskCounter(c => c + 1);
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
@@ -480,8 +473,8 @@ export default function App() {
       }
       setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
     } else {
-      const newNum = numberingMode === "permanent" ? taskCounter + 1 : null;
-      if (numberingMode === "permanent") setTaskCounter(c => c + 1);
+      const newNum = taskCounter + 1;
+      setTaskCounter(c => c + 1);
       const newTask = {...form, id:Date.now(), num:newNum};
       setTasks(prev=>[...prev,newTask]); setPendingTask(newTask); setFormStep(2); setCustomDate("");
     }
@@ -1367,33 +1360,6 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>NUMÉROTATION</div>
-            <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:18 }}>
-              {[{v:"dynamic",l:"Dynamique",d:"Renumérotées selon l'ordre d'ajout"},{v:"permanent",l:"Permanente",d:"Numéro fixe conservé à vie"}].map(({v,l,d})=>(
-                <button key={v} onClick={()=>{
-                  if(v==="permanent" && numberingMode!=="permanent"){
-                    let counter = taskCounter;
-                    setTasks(prev => prev.map(t => {
-                      if(t.num != null) return t;
-                      counter++;
-                      return {...t, num: counter};
-                    }));
-                    setTaskCounter(counter);
-                  }
-                  setNumberingMode(v);
-                }}
-                  style={{ background:numberingMode===v?theme.accent+"33":"transparent",border:`1px solid ${numberingMode===v?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"8px 12px",cursor:"pointer",color:numberingMode===v?"#fff":"#666688",fontSize:11,textAlign:"left" }}>
-                  <div style={{ fontWeight:700,marginBottom:2 }}>{l}</div>
-                  <div style={{ fontSize:9,opacity:0.7 }}>{d}</div>
-                </button>
-              ))}
-              {numberingMode==="permanent" && (
-                <button onClick={()=>{ if(window.confirm("Remettre le compteur à 0 ?")) setTaskCounter(0); }}
-                  style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:7,padding:"6px 12px",color:"#aa3030",fontSize:11,cursor:"pointer",textAlign:"left" }}>
-                  ↺ Réinitialiser le compteur (actuellement #{taskCounter})
-                </button>
-              )}
-            </div>
 
             <button onClick={async()=>{
               if(!user){alert("Connecte-toi pour sauvegarder le thème.");return;}
@@ -1407,7 +1373,7 @@ export default function App() {
             <button onClick={async()=>{
               if(!window.confirm("Effacer TOUTES les tâches et réinitialiser l'appli ? Cette action est irréversible.")) return;
               ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
-              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],numberingMode:"dynamic",taskCounter:0},{merge:false}); }catch(e){} }
+              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:false}); }catch(e){} }
               window.location.reload();
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               🗑️ Réinitialiser toutes les données
