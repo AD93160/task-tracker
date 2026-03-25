@@ -1204,7 +1204,7 @@ export default function App() {
                   onTouchStart={e=>!inToday&&!inTom&&onTouchStart(e,task.id,"list")}
                   onClick={()=>!dragRef.current?.moved&&openEdit(task)}
                   style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,opacity:isGhost?0.3:1,cursor:"pointer",transition:"background .15s, border .15s",touchAction:(inToday||inTom)?"auto":"pan-y" }}>
-                  <div style={{ fontSize:10,color:hl?theme.accent:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{idx+1}</div>
+                  <div style={{ fontSize:10,color:hl?theme.accent:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{taskNum(task.id)}</div>
                   <button onClick={e=>{e.stopPropagation();cycleStatus(task.id);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"pointer",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} />
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
