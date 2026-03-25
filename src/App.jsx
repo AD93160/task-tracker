@@ -1079,8 +1079,8 @@ export default function App() {
                       <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:hl?theme.accent+"cc":theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>
                         {task.title}
                       </span>
-                      <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:PRIO_COLOR[task.priority]+"22",color:PRIO_COLOR[task.priority],border:`1px solid ${PRIO_COLOR[task.priority]}44` }}>
-                        {task.priority.toUpperCase()}
+                      <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888888")+"22",color:PRIO_COLOR[task.priority]||"#888888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888888")}44` }}>
+                        {(task.priority||"?").toUpperCase()}
                       </span>
                       {inToday && <span style={{ fontSize:9,color:theme.accent,padding:"1px 5px",background:theme.accent+"22",borderRadius:3 }}>● aujourd'hui</span>}
                       {inTom   && <span style={{ fontSize:9,color:theme.accent+"88",padding:"1px 5px",background:theme.accent+"11",borderRadius:3 }}>○ demain</span>}
