@@ -153,21 +153,25 @@ export default function App() {
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
-  const GREEN = { base:"#2a7a2a", light:"#3aaa3a" };
-  const GOLD  = { base:"#8a6a00", light:"#ccaa00" };
-  const RED   = { base:"#8a1a1a", light:"#cc3030" };
+  const GREEN  = { base:"#2a7a2a", light:"#3aaa3a" };
+  const GOLD   = { base:"#8a6a00", light:"#ccaa00" };
+  const ORANGE = { base:"#8a4a00", light:"#cc7700" };
+  const RED    = { base:"#8a1a1a", light:"#cc3030" };
 
   const taskColor = (task) => {
     if (!task || task.status === "Terminé") return null;
     const today = todayStr();
+    const tom = new Date(); tom.setDate(tom.getDate()+1);
+    const tomorrow = tom.toISOString().split("T")[0];
     const inTom = tomorrowIds.map(e => e.id).includes(task.id);
     if (task.due) {
       if (task.due < today) return RED;
       if (task.due === today) return GOLD;
       if (todayIds.includes(task.id)) return GOLD;
+      if (task.due === tomorrow || inTom) return ORANGE;
       return GREEN;
     }
-    if (inTom) return GREEN;
+    if (inTom) return ORANGE;
     if (todayIds.includes(task.id)) {
       const added = todayDates[task.id];
       return (!added || added === today) ? GOLD : RED;
@@ -858,6 +862,16 @@ export default function App() {
       {/* Split layout */}
       <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow: isMobile ? "auto" : "hidden" }}>
 
+        {/* Bouton Ajouter fixe sur mobile */}
+        {isMobile && (
+          <div style={{ position:"sticky", top:0, zIndex:50, background:theme.bg, padding:"8px 14px", borderBottom:`1px solid ${theme.border}` }}>
+            <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+              style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+              + Ajouter
+            </button>
+          </div>
+        )}
+
         {/* ── LEFT ── */}
         <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
 
@@ -938,10 +952,10 @@ export default function App() {
 
           {/* Top bar */}
           <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
-            <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+            {!isMobile && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               + Ajouter
-            </button>
+            </button>}
             <div style={{ position:"relative" }}>
               <button onClick={listening?stopVoice:startVoice}
                 style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"6px 10px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
