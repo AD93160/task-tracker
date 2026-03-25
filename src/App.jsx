@@ -1,7 +1,27 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Component } from "react";
 import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, OAuthProvider, FacebookAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+
+export class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding:20, background:"#1a0a0a", color:"#ff6666", fontFamily:"monospace", minHeight:"100vh" }}>
+          <h2 style={{ color:"#ff4444" }}>Erreur — rapport de débogage</h2>
+          <pre style={{ whiteSpace:"pre-wrap", fontSize:12 }}>{String(this.state.error)}</pre>
+          <pre style={{ whiteSpace:"pre-wrap", fontSize:11, color:"#ff9999" }}>{this.state.error?.stack}</pre>
+          <button onClick={()=>this.setState({error:null})} style={{ marginTop:16, padding:"8px 16px", background:"#cc3030", color:"#fff", border:"none", borderRadius:8, cursor:"pointer" }}>
+            Réessayer
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Remplacer "ca-pub-XXXXXXXXXXXXXXXXX" par ton Publisher ID AdSense
 // et "XXXXXXXXXX" par ton Ad Unit ID
