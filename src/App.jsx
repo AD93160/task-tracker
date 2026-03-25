@@ -73,6 +73,9 @@ export default function App() {
   const [showDone,     setShowDone]     = useState(false);
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
+  const [numberingMode,setNumberingMode]= useState(() => load("tt_numMode", "dynamic"));
+  const [taskCounter,  setTaskCounter]  = useState(() => load("tt_counter", 0));
+  const [recurError,   setRecurError]   = useState(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(checkMobile());
@@ -179,7 +182,10 @@ export default function App() {
   };
 
   const getTask = (id) => tasks.find(t => t.id === id);
-  const taskNum = (id) => tasks.findIndex(t => t.id === id) + 1;
+  const taskNum = (id) => {
+    if (numberingMode === "permanent") return tasks.find(t => t.id === id)?.num ?? "?";
+    return tasks.findIndex(t => t.id === id) + 1;
+  };
   const isHL    = (id) => highlighted.includes(id) && getTask(id)?.status !== "Terminé";
 
   // Persistance localStorage
@@ -189,6 +195,8 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_tomorrowIds",  JSON.stringify(tomorrowIds));  }, [tomorrowIds]);
   useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
   useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
+  useEffect(() => { localStorage.setItem("tt_numMode",      JSON.stringify(numberingMode)); }, [numberingMode]);
+  useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
 
   const sendNotif = (title, body, tag) => {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -219,6 +227,9 @@ export default function App() {
         if (data.tomorrowIds)  setTomorrowIds(data.tomorrowIds);
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
+        if (data.theme)        setTheme(t => ({...t, ...data.theme}));
+        if (data.numberingMode) setNumberingMode(data.numberingMode);
+        if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
       }
     });
     return unsub;
@@ -230,9 +241,9 @@ export default function App() {
     if (fromFirestore.current) { fromFirestore.current = false; return; }
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
-    setDoc(ref, { tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted }, { merge: true })
+    setDoc(ref, { tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter }, { merge: true })
       .finally(() => setSyncing(false));
-  }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted]);
+  }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, numberingMode, taskCounter]);
 
   const loginGoogle = async () => {
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
@@ -409,11 +420,9 @@ export default function App() {
   };
 
   const duplicateTask = (task) => {
-    setForm({ title:task.title, priority:task.priority, status:"À faire", due:task.due||"", notes:task.notes||"", notify:task.notify!==false, recurrence:task.recurrence||"none" });
-    if (task.recurrence?.startsWith("monthly-day-")) { setRecurDay(task.recurrence.split("-")[2]); setRecurMonthDay(""); }
-    else if (task.recurrence?.startsWith("monthly-ordinal-")) { const p=task.recurrence.split("-"); setRecurDay(""); setRecurMonthDay(`${p[2]}-${p[3]}`); }
-    else { setRecurDay(""); setRecurMonthDay(""); }
-    setEditingId(null); setFormStep(1); setPendingTask(null); setCustomDate(""); setShowForm(true);
+    const newNum = numberingMode === "permanent" ? taskCounter + 1 : undefined;
+    if (numberingMode === "permanent") setTaskCounter(c => c + 1);
+    setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
   const openEdit = (task) => {
@@ -423,6 +432,9 @@ export default function App() {
 
   const submitForm = () => {
     if (!form.title.trim()) return;
+    if (form.recurrence === "weekly")  { setRecurError("Choisis un jour de la semaine"); return; }
+    if (form.recurrence === "monthly") { setRecurError("Choisis une date ou un jour du mois"); return; }
+    setRecurError(null);
     if (editingId !== null) {
       const prevTask = getTask(editingId);
       const becomingDone = form.status==="Terminé" && prevTask?.status !== "Terminé";
@@ -440,7 +452,9 @@ export default function App() {
       }
       setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
     } else {
-      const newTask = {...form, id:Date.now()};
+      const newNum = numberingMode === "permanent" ? taskCounter + 1 : undefined;
+      if (numberingMode === "permanent") setTaskCounter(c => c + 1);
+      const newTask = {...form, id:Date.now(), num:newNum};
       setTasks(prev=>[...prev,newTask]); setPendingTask(newTask); setFormStep(2); setCustomDate("");
     }
   };
@@ -473,7 +487,7 @@ export default function App() {
         const bid = el.dataset?.bubbleid; if (bid) return parseInt(bid);
         if (el.dataset?.zone==="tomorrow") return "tomorrow";
       }
-      return isMobile ? (x < rect.left+rect.width/2 ? "today" : "tomorrow") : (y < rect.top+rect.height/2 ? "today" : "tomorrow");
+      return y < rect.top+rect.height/2 ? "today" : "tomorrow";
     }
     return "list";
   };
@@ -758,9 +772,8 @@ export default function App() {
           ) : (
             <div style={{ position:"relative" }}>
               {showAuthMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowAuthMenu(false)}/>}
-              <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 13px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-                Connexion
+              <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
               </button>
               {showAuthMenu && (
                 <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
@@ -818,10 +831,10 @@ export default function App() {
       {renderGhost()}
 
       {/* Split layout */}
-      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow:"hidden" }}>
+      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow: isMobile ? "auto" : "hidden" }}>
 
         {/* ── LEFT ── */}
-        <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection: isMobile ? "row" : "column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
+        <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
 
           {/* TODAY */}
           <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
@@ -896,7 +909,7 @@ export default function App() {
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
-          style={{ flex:1, minWidth:0, minHeight:0, padding: isMobile ? "12px 14px" : "20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          style={{ flex: isMobile ? "none" : 1, minWidth:0, minHeight: isMobile ? "60vh" : 0, padding: isMobile ? "12px 14px" : "20px 16px", overflowY: isMobile ? "visible" : "auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Top bar */}
           <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
@@ -1024,23 +1037,32 @@ export default function App() {
                           <div style={{ display:"flex",alignItems:"center",gap:8 }}>
                             <span style={{ fontSize:10,color:theme.textMuted,minWidth:40 }}>Date</span>
                             <input type="number" min="1" max="31" placeholder="1-31" value={recurDay}
-                              onChange={e=>{setRecurDay(e.target.value);setRecurMonthDay("");setForm(f=>({...f,recurrence:e.target.value?`monthly-day-${e.target.value}`:"monthly-ordinal-1-1"}));}}
+                              onChange={e=>{setRecurDay(e.target.value);setRecurMonthDay("");setForm(f=>({...f,recurrence:e.target.value?`monthly-day-${e.target.value}`:"monthly"}));}}
                               style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:65 }} />
-                            {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:"monthly-ordinal-1-1"}));setRecurMonthDay("1-1");}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
+                            {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:"monthly"}));setRecurMonthDay("");}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
                           </div>
                           <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
-                            <select value={recurMonthDay.split("-")[0]||"1"} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"1";setRecurMonthDay(`${o}-${d}`);setRecurDay("");setForm(f=>({...f,recurrence:`monthly-ordinal-${o}-${d}`}));}}
+                            <select value={recurMonthDay.split("-")[0]||""} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"1";setRecurMonthDay(o?`${o}-${d}`:"");setRecurDay("");setForm(f=>({...f,recurrence:o?`monthly-ordinal-${o}-${d}`:"monthly"}));}}
                               style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                              <option value="">–</option>
                               {["1er","2e","3e","4e","5e"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
                             </select>
-                            <select value={recurMonthDay.split("-")[1]||"1"} onChange={e=>{const d=e.target.value,o=recurMonthDay.split("-")[0]||"1";setRecurMonthDay(`${o}-${d}`);setRecurDay("");setForm(f=>({...f,recurrence:`monthly-ordinal-${o}-${d}`}));}}
+                            <select value={recurMonthDay.split("-")[1]||""} onChange={e=>{const d=e.target.value,o=recurMonthDay.split("-")[0]||"1";setRecurMonthDay(d?`${o}-${d}`:"");setRecurDay("");setForm(f=>({...f,recurrence:d?`monthly-ordinal-${o}-${d}`:"monthly"}));}}
                               style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                              <option value="">–</option>
                               {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
                             </select>
+                            {recurMonthDay&&<button onClick={()=>{setRecurMonthDay("");setForm(f=>({...f,recurrence:"monthly"}));}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
                           </div>
                         </div>
                       )}
                     </div>
+                    {recurError && (
+                      <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",border:"1px solid #cc303044",borderRadius:6,padding:"6px 10px",display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                        <span>⚠ {recurError}</span>
+                        <button onClick={()=>setRecurError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:11 }}>✕</button>
+                      </div>
+                    )}
                     <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
                       <div style={{ display:"flex",alignItems:"center",gap:8 }}>
                         <div onClick={()=>setForm(f=>({...f,notify:!f.notify}))}
@@ -1308,7 +1330,7 @@ export default function App() {
             </div>
 
             <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>POLICE TITRE</div>
-            <div style={{ display:"grid",gap:5 }}>
+            <div style={{ display:"grid",gap:5,marginBottom:18 }}>
               {TITLE_FONTS.map(f=>(
                 <button key={f.value} onClick={()=>setTheme(t=>({...t,titleFont:f.value}))}
                   style={{ background:theme.titleFont===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.titleFont===f.value?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.titleFont===f.value?"#fff":"#666688",fontSize:14,fontFamily:`'${f.value}',sans-serif`,textAlign:"left",fontWeight:700 }}>
@@ -1316,6 +1338,32 @@ export default function App() {
                 </button>
               ))}
             </div>
+
+            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>NUMÉROTATION</div>
+            <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:18 }}>
+              {[{v:"dynamic",l:"Dynamique",d:"Renumérotées selon l'ordre d'ajout"},{v:"permanent",l:"Permanente",d:"Numéro fixe conservé à vie"}].map(({v,l,d})=>(
+                <button key={v} onClick={()=>setNumberingMode(v)}
+                  style={{ background:numberingMode===v?theme.accent+"33":"transparent",border:`1px solid ${numberingMode===v?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"8px 12px",cursor:"pointer",color:numberingMode===v?"#fff":"#666688",fontSize:11,textAlign:"left" }}>
+                  <div style={{ fontWeight:700,marginBottom:2 }}>{l}</div>
+                  <div style={{ fontSize:9,opacity:0.7 }}>{d}</div>
+                </button>
+              ))}
+              {numberingMode==="permanent" && (
+                <button onClick={()=>{ if(window.confirm("Remettre le compteur à 0 ?")) setTaskCounter(0); }}
+                  style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:7,padding:"6px 12px",color:"#aa3030",fontSize:11,cursor:"pointer",textAlign:"left" }}>
+                  ↺ Réinitialiser le compteur (actuellement #{taskCounter})
+                </button>
+              )}
+            </div>
+
+            <button onClick={async()=>{
+              if(!user){alert("Connecte-toi pour sauvegarder le thème.");return;}
+              const ref=doc(db,"users",user.uid);
+              await setDoc(ref,{theme},{merge:true});
+              alert("Thème sauvegardé ✓");
+            }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
+              💾 Sauvegarder le thème
+            </button>
 
           </div>
         </div>
