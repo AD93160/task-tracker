@@ -91,10 +91,11 @@ export default function App() {
     ],
   };
 
-  const dragRef        = useRef({});
-  const leftRef        = useRef(null);
-  const ghostRef       = useRef(null);
-  const recognitionRef = useRef(null);
+  const dragRef          = useRef({});
+  const leftRef          = useRef(null);
+  const ghostRef         = useRef(null);
+  const recognitionRef   = useRef(null);
+  const longPressTimer   = useRef(null);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -314,6 +315,11 @@ export default function App() {
               const [,, mm, dd] = t.recurrence.split("-");
               d.setFullYear(d.getFullYear()+1); d.setMonth(parseInt(mm)-1); d.setDate(parseInt(dd));
             }
+            if (t.recurrence && t.recurrence.startsWith("monthly-ordinal-")) {
+              const parts=t.recurrence.split("-"); const ord=parseInt(parts[2]); const dow=parseInt(parts[3]);
+              d.setMonth(d.getMonth()+1); d.setDate(1);
+              let count=0; while(count<ord){ if((d.getDay()||7)===dow)count++; if(count<ord)d.setDate(d.getDate()+1); }
+            }
             return d.toISOString().split("T")[0];
           })();
           setTimeout(() => {
@@ -368,7 +374,10 @@ export default function App() {
   };
 
   const duplicateTask = (task) => {
-    setForm({ title:task.title, priority:task.priority, status:"À faire", due:"", notes:task.notes||"", notify:task.notify!==false });
+    setForm({ title:task.title, priority:task.priority, status:"À faire", due:task.due||"", notes:task.notes||"", notify:task.notify!==false, recurrence:task.recurrence||"none" });
+    if (task.recurrence?.startsWith("monthly-day-")) { setRecurDay(task.recurrence.split("-")[2]); setRecurMonthDay(""); }
+    else if (task.recurrence?.startsWith("monthly-ordinal-")) { const p=task.recurrence.split("-"); setRecurDay(""); setRecurMonthDay(`${p[2]}-${p[3]}`); }
+    else { setRecurDay(""); setRecurMonthDay(""); }
     setEditingId(null);
     setFormStep(1);
     setPendingTask(null);
@@ -433,7 +442,7 @@ export default function App() {
         const bid = el.dataset?.bubbleid; if (bid) return parseInt(bid);
         if (el.dataset?.zone==="tomorrow") return "tomorrow";
       }
-      return y < rect.top+rect.height/2 ? "today" : "tomorrow";
+      return isMobile ? (x < rect.left+rect.width/2 ? "today" : "tomorrow") : (y < rect.top+rect.height/2 ? "today" : "tomorrow");
     }
     return "list";
   };
@@ -463,11 +472,33 @@ export default function App() {
   const onDropTomorrow = (e) => { e.preventDefault(); const {id,src}=dragRef.current; if((src==="list"||src==="bubble")&&id)addToTomorrow(id); setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
-  const onTouchStart = (e, id, src) => { const t=e.touches[0]; dragRef.current={id,src,startX:t.clientX,startY:t.clientY,moved:false}; setGhost({id,src,x:t.clientX,y:t.clientY}); };
-  const onTouchMove  = (e) => { const t=e.touches[0]; const {id,src}=dragRef.current; if(!id)return; dragRef.current.moved=true; setGhost({id,src,x:t.clientX,y:t.clientY}); setDropZone(getZoneAtPoint(t.clientX,t.clientY)); e.preventDefault(); };
+  const onTouchStart = (e, id, src) => {
+    const t=e.touches[0];
+    dragRef.current={id,src,startX:t.clientX,startY:t.clientY,curX:t.clientX,curY:t.clientY,moved:false,dragging:false};
+    const isBubble = src==="bubble"||src==="bubble-tomorrow";
+    const delay = isBubble ? 80 : 500;
+    longPressTimer.current = setTimeout(() => {
+      if (dragRef.current.id===id) {
+        dragRef.current.dragging=true;
+        setGhost({id,src,x:dragRef.current.curX,y:dragRef.current.curY});
+      }
+    }, delay);
+  };
+  const onTouchMove  = (e) => {
+    const t=e.touches[0]; const {id,src,dragging,startX,startY}=dragRef.current; if(!id)return;
+    dragRef.current.curX=t.clientX; dragRef.current.curY=t.clientY;
+    if (!dragging) {
+      if (src==="list" && (Math.abs(t.clientX-startX)>8||Math.abs(t.clientY-startY)>8)) {
+        clearTimeout(longPressTimer.current); dragRef.current={};
+      }
+      return;
+    }
+    dragRef.current.moved=true; setGhost({id,src,x:t.clientX,y:t.clientY}); setDropZone(getZoneAtPoint(t.clientX,t.clientY)); e.preventDefault();
+  };
   const onTouchEnd   = (e) => {
-    const t=e.changedTouches[0]; const {id,src,moved}=dragRef.current; dragRef.current={}; setGhost(null); setDropZone(null);
-    if (!id||!moved) return;
+    clearTimeout(longPressTimer.current);
+    const t=e.changedTouches[0]; const {id,src,moved,dragging}=dragRef.current; dragRef.current={}; setGhost(null); setDropZone(null);
+    if (!id||!moved||!dragging) return;
     const zone=getZoneAtPoint(t.clientX,t.clientY);
     if (src==="list"&&zone==="today")         { addToToday(id); return; }
     if (src==="list"&&zone==="tomorrow")      { addToTomorrow(id); return; }
@@ -533,13 +564,13 @@ export default function App() {
               Changer statut → {STATUSES[(STATUSES.indexOf(task.status)+1)%STATUSES.length]}
             </button>
             {inT && (
-              <button onClick={()=>removeFromToday(modal)} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>
-                Retirer d'aujourd'hui
+              <button onClick={()=>removeFromToday(modal)} style={{ background:theme.accent+"11",border:`1px solid ${theme.accent}44`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
+                ↩ Remettre dans les tâches
               </button>
             )}
             {inTom && (
-              <button onClick={()=>removeFromTomorrow(modal)} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>
-                Retirer de demain
+              <button onClick={()=>removeFromTomorrow(modal)} style={{ background:theme.accent+"11",border:`1px solid ${theme.accent}44`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
+                ↩ Remettre dans les tâches
               </button>
             )}
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0" }}>
@@ -647,9 +678,9 @@ export default function App() {
     <div style={{ minHeight:"100vh", background:theme.bg, fontFamily:"'DM Mono','Courier New',monospace", color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
-        * { box-sizing:border-box; }
+        * { box-sizing:border-box; -webkit-touch-callout:none; }
         ::placeholder { color:#444466; }
-        input,textarea,select { outline:none; user-select:text; }
+        input,textarea,select { outline:none; user-select:text; -webkit-touch-callout:default; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(var(--date-icon-invert, 0)); cursor:pointer; }
         .row:hover { background:#16162e !important; }
         .bubble { transition:transform .12s; cursor:grab; touch-action:none; }
@@ -662,15 +693,18 @@ export default function App() {
 
       {/* Header */}
       <div style={{
-        padding: isMobile ? "12px 14px 10px" : "20px 28px 14px",
+        padding: isMobile ? "10px 12px 8px" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
         display:"flex",
-        flexDirection: isMobile ? "column" : "row",
-        justifyContent: isMobile ? "flex-start" : "space-between",
-        alignItems: isMobile ? "flex-start" : "center",
-        gap: isMobile ? 10 : 0,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        position: "relative",
       }}>
-        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 20 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 2 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 13 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 1 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+        <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none", display:"flex", alignItems:"center" }}>
+          <img src="/favicon.svg" alt="logo" style={{ width: isMobile ? 28 : 34, height: isMobile ? 28 : 34, display:"block" }} />
+        </div>
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
           {user ? (
@@ -747,10 +781,10 @@ export default function App() {
       {renderGhost()}
 
       {/* Split layout */}
-      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 61px)", overflowY: isMobile ? "auto" : "visible" }}>
+      <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 61px)", overflow: "hidden" }}>
 
         {/* ── LEFT ── */}
-        <div ref={leftRef} style={{ width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY:"auto", maxHeight: isMobile ? "45vh" : "none" }}>
+        <div ref={leftRef} style={{ width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection: isMobile ? "row" : "column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
 
           {/* TODAY */}
           <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
@@ -825,10 +859,10 @@ export default function App() {
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
-          style={{ flex:1, minWidth:0, padding:"20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          style={{ flex:1, minWidth:0, minHeight:0, padding: isMobile ? "12px 14px" : "20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Top bar */}
-          <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"relative", width:"100%" }}>
+          <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position: isMobile ? "sticky" : "relative", top: isMobile ? 0 : undefined, zIndex: isMobile ? 4 : undefined, background: isMobile ? theme.bg : undefined, paddingTop: isMobile ? 6 : 0, paddingBottom: isMobile ? 6 : 0, width:"100%" }}>
             <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               + Ajouter
@@ -921,26 +955,36 @@ export default function App() {
                     <div>
                       <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RÉCURRENCE</div>
                       <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:8 }}>
-                        {[{v:"none",l:"Aucune"},{v:"daily",l:"Quotidien"},{v:"weekly",l:"Hebdo"},{v:"monthly",l:"Mensuel"}].map(({v,l})=>(
+                        {[{v:"none",l:"Aucune"},{v:"daily",l:"Quotidien"},{v:"weekly",l:"Hebdo"}].map(({v,l})=>(
                           <button key={v} onClick={()=>setForm(f=>({...f,recurrence:v}))}
                             style={{ background:form.recurrence===v?theme.accent+"33":"transparent",border:`1px solid ${form.recurrence===v?theme.accent:theme.border}`,borderRadius:6,padding:"5px 10px",color:form.recurrence===v?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
                             {l}
                           </button>
                         ))}
+                        <button onClick={()=>{ if(String(form.recurrence).startsWith("monthly")){setForm(f=>({...f,recurrence:"none"}));setRecurDay("");setRecurMonthDay("");}else{setForm(f=>({...f,recurrence:"monthly-ordinal-1-1"}));setRecurMonthDay("1-1");setRecurDay("");} }}
+                          style={{ background:String(form.recurrence).startsWith("monthly")?theme.accent+"33":"transparent",border:`1px solid ${String(form.recurrence).startsWith("monthly")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 10px",color:String(form.recurrence).startsWith("monthly")?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
+                          Mensuel
+                        </button>
                       </div>
                       {/* Jour fixe du mois */}
                       <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
-                        <span style={{ fontSize:10,color:theme.textMuted,minWidth:120 }}>Tous les … du mois</span>
-                        <input type="number" min="1" max="31" placeholder="ex: 26" value={recurDay}
-                          onChange={e=>{setRecurDay(e.target.value);if(e.target.value)setForm(f=>({...f,recurrence:`monthly-day-${e.target.value}`}));}}
+                        <span style={{ fontSize:10,color:theme.textMuted,minWidth:40 }}>Date</span>
+                        <input type="number" min="1" max="31" placeholder="1-31" value={recurDay}
+                          onChange={e=>{setRecurDay(e.target.value);if(e.target.value){setForm(f=>({...f,recurrence:`monthly-day-${e.target.value}`}));setRecurMonthDay("");}else{setForm(f=>({...f,recurrence:"monthly"}));}}}
                           style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("monthly-day")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:70 }} />
+                        {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:recurMonthDay?"monthly-ordinal-"+recurMonthDay.replace("-","-"):"monthly"}));}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
                       </div>
-                      {/* Date fixe de l'année */}
-                      <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                        <span style={{ fontSize:10,color:theme.textMuted,minWidth:120 }}>Chaque année le</span>
-                        <input type="date" value={recurMonthDay ? `2000-${recurMonthDay}` : ""}
-                          onChange={e=>{const v=e.target.value.slice(5);setRecurMonthDay(v);if(v)setForm(f=>({...f,recurrence:"yearly-"+v}));}}
-                          style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("yearly")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,flex:1 }} />
+                      {/* Ordinal mensuel */}
+                      <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+                        <select value={recurMonthDay.split("-")[0]||"1"} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"1";setRecurMonthDay(`${o}-${d}`);setRecurDay("");setForm(f=>({...f,recurrence:`monthly-ordinal-${o}-${d}`}));}}
+                          style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("monthly-ordinal")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                          {["1er","2e","3e","4e","5e"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
+                        </select>
+                        <select value={recurMonthDay.split("-")[1]||"1"} onChange={e=>{const d=e.target.value,o=recurMonthDay.split("-")[0]||"1";setRecurMonthDay(`${o}-${d}`);setRecurDay("");setForm(f=>({...f,recurrence:`monthly-ordinal-${o}-${d}`}));}}
+                          style={{ background:theme.bg,border:`1px solid ${String(form.recurrence).startsWith("monthly-ordinal")?theme.accent:theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12 }}>
+                          {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map((l,i)=><option key={i} value={i+1}>{l}</option>)}
+                        </select>
+                        {recurMonthDay&&<button onClick={()=>{setRecurMonthDay("");setForm(f=>({...f,recurrence:"monthly"}));}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
                       </div>
                     </div>
                     <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
@@ -1027,7 +1071,7 @@ export default function App() {
                   onDragEnd={onDragEnd}
                   onTouchStart={e=>!inToday&&!inTom&&onTouchStart(e,task.id,"list")}
                   onClick={()=>!dragRef.current?.moved&&openEdit(task)}
-                  style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,opacity:isGhost?0.3:1,cursor:"pointer",transition:"background .15s, border .15s",touchAction:(inToday||inTom)?"auto":"none" }}>
+                  style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,opacity:isGhost?0.3:1,cursor:"pointer",transition:"background .15s, border .15s",touchAction:(inToday||inTom)?"auto":"pan-y" }}>
                   <div style={{ fontSize:10,color:hl?theme.accent:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{idx+1}</div>
                   <button onClick={e=>{e.stopPropagation();cycleStatus(task.id);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"pointer",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} />
                   <div style={{ flex:1,minWidth:0 }}>
