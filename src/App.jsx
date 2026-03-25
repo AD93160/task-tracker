@@ -1363,7 +1363,18 @@ export default function App() {
             <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>NUMÉROTATION</div>
             <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:18 }}>
               {[{v:"dynamic",l:"Dynamique",d:"Renumérotées selon l'ordre d'ajout"},{v:"permanent",l:"Permanente",d:"Numéro fixe conservé à vie"}].map(({v,l,d})=>(
-                <button key={v} onClick={()=>setNumberingMode(v)}
+                <button key={v} onClick={()=>{
+                  if(v==="permanent" && numberingMode!=="permanent"){
+                    let counter = taskCounter;
+                    setTasks(prev => prev.map(t => {
+                      if(t.num != null) return t;
+                      counter++;
+                      return {...t, num: counter};
+                    }));
+                    setTaskCounter(counter);
+                  }
+                  setNumberingMode(v);
+                }}
                   style={{ background:numberingMode===v?theme.accent+"33":"transparent",border:`1px solid ${numberingMode===v?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"8px 12px",cursor:"pointer",color:numberingMode===v?"#fff":"#666688",fontSize:11,textAlign:"left" }}>
                   <div style={{ fontWeight:700,marginBottom:2 }}>{l}</div>
                   <div style={{ fontSize:9,opacity:0.7 }}>{d}</div>
@@ -1384,6 +1395,15 @@ export default function App() {
               alert("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder le thème
+            </button>
+
+            <button onClick={async()=>{
+              if(!window.confirm("Effacer TOUTES les tâches et réinitialiser l'appli ? Cette action est irréversible.")) return;
+              ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
+              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],numberingMode:"dynamic",taskCounter:0},{merge:false}); }catch(e){} }
+              window.location.reload();
+            }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
+              🗑️ Réinitialiser toutes les données
             </button>
 
           </div>
