@@ -389,9 +389,13 @@ export default function App() {
             }
             return d.toISOString().split("T")[0];
           })();
-          setTimeout(() => {
-            setTasks(p => [...p, { ...t, id:Date.now(), status:"À faire", due:newDue, completion:null }]);
-          }, 100);
+          setTaskCounter(c => {
+            const newNum = c + 1;
+            setTimeout(() => {
+              setTasks(p => [...p, { ...t, id:Date.now(), status:"À faire", due:newDue, completion:null, num:newNum }]);
+            }, 100);
+            return newNum;
+          });
         }
         return completed;
       }
@@ -461,7 +465,7 @@ export default function App() {
       const becomingDone = form.status==="Terminé" && prevTask?.status !== "Terminé";
       setTasks(prev => prev.map(t => {
         if (t.id !== editingId) return t;
-        const updated = {...form, id:editingId, recurrence:form.recurrence||"none"};
+        const updated = {...form, id:editingId, num:t.num, recurrence:form.recurrence||"none"};
         if (becomingDone) updated.completion = buildCompletion({...t, ...form});
         else if (form.status !== "Terminé") updated.completion = null;
         return updated;
