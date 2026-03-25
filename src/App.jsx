@@ -975,7 +975,7 @@ export default function App() {
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               + Ajouter
             </button>}
-            <div style={{ position:"relative" }}>
+            {!isMobile && <div style={{ position:"relative" }}>
               <button onClick={listening?stopVoice:startVoice}
                 style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"6px 10px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
                 {listening?"⏹":"🎙️"}
@@ -993,7 +993,7 @@ export default function App() {
                   En écoute…
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           {/* Form */}
