@@ -202,10 +202,17 @@ export default function App() {
   };
 
   const getTask = (id) => tasks.find(t => t.id === id);
-  const taskNum = (id) => {
-    if (numberingMode === "permanent") return tasks.find(t => t.id === id)?.num ?? "?";
-    return tasks.findIndex(t => t.id === id) + 1;
-  };
+  // Numérotation : calculée une seule fois par render → bulle et carte lisent TOUJOURS la même valeur
+  const numMap = (() => {
+    const m = {};
+    if (numberingMode === "permanent") {
+      tasks.forEach(t => { m[t.id] = t.num != null ? t.num : "?"; });
+    } else {
+      tasks.forEach((t, i) => { m[t.id] = i + 1; });
+    }
+    return m;
+  })();
+  const taskNum = (id) => numMap[id] ?? "?";
   const isHL    = (id) => highlighted.includes(id) && getTask(id)?.status !== "Terminé";
 
   // Persistance localStorage
