@@ -57,6 +57,34 @@ const PRIO_COLOR = { "Haute":"#ff6b6b", "Moyenne":"#ffd93d", "Basse":"#6bcb77" }
 
 const INIT = [];
 
+function MemberStats({ member, db, theme }) {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    getDoc(doc(db, "users", member.uid)).then(snap => {
+      if (!snap.exists()) return;
+      const tasks = snap.data().tasks || [];
+      const done  = tasks.filter(t => t.status === "Terminé").length;
+      const total = tasks.length;
+      const active = tasks.filter(t => t.status !== "Terminé").length;
+      setStats({ done, total, active });
+    }).catch(() => {});
+  }, [member.uid]);
+  return (
+    <div style={{ background:theme.bg, borderRadius:8, padding:"8px 12px", marginBottom:6 }}>
+      <div style={{ fontSize:11, color:theme.text, fontWeight:600, marginBottom:4 }}>{member.displayName || member.email}</div>
+      {stats ? (
+        <div style={{ display:"flex", gap:12, fontSize:10, color:theme.textMuted }}>
+          <span>📋 {stats.total} tâches</span>
+          <span style={{ color:"#6bcb77" }}>✓ {stats.done} terminées</span>
+          <span style={{ color:theme.accent }}>⏳ {stats.active} actives</span>
+        </div>
+      ) : (
+        <div style={{ fontSize:10, color:theme.textMuted }}>Chargement…</div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
   const [tasks,        setTasks]        = useState(() => load("tt_tasks", INIT));
@@ -340,9 +368,23 @@ export default function App() {
     }
   }, []);
 
-  // Auth listener
+  // Auth listener — réinitialise les données perso quand l'utilisateur change
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    const unsub = onAuthStateChanged(auth, u => {
+      setUser(prev => {
+        const prevUid = prev?.uid ?? null;
+        const newUid  = u?.uid   ?? null;
+        if (prevUid !== null && prevUid !== newUid) {
+          // Utilisateur différent → vider les données de l'ancien user
+          ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
+          setTasks(INIT);
+          setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
+          setScheduledIds([]); setHighlighted([]); setTaskCounter(0);
+          setTeamSpace(false);
+        }
+        return u;
+      });
+    });
     return unsub;
   }, []);
 
@@ -2002,6 +2044,16 @@ export default function App() {
                     )}
                   </div>
                 ))}
+
+                {/* Stats membres (admin seulement) */}
+                {teamRole==="admin" && (team.members||[]).length > 0 && (
+                  <>
+                    <div style={{ fontSize:9,color:"#444466",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
+                    {(team.members||[]).map(m => (
+                      <MemberStats key={m.uid} member={m} db={db} theme={theme} />
+                    ))}
+                  </>
+                )}
 
                 {/* Inviter (admin seulement) */}
                 {teamRole==="admin" && (
