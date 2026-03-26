@@ -323,6 +323,23 @@ export default function App() {
     return () => clearTimeout(tid);
   }, [dailyNotifEnabled, dailyNotifTime]);
 
+  // Détection ?join=true dans l'URL (lien d'invitation email)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("join") === "true") {
+      window.history.replaceState({}, "", window.location.pathname); // nettoie l'URL
+      onAuthStateChanged(auth, u => {
+        if (!u) {
+          // Pas connecté → ouvre le panel auth
+          setShowAuthMenu(true);
+          setEmailMode("register");
+        }
+        // Si connecté → la bannière d'invitation apparaît automatiquement
+        // et l'effet pendingInvite + team switche vers l'espace équipe ci-dessous
+      }, { once: true });
+    }
+  }, []);
+
   // Auth listener
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => setUser(u));
@@ -439,7 +456,7 @@ export default function App() {
             to_email:   toEmail,
             team_name:  teamName,
             invited_by: invitedBy,
-            app_url:    window.location.origin
+            app_url:    window.location.origin + "/?join=true"
           }
         })
       });
@@ -463,6 +480,7 @@ export default function App() {
       await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member" }, { merge:true });
       await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase()));
       setPendingInvite(null);
+      setTeamSpace(true); // bascule directement sur l'espace équipe
     } catch(e) { setTeamError(e.message); }
   };
 
