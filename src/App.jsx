@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, Component } from "react";
 import { auth, provider, db } from "./firebase";
-import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
@@ -88,6 +88,8 @@ export default function App() {
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
   const [authError,    setAuthError]    = useState(null);
+  const [authInfo,     setAuthInfo]     = useState(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState(null);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -277,9 +279,31 @@ export default function App() {
   const loginEmail = async () => {
     if (!emailForm.email||!emailForm.password) return;
     try {
-      if (emailMode==="register") await createUserWithEmailAndPassword(auth, emailForm.email, emailForm.password);
-      else await signInWithEmailAndPassword(auth, emailForm.email, emailForm.password);
-      setShowAuthMenu(false); setAuthError(null); setEmailForm({email:"",password:""});
+      if (emailMode==="register") {
+        const cred = await createUserWithEmailAndPassword(auth, emailForm.email, emailForm.password);
+        await sendEmailVerification(cred.user);
+        await signOut(auth);
+        setAuthError(null); setEmailForm({email:"",password:""});
+        setEmailMode("login");
+        setAuthInfo("Compte créé ! Vérifiez votre email avant de vous connecter.");
+      } else {
+        const cred = await signInWithEmailAndPassword(auth, emailForm.email, emailForm.password);
+        if (!cred.user.emailVerified) {
+          await signOut(auth);
+          setAuthError("Email non vérifié. Consultez votre boîte mail.");
+          setUnverifiedEmail(emailForm.email);
+          return;
+        }
+        setShowAuthMenu(false); setAuthError(null); setAuthInfo(null); setUnverifiedEmail(null); setEmailForm({email:"",password:""});
+      }
+    } catch(e) { setAuthError(e.message); }
+  };
+  const resendVerification = async () => {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, unverifiedEmail, emailForm.password);
+      await sendEmailVerification(cred.user);
+      await signOut(auth);
+      setAuthError(null); setAuthInfo("Email de vérification renvoyé !");
     } catch(e) { setAuthError(e.message); }
   };
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
@@ -799,10 +823,23 @@ export default function App() {
               </button>
               {showAuthMenu && (
                 <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
+                  {authInfo && (
+                    <div style={{ fontSize:10,color:"#2a7a2a",marginBottom:10,padding:"6px 10px",background:"#2a7a2a22",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                      <span>{authInfo}</span>
+                      <button onClick={()=>setAuthInfo(null)} style={{ background:"transparent",border:"none",color:"#2a7a2a",cursor:"pointer",fontSize:12 }}>✕</button>
+                    </div>
+                  )}
                   {authError && (
-                    <div style={{ fontSize:10,color:"#cc3030",marginBottom:10,padding:"6px 10px",background:"#cc303022",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                      <span>{authError}</span>
-                      <button onClick={()=>setAuthError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button>
+                    <div style={{ fontSize:10,color:"#cc3030",marginBottom:6,padding:"6px 10px",background:"#cc303022",borderRadius:8 }}>
+                      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                        <span>{authError}</span>
+                        <button onClick={()=>{setAuthError(null);setUnverifiedEmail(null);}} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button>
+                      </div>
+                      {unverifiedEmail && emailForm.password && (
+                        <button onClick={resendVerification} style={{ marginTop:6,fontSize:10,color:"#cc3030",background:"transparent",border:"1px solid #cc303066",borderRadius:6,padding:"3px 8px",cursor:"pointer" }}>
+                          Renvoyer l'email de vérification
+                        </button>
+                      )}
                     </div>
                   )}
                   {/* Google */}
