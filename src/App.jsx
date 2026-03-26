@@ -105,6 +105,9 @@ export default function App() {
   const [pendingInvite,    setPendingInvite]    = useState(null);
   const [teamError,        setTeamError]        = useState(null);
   const [teamInfo,         setTeamInfo]         = useState(null);
+  const [teamTasks,        setTeamTasks]        = useState([]);
+  const [teamPending,      setTeamPending]      = useState([]);
+  const [showPendingPanel, setShowPendingPanel] = useState(false);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -475,6 +478,47 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
+  useEffect(() => {
+    if (!teamSpace || !team) { setTeamTasks([]); setTeamPending([]); return; }
+    const unsubTasks = onSnapshot(collection(db, "teams", team.id, "tasks"), snap => {
+      const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
+      t.sort((a,b) => (a.num||0)-(b.num||0));
+      setTeamTasks(t);
+    });
+    const unsubPending = onSnapshot(collection(db, "teams", team.id, "pendingChanges"), snap => {
+      setTeamPending(snap.docs.map(d => ({ ...d.data(), id:d.id })));
+    });
+    return () => { unsubTasks(); unsubPending(); };
+  }, [teamSpace, team]);
+
+  const deleteTeamTask = async (taskId) => {
+    if (!team) return;
+    if (teamRole === "admin") {
+      try { await deleteDoc(doc(db, "teams", team.id, "tasks", taskId)); } catch(e) { setTeamError(e.message); }
+    } else {
+      if (!window.confirm("Proposer la suppression à l'admin ?")) return;
+      try {
+        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"delete", taskId, proposedBy:user.uid, proposedByEmail:user.email||"", data:null, createdAt:serverTimestamp(), status:"pending" });
+        setTeamInfo("Suppression proposée à l'admin.");
+      } catch(e) { setTeamError(e.message); }
+    }
+  };
+
+  const approveChange = async (change) => {
+    if (teamRole !== "admin") return;
+    try {
+      if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
+      if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
+      await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id));
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const rejectChange = async (changeId) => {
+    if (teamRole !== "admin") return;
+    try { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId)); }
+    catch(e) { setTeamError(e.message); }
+  };
+
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
 
   const submitQuickAdd = () => {
@@ -657,11 +701,31 @@ export default function App() {
     setEditingId(task.id); setShowForm(true);
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     if (!form.title.trim()) return;
     if (form.recurrence === "weekly")  { setRecurError("Choisis un jour de la semaine"); return; }
     if (form.recurrence === "monthly") { setRecurError("Choisis une date ou un jour du mois"); return; }
     setRecurError(null);
+    // ── ESPACE ÉQUIPE ──
+    if (teamSpace && team) {
+      const cleanForm = { ...form, recurrence:form.recurrence||"none" };
+      try {
+        if (editingId !== null) {
+          if (teamRole === "admin") {
+            await updateDoc(doc(db, "teams", team.id, "tasks", editingId), cleanForm);
+          } else {
+            await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"edit", taskId:editingId, proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
+            setTeamInfo("Modification proposée à l'admin.");
+          }
+        } else if (teamRole === "admin") {
+          const newNum = teamTasks.length + 1;
+          await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
+        }
+      } catch(e) { setTeamError(e.message); return; }
+      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      return;
+    }
+    // ── ESPACE PERSO ──
     if (editingId !== null) {
       const prevTask = getTask(editingId);
       const becomingDone = form.status==="Terminé" && prevTask?.status !== "Terminé";
@@ -985,7 +1049,12 @@ export default function App() {
             </div>
           )}
           {user && (
-            <button onClick={()=>{setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>👥</button>
+            <button onClick={()=>{setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
+              👥
+              {teamRole==="admin" && teamPending.length > 0 && (
+                <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
+              )}
+            </button>
           )}
           {user ? (
             <div style={{ position:"relative" }}>
@@ -1406,6 +1475,63 @@ export default function App() {
             </div>
           )}
 
+          {/* ── ESPACE ÉQUIPE ── */}
+          {teamSpace && team && (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
+                <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
+                <div style={{ display:"flex",gap:8 }}>
+                  {teamRole==="admin" && teamPending.length > 0 && (
+                    <button onClick={()=>setShowPendingPanel(true)} style={{ background:"#cc303022",border:"1px solid #cc303066",borderRadius:8,padding:"5px 12px",color:"#cc3030",fontSize:11,cursor:"pointer",fontWeight:700 }}>
+                      🔔 {teamPending.length} en attente
+                    </button>
+                  )}
+                  {teamRole==="admin" && (
+                    <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                      style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
+                      + Ajouter
+                    </button>
+                  )}
+                </div>
+              </div>
+              {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
+              {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
+              {teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              <div style={{ display:"grid",gap:5 }}>
+                {teamTasks.map(task => {
+                  const tc  = taskColor(task);
+                  const bgC = tc ? tc.base+"33" : theme.bgCard;
+                  const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
+                  const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
+                  const dot = STATUS_DOT[task.status]||"#888";
+                  return (
+                    <div key={task.id} className="row"
+                      onClick={()=>openEdit(task)}
+                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
+                      <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
+                      <button onClick={e=>{e.stopPropagation();}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }}/>
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
+                          <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
+                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{(task.priority||"?").toUpperCase()}</span>
+                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
+                        </div>
+                        {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                        {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
+                        <div style={{ fontSize:9,color:theme.textMuted+"88",marginTop:2 }}>par {task.createdByEmail||team.adminEmail}</div>
+                      </div>
+                      <div style={{ display:"flex",gap:4,flexShrink:0 }}>
+                        {teamRole==="member" && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
+                        <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
+                          style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Sort bar */}
           <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10, flexWrap:"wrap" }}>
             <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
@@ -1668,6 +1794,42 @@ export default function App() {
               🗑️ Réinitialiser toutes les données
             </button>
 
+          </div>
+        </div>
+      )}
+
+      {/* Panneau changements en attente */}
+      {showPendingPanel && teamRole==="admin" && (
+        <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"#00000088" }}
+          onClick={()=>setShowPendingPanel(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:340,maxHeight:"75vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>MODIFICATIONS EN ATTENTE</div>
+            {teamPending.length===0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:20 }}>Aucune modification en attente.</div>}
+            {teamPending.map(change => {
+              const task = teamTasks.find(t=>t.id===change.taskId);
+              return (
+                <div key={change.id} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
+                  <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
+                    {change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
+                  </div>
+                  <div style={{ fontSize:11,color:theme.text,marginBottom:4 }}>
+                    Tâche : <strong>{change.type==="delete" ? (task?.title||"#"+change.taskId) : change.data?.title}</strong>
+                  </div>
+                  {change.type==="edit" && change.data && (
+                    <div style={{ fontSize:10,color:theme.textMuted,marginBottom:8 }}>
+                      {change.data.priority && <span style={{ marginRight:8 }}>Priorité : {change.data.priority}</span>}
+                      {change.data.status   && <span style={{ marginRight:8 }}>Statut : {change.data.status}</span>}
+                      {change.data.due      && <span>Échéance : {formatDate(change.data.due)}</span>}
+                      {change.data.notes    && <div style={{ marginTop:4,fontStyle:"italic" }}>Notes : {change.data.notes}</div>}
+                    </div>
+                  )}
+                  <div style={{ display:"flex",gap:8 }}>
+                    <button onClick={()=>approveChange(change)} style={{ flex:1,background:"#2a7a2a",border:"none",borderRadius:7,padding:"7px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>✓ Approuver</button>
+                    <button onClick={()=>rejectChange(change.id)} style={{ flex:1,background:"transparent",border:"1px solid #5a1a1a",borderRadius:7,padding:"7px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>✕ Refuser</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
