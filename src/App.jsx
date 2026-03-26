@@ -370,8 +370,8 @@ export default function App() {
       setUser(prev => {
         const prevUid = prev?.uid ?? null;
         const newUid  = u?.uid   ?? null;
-        if (prevUid !== null && prevUid !== newUid) {
-          // Utilisateur différent → vider les données de l'ancien user
+        if (prevUid !== newUid && newUid !== null) {
+          // Utilisateur différent (ou premier login) → vider les données du user précédent
           ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
