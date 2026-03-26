@@ -1117,11 +1117,17 @@ export default function App() {
   };
 
   const renderTeamStats = () => {
-    const total  = teamTasks.length;
-    const done   = teamTasks.filter(t => t.status === "Terminé").length;
-    const active = teamTasks.filter(t => t.status !== "Terminé").length;
-    const rate   = total > 0 ? Math.round((done/total)*100) : 0;
+    const total     = teamTasks.length;
+    const done      = teamTasks.filter(t => t.status === "Terminé").length;
+    const active    = teamTasks.filter(t => t.status !== "Terminé").length;
+    const rate      = total > 0 ? Math.round((done/total)*100) : 0;
     const scheduled = teamTasks.filter(t => t.scheduledFor === "today").length;
+    const row = (emoji, label, value, color) => (
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44` }}>
+        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}</span>
+        <span style={{ fontSize:13,fontWeight:700,color:color||theme.text }}>{value}</span>
+      </div>
+    );
     return (
       <div>
         <div style={{ marginBottom:16 }}>
@@ -1131,10 +1137,10 @@ export default function App() {
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
-        <StatRow emoji="📋" label="Total tâches"   value={total} />
-        <StatRow emoji="✅" label="Terminées"       value={done+"/"+total} color="#3aaa3a" />
-        <StatRow emoji="⏳" label="En cours/À faire" value={active} color={theme.accent} />
-        {scheduled > 0 && <StatRow emoji="☀️" label="Planif. aujourd'hui" value={scheduled} />}
+        {row("📋","Total tâches",   total)}
+        {row("✅","Terminées",       done+"/"+total, "#3aaa3a")}
+        {row("⏳","En cours/À faire",active, theme.accent)}
+        {scheduled > 0 && row("☀️","Planif. aujourd'hui", scheduled)}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
       </div>
     );
