@@ -18,6 +18,13 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId == teamId;
     }
 
+    // Vérifie si l'utilisateur a une invitation en attente (pour rejoindre une équipe)
+    function hasInviteTo(teamId) {
+      return isAuth() &&
+             exists(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())) &&
+             get(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())).data.teamId == teamId;
+    }
+
     // ── Profils utilisateurs ──────────────────────────────────────────
     match /users/{uid} {
       // Chaque user lit/écrit son propre doc (tâches, thème, teamId…)
@@ -46,8 +53,8 @@ service cloud.firestore {
       allow read: if isMemberOf(teamId) || isAdminOf(teamId);
       // N'importe quel user connecté peut créer une équipe (il en devient admin)
       allow create: if isAuth();
-      // Admin peut modifier (invitations, infos équipe) ; membres aussi (pour rejoindre/quitter → mise à jour members[])
-      allow update: if isAdminOf(teamId) || isMemberOf(teamId);
+      // Admin, membres, et users avec invitation peuvent modifier (rejoindre/quitter)
+      allow update: if isAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
       // Seul l'admin peut dissoudre l'équipe
       allow delete: if isAdminOf(teamId);
 
