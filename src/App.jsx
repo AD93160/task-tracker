@@ -426,11 +426,32 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
+  const sendInviteEmail = async (toEmail, teamName, invitedBy) => {
+    try {
+      await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_email:   toEmail,
+            team_name:  teamName,
+            invited_by: invitedBy,
+            app_url:    window.location.origin
+          }
+        })
+      });
+    } catch(e) { console.error("EmailJS:", e); }
+  };
+
   const inviteMember = async () => {
     if (!team || !inviteEmail.trim()) return;
     const email = inviteEmail.trim().toLowerCase();
     try {
       await setDoc(doc(db, "invitations", email), { teamId:team.id, teamName:team.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
+      await sendInviteEmail(email, team.name, user.email||"");
       setTeamInfo(`Invitation envoyée à ${email}`); setInviteEmail("");
     } catch(e) { setTeamError(e.message); }
   };
