@@ -90,6 +90,12 @@ export default function App() {
   const [authError,    setAuthError]    = useState(null);
   const [authInfo,     setAuthInfo]     = useState(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState(null);
+  const [locale,           setLocale]          = useState(() => load("tt_locale", navigator.language || "fr-FR"));
+  const [dailyNotifEnabled,setDailyNotifEnabled]= useState(() => load("tt_dailyNotif", true));
+  const [dailyNotifTime,   setDailyNotifTime]   = useState(() => load("tt_dailyNotifTime", "08:00"));
+  const [showQuickAdd,     setShowQuickAdd]     = useState(false);
+  const [quickTitle,       setQuickTitle]       = useState("");
+  const [quickPriority,    setQuickPriority]    = useState("Moyenne");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -152,6 +158,9 @@ export default function App() {
   const recognitionRef   = useRef(null);
   const fromFirestore    = useRef(false);
   const longPressTimer   = useRef(null);
+  const tasksRef         = useRef(tasks);
+  const todayIdsRef      = useRef(todayIds);
+  const sendDailyNotifCb = useRef(null);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -224,6 +233,34 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
   useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
   useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
+  useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
+  useEffect(() => { localStorage.setItem("tt_dailyNotif",   JSON.stringify(dailyNotifEnabled)); }, [dailyNotifEnabled]);
+  useEffect(() => { localStorage.setItem("tt_dailyNotifTime",JSON.stringify(dailyNotifTime)); }, [dailyNotifTime]);
+  useEffect(() => { tasksRef.current = tasks; },    [tasks]);
+  useEffect(() => { todayIdsRef.current = todayIds; }, [todayIds]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-").map(Number);
+    try { return new Date(y, m-1, d).toLocaleDateString(locale, { day:"numeric", month:"short", year:"numeric" }); }
+    catch { return dateStr; }
+  };
+
+  const playChime = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [[523.25,0],[659.25,.18],[783.99,.36]].forEach(([freq,t]) => {
+        const osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.type = "sine"; osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, ctx.currentTime+t);
+        g.gain.linearRampToValueAtTime(0.22, ctx.currentTime+t+0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+t+0.7);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(ctx.currentTime+t); osc.stop(ctx.currentTime+t+0.7);
+      });
+      setTimeout(() => ctx.close(), 2000);
+    } catch(e) {}
+  };
 
   const sendNotif = (title, body, tag) => {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -233,6 +270,43 @@ export default function App() {
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
   }, []);
+
+  // Mise à jour du callback quotidien à chaque render (évite les closures périmées)
+  sendDailyNotifCb.current = () => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const today = todayStr();
+    if (localStorage.getItem("tt_lastDailyNotif") === today) return;
+    localStorage.setItem("tt_lastDailyNotif", today);
+    const active = tasksRef.current.filter(t => todayIdsRef.current.includes(t.id) && t.status !== "Terminé");
+    const count = active.length;
+    const body = count > 0
+      ? `${count} tâche${count>1?"s":""} : ${active.slice(0,3).map(t=>t.title).join(" • ")}${count>3?" …":""}`
+      : "Pas de tâches planifiées aujourd'hui.";
+    playChime();
+    const n = new Notification("Hey, on fait quoi aujourd'hui ? 👋", {
+      body, tag:"daily-reminder", icon:"/favicon.ico", requireInteraction:false
+    });
+    n.onclick = () => { window.focus(); setShowQuickAdd(true); n.close(); };
+  };
+
+  useEffect(() => {
+    if (!dailyNotifEnabled) return;
+    let tid;
+    const schedule = () => {
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+      const [h, m] = dailyNotifTime.split(":").map(Number);
+      const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+      if (now >= target && localStorage.getItem("tt_lastDailyNotif") !== today) {
+        sendDailyNotifCb.current();
+      }
+      const next = new Date(target);
+      if (now >= target) next.setDate(next.getDate()+1);
+      tid = setTimeout(() => { sendDailyNotifCb.current(); schedule(); }, next - now);
+    };
+    schedule();
+    return () => clearTimeout(tid);
+  }, [dailyNotifEnabled, dailyNotifTime]);
 
   // Auth listener
   useEffect(() => {
@@ -307,6 +381,18 @@ export default function App() {
     } catch(e) { setAuthError(e.message); }
   };
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
+
+  const submitQuickAdd = () => {
+    if (!quickTitle.trim()) return;
+    const newNum = taskCounter + 1;
+    const today = todayStr();
+    const newTask = { id:Date.now(), title:quickTitle.trim(), priority:quickPriority, status:"À faire", due:today, notes:"", notify:true, recurrence:"none", completion:null, num:newNum };
+    setTaskCounter(c => c+1);
+    setTasks(p => [...p, newTask]);
+    setTodayIds(p => [...p, newTask.id]);
+    setTodayDates(d => ({...d, [newTask.id]:today}));
+    setQuickTitle(""); setQuickPriority("Moyenne"); setShowQuickAdd(false);
+  };
 
   useEffect(() => {
     const today = todayStr();
@@ -1292,7 +1378,7 @@ export default function App() {
                       <div style={{ display:"flex",alignItems:"center",gap:6,marginTop:2,flexWrap:"wrap" }}>
                         {task.due && (
                           <>
-                            <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {task.due}</span>
+                            <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>
                             <button onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?{...t,due:""}:t));}}
                               style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:9,cursor:"pointer",padding:"0 2px",lineHeight:1 }}>✕</button>
                           </>
@@ -1427,6 +1513,28 @@ export default function App() {
             </div>
 
 
+            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
+            <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:18 }}>
+              {[{v:"fr-FR",l:"Français"},{v:"en-US",l:"English (US)"},{v:"en-GB",l:"English (UK)"},{v:"de-DE",l:"Deutsch"},{v:"es-ES",l:"Español"},{v:"it-IT",l:"Italiano"}].map(({v,l})=>(
+                <button key={v} onClick={()=>setLocale(v)} style={{ background:locale===v?theme.accent+"33":"transparent",border:`1px solid ${locale===v?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",color:locale===v?"#fff":"#666688",fontSize:10 }}>{l}</button>
+              ))}
+            </div>
+
+            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>RAPPEL QUOTIDIEN</div>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
+              <span style={{ fontSize:11,color:theme.textMuted }}>Activé</span>
+              <div onClick={()=>setDailyNotifEnabled(v=>!v)} style={{ width:32,height:18,borderRadius:9,background:dailyNotifEnabled?theme.accent:theme.border,position:"relative",transition:"background .2s",cursor:"pointer" }}>
+                <div style={{ position:"absolute",top:2,left:dailyNotifEnabled?16:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px #0006" }}/>
+              </div>
+            </div>
+            {dailyNotifEnabled && (
+              <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
+                <span style={{ fontSize:11,color:theme.textMuted }}>Heure</span>
+                <input type="time" value={dailyNotifTime} onChange={e=>setDailyNotifTime(e.target.value)} style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"4px 8px",color:theme.text,fontSize:11,outline:"none" }}/>
+              </div>
+            )}
+            {!dailyNotifEnabled && <div style={{ marginBottom:18 }}/>}
+
             <button onClick={async()=>{
               if(!user){alert("Connecte-toi pour sauvegarder le thème.");return;}
               const ref=doc(db,"users",user.uid);
@@ -1445,6 +1553,31 @@ export default function App() {
               🗑️ Réinitialiser toutes les données
             </button>
 
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add depuis notif */}
+      {showQuickAdd && (
+        <div style={{ position:"fixed",inset:0,zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",background:"#00000088" }}
+          onClick={()=>setShowQuickAdd(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:290,boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:14 }}>➕ AJOUTER RAPIDEMENT</div>
+            <input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Titre de la tâche…"
+              autoFocus onKeyDown={e=>e.key==="Enter"&&submitQuickAdd()}
+              style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"9px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:10 }}/>
+            <div style={{ display:"flex",gap:6,marginBottom:14 }}>
+              {PRIORITIES.map(p=>(
+                <button key={p} onClick={()=>setQuickPriority(p)}
+                  style={{ flex:1,background:quickPriority===p?PRIO_COLOR[p]+"33":"transparent",border:`1px solid ${quickPriority===p?PRIO_COLOR[p]:theme.border}`,borderRadius:7,padding:"5px",color:quickPriority===p?PRIO_COLOR[p]:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+            <div style={{ display:"flex",gap:8 }}>
+              <button onClick={()=>setShowQuickAdd(false)} style={{ flex:1,background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"9px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
+              <button onClick={submitQuickAdd} style={{ flex:2,background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>Ajouter</button>
+            </div>
           </div>
         </div>
       )}
