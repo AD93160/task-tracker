@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Component } from "react";
 import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -96,6 +96,15 @@ export default function App() {
   const [showQuickAdd,     setShowQuickAdd]     = useState(false);
   const [quickTitle,       setQuickTitle]       = useState("");
   const [quickPriority,    setQuickPriority]    = useState("Moyenne");
+  const [team,             setTeam]             = useState(null);
+  const [teamRole,         setTeamRole]         = useState(null);   // "admin"|"member"|null
+  const [teamSpace,        setTeamSpace]        = useState(false);  // false=perso true=équipe
+  const [showTeam,         setShowTeam]         = useState(false);
+  const [teamForm,         setTeamForm]         = useState({ name:"" });
+  const [inviteEmail,      setInviteEmail]      = useState("");
+  const [pendingInvite,    setPendingInvite]    = useState(null);
+  const [teamError,        setTeamError]        = useState(null);
+  const [teamInfo,         setTeamInfo]         = useState(null);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -380,6 +389,92 @@ export default function App() {
       setAuthError(null); setAuthInfo("Email de vérification renvoyé !");
     } catch(e) { setAuthError(e.message); }
   };
+  useEffect(() => {
+    if (!user) { setTeam(null); setTeamRole(null); setPendingInvite(null); setTeamSpace(false); return; }
+    let teamUnsub = () => {};
+    const userUnsub = onSnapshot(doc(db, "users", user.uid), snap => {
+      const data = snap.data() || {};
+      setTeamRole(data.teamRole || null);
+      teamUnsub();
+      if (data.teamId) {
+        teamUnsub = onSnapshot(doc(db, "teams", data.teamId), tSnap => {
+          if (tSnap.exists()) setTeam({ id:tSnap.id, ...tSnap.data() });
+          else { setTeam(null); setTeamSpace(false); }
+        });
+      } else { setTeam(null); setTeamSpace(false); }
+    });
+    if (user.email) {
+      getDoc(doc(db, "invitations", user.email.toLowerCase())).then(s => {
+        setPendingInvite(s.exists() ? { id:s.id, ...s.data() } : null);
+      });
+    }
+    return () => { userUnsub(); teamUnsub(); };
+  }, [user]);
+
+  const createTeam = async () => {
+    if (!user || !teamForm.name.trim()) return;
+    try {
+      const ref = await addDoc(collection(db, "teams"), { name:teamForm.name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
+      await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin" }, { merge:true });
+      setTeamForm({ name:"" }); setTeamInfo("Équipe créée !");
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const inviteMember = async () => {
+    if (!team || !inviteEmail.trim()) return;
+    const email = inviteEmail.trim().toLowerCase();
+    try {
+      await setDoc(doc(db, "invitations", email), { teamId:team.id, teamName:team.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
+      setTeamInfo(`Invitation envoyée à ${email}`); setInviteEmail("");
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const acceptInvite = async () => {
+    if (!pendingInvite || !user) return;
+    try {
+      await updateDoc(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
+      await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member" }, { merge:true });
+      await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase()));
+      setPendingInvite(null);
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const rejectInvite = async () => {
+    if (!user) return;
+    try { await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase())); setPendingInvite(null); }
+    catch(e) { setTeamError(e.message); }
+  };
+
+  const removeMember = async (member) => {
+    if (!team || teamRole !== "admin") return;
+    try {
+      await updateDoc(doc(db, "teams", team.id), { members: arrayRemove(member) });
+      await setDoc(doc(db, "users", member.uid), { teamId:null, teamRole:null }, { merge:true });
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const leaveTeam = async () => {
+    if (!user || !team || teamRole === "admin") return;
+    if (!window.confirm("Quitter l'équipe ?")) return;
+    try {
+      const me = team.members.find(m => m.uid === user.uid);
+      if (me) await updateDoc(doc(db, "teams", team.id), { members: arrayRemove(me) });
+      await setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null }, { merge:true });
+      setTeamSpace(false);
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const dissolveTeam = async () => {
+    if (!team || teamRole !== "admin") return;
+    if (!window.confirm("Dissoudre l'équipe ? Tous les membres seront retirés.")) return;
+    try {
+      for (const m of team.members) await setDoc(doc(db, "users", m.uid), { teamId:null, teamRole:null }, { merge:true });
+      await setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null }, { merge:true });
+      await deleteDoc(doc(db, "teams", team.id));
+      setTeamSpace(false);
+    } catch(e) { setTeamError(e.message); }
+  };
+
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
 
   const submitQuickAdd = () => {
@@ -883,6 +978,15 @@ export default function App() {
         </div>
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+          {user && team && (
+            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
+              <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
+              <button onClick={()=>setTeamSpace(true)}  style={{ padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥 {isMobile?"":team.name}</button>
+            </div>
+          )}
+          {user && (
+            <button onClick={()=>{setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>👥</button>
+          )}
           {user ? (
             <div style={{ position:"relative" }}>
               {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
@@ -964,6 +1068,17 @@ export default function App() {
 
       {/* Ghost drag */}
       {renderGhost()}
+
+      {/* Bannière invitation en attente */}
+      {pendingInvite && (
+        <div style={{ background:"#1a3a1a", borderBottom:`1px solid #2a6a2a`, padding:"10px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+          <span style={{ fontSize:12, color:"#6bcb77" }}>📨 Invitation à rejoindre l'équipe <strong>{pendingInvite.teamName}</strong> (de {pendingInvite.invitedBy})</span>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={acceptInvite} style={{ background:"#2a7a2a", border:"none", borderRadius:7, padding:"5px 14px", color:"#fff", fontSize:11, cursor:"pointer" }}>Accepter</button>
+            <button onClick={rejectInvite} style={{ background:"transparent", border:"1px solid #2a6a2a", borderRadius:7, padding:"5px 14px", color:"#6bcb77", fontSize:11, cursor:"pointer" }}>Refuser</button>
+          </div>
+        </div>
+      )}
 
       {/* Split layout */}
       <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow: "hidden" }}>
@@ -1553,6 +1668,76 @@ export default function App() {
               🗑️ Réinitialiser toutes les données
             </button>
 
+          </div>
+        </div>
+      )}
+
+      {/* Panneau Équipe */}
+      {showTeam && (
+        <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
+          onClick={()=>setShowTeam(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>ÉQUIPE</div>
+
+            {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
+            {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
+
+            {!team ? (
+              /* Pas encore dans une équipe → créer */
+              <>
+                <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>CRÉER UNE ÉQUIPE</div>
+                <input value={teamForm.name} onChange={e=>setTeamForm({name:e.target.value})} placeholder="Nom de l'équipe"
+                  onKeyDown={e=>e.key==="Enter"&&createTeam()}
+                  style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:10 }}/>
+                <button onClick={createTeam} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>Créer</button>
+              </>
+            ) : (
+              /* Dans une équipe */
+              <>
+                <div style={{ fontSize:13,fontWeight:700,color:theme.text,marginBottom:4 }}>{team.name}</div>
+                <div style={{ fontSize:10,color:theme.textMuted,marginBottom:16 }}>
+                  {teamRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${team.adminEmail}`}
+                </div>
+
+                {/* Membres */}
+                <div style={{ fontSize:9,color:"#444466",marginBottom:8,letterSpacing:1 }}>MEMBRES ({team.members?.length||0})</div>
+                {(team.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
+                {(team.members||[]).map(m => (
+                  <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
+                    <div>
+                      <div style={{ fontSize:11,color:theme.text }}>{m.displayName}</div>
+                      <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
+                    </div>
+                    {teamRole==="admin" && (
+                      <button onClick={()=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
+                        style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Inviter (admin seulement) */}
+                {teamRole==="admin" && (
+                  <>
+                    <div style={{ fontSize:9,color:"#444466",marginBottom:6,marginTop:8,letterSpacing:1 }}>INVITER PAR EMAIL</div>
+                    <div style={{ display:"flex",gap:6,marginBottom:16 }}>
+                      <input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="email@exemple.com"
+                        onKeyDown={e=>e.key==="Enter"&&inviteMember()}
+                        style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"7px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
+                      <button onClick={inviteMember} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:11,cursor:"pointer" }}>Envoyer</button>
+                    </div>
+                  </>
+                )}
+
+                <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12,display:"flex",gap:8,flexDirection:"column" }}>
+                  {teamRole==="member" && (
+                    <button onClick={leaveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a3a1a",borderRadius:8,padding:"8px",color:"#cc7700",fontSize:11,cursor:"pointer" }}>Quitter l'équipe</button>
+                  )}
+                  {teamRole==="admin" && (
+                    <button onClick={dissolveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
