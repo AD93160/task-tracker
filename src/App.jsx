@@ -108,6 +108,9 @@ export default function App() {
   const [teamTasks,        setTeamTasks]        = useState([]);
   const [teamPending,      setTeamPending]      = useState([]);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
+  const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
+  const [teamComments,     setTeamComments]     = useState([]);
+  const [commentInput,     setCommentInput]     = useState("");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -490,6 +493,30 @@ export default function App() {
     });
     return () => { unsubTasks(); unsubPending(); };
   }, [teamSpace, team]);
+
+  useEffect(() => {
+    if (!teamModal || !team) { setTeamComments([]); return; }
+    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", teamModal, "comments"), snap => {
+      const c = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      c.sort((a,b) => (a.createdAt||0)-(b.createdAt||0));
+      setTeamComments(c);
+    });
+    return unsub;
+  }, [teamModal, team]);
+
+  const addComment = async () => {
+    if (!commentInput.trim() || !teamModal || !team || !user) return;
+    try {
+      await addDoc(collection(db, "teams", team.id, "tasks", teamModal, "comments"), {
+        text: commentInput.trim(),
+        authorUid: user.uid,
+        authorEmail: user.email || "",
+        authorName: user.displayName || user.email || "?",
+        createdAt: Date.now()
+      });
+      setCommentInput("");
+    } catch(e) { setTeamError(e.message); }
+  };
 
   const deleteTeamTask = async (taskId) => {
     if (!team) return;
@@ -916,6 +943,59 @@ export default function App() {
             <button onClick={()=>{openEdit(task);setModal(null);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
               ✎ Modifier
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTeamModal = () => {
+    if (!teamModal || !team) return null;
+    const task = teamTasks.find(t => t.id === teamModal);
+    if (!task) return null;
+    const tc  = taskColor(task);
+    const dot = STATUS_DOT[task.status] || "#888";
+    const closeModal = () => { setTeamModal(null); setCommentInput(""); };
+    return (
+      <div onClick={closeModal} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
+        <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:340,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099",display:"flex",flexDirection:"column",gap:0 }}>
+          {/* En-tête */}
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14 }}>
+            <div style={{ flex:1,minWidth:0 }}>
+              <div style={{ fontSize:13,fontWeight:700,color:theme.text,marginBottom:6 }}>{task.title}</div>
+              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                <span style={{ fontSize:9,padding:"2px 7px",borderRadius:4,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{task.priority||"?"}</span>
+                <span style={{ fontSize:9,padding:"2px 7px",borderRadius:4,background:dot+"22",color:dot }}>{task.status}</span>
+                {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
+              </div>
+            </div>
+            <button onClick={closeModal} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",marginLeft:8 }}>✕</button>
+          </div>
+          {task.notes && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:14,padding:"8px 10px",background:theme.bg,borderRadius:8 }}>{task.notes}</div>}
+          <button onClick={()=>{ openEdit(task); closeModal(); }}
+            style={{ width:"100%",background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.accent,fontSize:11,cursor:"pointer",marginBottom:18 }}>
+            {teamRole==="admin" ? "✎ Modifier" : "✎ Proposer une modification"}
+          </button>
+          {/* Commentaires */}
+          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:10 }}>COMMENTAIRES ({teamComments.length})</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:12 }}>
+            {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
+            {teamComments.map(c => (
+              <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
+                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                  <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
+                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                </div>
+                <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
+              </div>
+            ))}
+          </div>
+          {/* Saisie commentaire */}
+          <div style={{ display:"flex",gap:8 }}>
+            <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
+              onKeyDown={e=>e.key==="Enter"&&addComment()}
+              style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
+            <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"8px 13px",color:"#fff",fontSize:14,cursor:"pointer" }}>↑</button>
           </div>
         </div>
       </div>
@@ -1506,7 +1586,7 @@ export default function App() {
                   const dot = STATUS_DOT[task.status]||"#888";
                   return (
                     <div key={task.id} className="row"
-                      onClick={()=>openEdit(task)}
+                      onClick={()=>setTeamModal(task.id)}
                       style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
                       <button onClick={e=>{e.stopPropagation();}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }}/>
@@ -1518,7 +1598,10 @@ export default function App() {
                         </div>
                         {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
                         {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
-                        <div style={{ fontSize:9,color:theme.textMuted+"88",marginTop:2 }}>par {task.createdByEmail||team.adminEmail}</div>
+                        <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
+                          <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
+                          <span style={{ fontSize:9,color:theme.textMuted }}>💬 commentaires</span>
+                        </div>
                       </div>
                       <div style={{ display:"flex",gap:4,flexShrink:0 }}>
                         {teamRole==="member" && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
@@ -1646,8 +1729,11 @@ export default function App() {
 
       </div>{/* end split */}
 
-      {/* Modal */}
+      {/* Modal perso */}
       {renderModal()}
+
+      {/* Modal équipe + commentaires */}
+      {renderTeamModal()}
 
       {/* Stats */}
       {showStats && (
