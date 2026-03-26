@@ -1,5 +1,13 @@
+# Dependencies
 node_modules/
-dist/
-.env
+
+# Environment variables (secrets)
 .env.local
 .env.*.local
+.env
+
+# Build output
+dist/
+
+# Editor
+.DS_Store

@@ -25,19 +25,11 @@ service cloud.firestore {
              get(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())).data.teamId == teamId;
     }
 
-    // Vérifie si le demandeur est admin de l'équipe du user cible
-    function isAdminOfUser(uid) {
-      let teamId = get(/databases/$(database)/documents/users/$(uid)).data.get('teamId', null);
-      return teamId != null && isAdminOf(teamId);
-    }
-
     // ── Profils utilisateurs ──────────────────────────────────────────
     match /users/{uid} {
-      // Chaque user lit/écrit son propre doc (tâches, thème, teamId…)
+      // Chaque user lit/écrit son propre doc uniquement (tâches privées)
       allow read, create, update, delete: if isAuth() && request.auth.uid == uid;
-      // L'admin de l'équipe peut lire les données d'un membre (pour les stats)
-      allow read: if isAdminOfUser(uid);
-      // Exception : un admin peut mettre à jour teamId/teamRole d'un autre user
+      // Exception : n'importe quel user connecté peut mettre à jour teamId/teamRole
       allow update: if isAuth() &&
                     request.resource.data.diff(resource.data)
                       .affectedKeys().hasOnly(['teamId', 'teamRole']);
@@ -63,6 +55,14 @@ service cloud.firestore {
       allow update: if isAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
       // Seul l'admin peut dissoudre l'équipe
       allow delete: if isAdminOf(teamId);
+
+      // ── Stats membres (agrégats uniquement, pas de tâches privées) ────
+      match /memberStats/{uid} {
+        // Le membre écrit ses propres stats
+        allow write: if isAuth() && request.auth.uid == uid;
+        // L'admin peut lire les stats de tous les membres
+        allow read: if isAdminOf(teamId) || (isAuth() && request.auth.uid == uid);
+      }
 
       // ── Tâches d'équipe ───────────────────────────────────────────
       match /tasks/{taskId} {

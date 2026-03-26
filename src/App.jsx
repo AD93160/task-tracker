@@ -57,18 +57,14 @@ const PRIO_COLOR = { "Haute":"#ff6b6b", "Moyenne":"#ffd93d", "Basse":"#6bcb77" }
 
 const INIT = [];
 
-function MemberStats({ member, db, theme }) {
+function MemberStats({ member, teamId, db, theme }) {
   const [stats, setStats] = useState(null);
   useEffect(() => {
-    getDoc(doc(db, "users", member.uid)).then(snap => {
+    getDoc(doc(db, "teams", teamId, "memberStats", member.uid)).then(snap => {
       if (!snap.exists()) return;
-      const tasks = snap.data().tasks || [];
-      const done  = tasks.filter(t => t.status === "Terminé").length;
-      const total = tasks.length;
-      const active = tasks.filter(t => t.status !== "Terminé").length;
-      setStats({ done, total, active });
+      setStats(snap.data());
     }).catch(() => {});
-  }, [member.uid]);
+  }, [member.uid, teamId]);
   return (
     <div style={{ background:theme.bg, borderRadius:8, padding:"8px 12px", marginBottom:6 }}>
       <div style={{ fontSize:11, color:theme.text, fontWeight:600, marginBottom:4 }}>{member.displayName || member.email}</div>
@@ -133,6 +129,8 @@ export default function App() {
   const [pendingInvite,    setPendingInvite]    = useState(null);
   const [teamError,        setTeamError]        = useState(null);
   const [teamInfo,         setTeamInfo]         = useState(null);
+  const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null); // Firestore ID tâche équipe en attente de planif
+  const [statsView,        setStatsView]        = useState("perso"); // "perso" | "team"
   const [teamTasks,        setTeamTasks]        = useState([]);
   const [teamPending,      setTeamPending]      = useState([]);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
@@ -374,8 +372,8 @@ export default function App() {
       setUser(prev => {
         const prevUid = prev?.uid ?? null;
         const newUid  = u?.uid   ?? null;
-        if (prevUid !== null && prevUid !== newUid) {
-          // Utilisateur différent → vider les données de l'ancien user
+        if (prevUid !== newUid && newUid !== null) {
+          // Utilisateur différent (ou premier login) → vider les données du user précédent
           ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
@@ -416,8 +414,16 @@ export default function App() {
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
-    setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true })
-      .finally(() => setSyncing(false));
+    const saveUser = setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true });
+    const saves = [saveUser];
+    if (team && teamRole) {
+      const total  = tasks.length;
+      const done   = tasks.filter(t => t.status === "Terminé").length;
+      const active = tasks.filter(t => t.status !== "Terminé").length;
+      const statsRef = doc(db, "teams", team.id, "memberStats", user.uid);
+      saves.push(setDoc(statsRef, { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
+    }
+    Promise.all(saves).finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
 
   const loginGoogle = async () => {
@@ -825,12 +831,16 @@ export default function App() {
             await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"edit", taskId:editingId, proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
             setTeamInfo("Modification proposée à l'admin.");
           }
+          setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (teamRole === "admin") {
           const newNum = teamTasks.length + 1;
-          await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
+          const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
+          // Étape 2 : planification (même flow que les tâches perso)
+          setPendingTask({ id: docRef.id, title: form.title });
+          setPendingTeamTaskId(docRef.id);
+          setFormStep(2);
         }
-      } catch(e) { setTeamError(e.message); return; }
-      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      } catch(e) { setTeamError(e.message); }
       return;
     }
     // ── ESPACE PERSO ──
@@ -858,8 +868,20 @@ export default function App() {
     }
   };
 
-  const applySchedule = (choice, date) => {
+  const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
+
+    // ── Tâche équipe (admin) ──
+    if (pendingTeamTaskId && team) {
+      const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
+      try { await updateDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId), { scheduledFor: scheduled }); } catch(e) {}
+      setPendingTeamTaskId(null);
+      setPendingTask(null); setFormStep(1);
+      setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      return;
+    }
+
+    // ── Tâche perso ──
     const id = pendingTask.id;
     const today = todayStr();
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
@@ -1090,6 +1112,36 @@ export default function App() {
     return (
       <div ref={ghostRef} style={{ position:"fixed",left:ghost.x-29,top:ghost.y-29,width:58,height:58,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${col}cc,${col})`,boxShadow:`0 0 24px ${col}99`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:17,color:"#fff",zIndex:999,pointerEvents:"none",opacity:0.85,transform:"scale(1.15)" }}>
         {taskNum(ghost.id)}
+      </div>
+    );
+  };
+
+  const renderTeamStats = () => {
+    const total     = teamTasks.length;
+    const done      = teamTasks.filter(t => t.status === "Terminé").length;
+    const active    = teamTasks.filter(t => t.status !== "Terminé").length;
+    const rate      = total > 0 ? Math.round((done/total)*100) : 0;
+    const scheduled = teamTasks.filter(t => t.scheduledFor === "today").length;
+    const row = (emoji, label, value, color) => (
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44` }}>
+        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}</span>
+        <span style={{ fontSize:13,fontWeight:700,color:color||theme.text }}>{value}</span>
+      </div>
+    );
+    return (
+      <div>
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>AVANCEMENT ÉQUIPE</div>
+          <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#3aaa3a":rate>40?"#ccaa00":"#cc3030",borderRadius:4,transition:"width .5s" }}/>
+          </div>
+          <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
+        </div>
+        {row("📋","Total tâches",   total)}
+        {row("✅","Terminées",       done+"/"+total, "#3aaa3a")}
+        {row("⏳","En cours/À faire",active, theme.accent)}
+        {scheduled > 0 && row("☀️","Planif. aujourd'hui", scheduled)}
+        {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
       </div>
     );
   };
@@ -1678,6 +1730,11 @@ export default function App() {
                           <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
                         </div>
                         {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                        {task.scheduledFor && task.scheduledFor !== null && (
+                          <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>
+                            {task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}
+                          </div>
+                        )}
                         {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
@@ -1822,8 +1879,14 @@ export default function App() {
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowStats(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:320,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
-            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:20 }}>STATISTIQUES</div>
-            {renderStats()}
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:team?12:20 }}>STATISTIQUES</div>
+            {team && (
+              <div style={{ display:"flex",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,overflow:"hidden",fontSize:10,marginBottom:20 }}>
+                <button onClick={()=>setStatsView("perso")} style={{ flex:1,padding:"6px 10px",background:statsView==="perso"?theme.accent:"transparent",border:"none",color:statsView==="perso"?"#fff":theme.textMuted,cursor:"pointer" }}>Mes tâches</button>
+                <button onClick={()=>setStatsView("team")}  style={{ flex:1,padding:"6px 10px",background:statsView==="team"?theme.accent:"transparent",border:"none",color:statsView==="team"?"#fff":theme.textMuted,cursor:"pointer" }}>👥 {team.name}</button>
+              </div>
+            )}
+            {(!team || statsView === "perso") ? renderStats() : renderTeamStats()}
           </div>
         </div>
       )}
@@ -2050,7 +2113,7 @@ export default function App() {
                   <>
                     <div style={{ fontSize:9,color:"#444466",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
                     {(team.members||[]).map(m => (
-                      <MemberStats key={m.uid} member={m} db={db} theme={theme} />
+                      <MemberStats key={m.uid} member={m} teamId={team.id} db={db} theme={theme} />
                     ))}
                   </>
                 )}
