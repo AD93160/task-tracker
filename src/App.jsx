@@ -578,16 +578,27 @@ export default function App() {
 
   useEffect(() => {
     if (!teamSpace || !team) { setTeamTasks([]); setTeamPending([]); return; }
-    const unsubTasks = onSnapshot(collection(db, "teams", team.id, "tasks"), snap => {
-      const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
-      t.sort((a,b) => (a.num||0)-(b.num||0));
-      setTeamTasks(t);
-    });
-    const unsubPending = onSnapshot(collection(db, "teams", team.id, "pendingChanges"), snap => {
-      setTeamPending(snap.docs.map(d => ({ ...d.data(), id:d.id })));
-    });
+    const teamId = team.id;
+    const unsubTasks = onSnapshot(
+      collection(db, "teams", teamId, "tasks"),
+      snap => {
+        const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
+        t.sort((a,b) => (a.num||0)-(b.num||0));
+        setTeamTasks(t);
+      },
+      err => console.error("team tasks subscription error:", err.message)
+    );
+    let unsubPending = () => {};
+    if (teamRole === "admin") {
+      unsubPending = onSnapshot(collection(db, "teams", teamId, "pendingChanges"), snap => {
+        setTeamPending(snap.docs.map(d => ({ ...d.data(), id:d.id })));
+      });
+    } else {
+      setTeamPending([]);
+    }
     return () => { unsubTasks(); unsubPending(); };
-  }, [teamSpace, team]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamSpace, team?.id, teamRole]);
 
   useEffect(() => {
     if (!teamModal || !team) { setTeamComments([]); return; }
