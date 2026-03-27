@@ -129,8 +129,11 @@ export default function App() {
   const [pendingInvite,    setPendingInvite]    = useState(null);
   const [teamError,        setTeamError]        = useState(null);
   const [teamInfo,         setTeamInfo]         = useState(null);
-  const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null); // Firestore ID tâche équipe en attente de planif
-  const [statsView,        setStatsView]        = useState("perso"); // "perso" | "team"
+  const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null);
+  const [statsView,        setStatsView]        = useState("perso");
+  const [teamSortBy,       setTeamSortBy]       = useState(null);
+  const [teamSortDir,      setTeamSortDir]       = useState("asc");
+  const [showTeamDone,     setShowTeamDone]      = useState(false);
   const [teamTasks,        setTeamTasks]        = useState([]);
   const [teamPending,      setTeamPending]      = useState([]);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
@@ -201,6 +204,7 @@ export default function App() {
   const longPressTimer   = useRef(null);
   const tasksRef         = useRef(tasks);
   const todayIdsRef      = useRef(todayIds);
+  const teamTasksRef     = useRef([]);
   const sendDailyNotifCb = useRef(null);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
@@ -277,8 +281,9 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
   useEffect(() => { localStorage.setItem("tt_dailyNotif",   JSON.stringify(dailyNotifEnabled)); }, [dailyNotifEnabled]);
   useEffect(() => { localStorage.setItem("tt_dailyNotifTime",JSON.stringify(dailyNotifTime)); }, [dailyNotifTime]);
-  useEffect(() => { tasksRef.current = tasks; },    [tasks]);
-  useEffect(() => { todayIdsRef.current = todayIds; }, [todayIds]);
+  useEffect(() => { tasksRef.current    = tasks;     }, [tasks]);
+  useEffect(() => { todayIdsRef.current = todayIds;  }, [todayIds]);
+  useEffect(() => { teamTasksRef.current = teamTasks;}, [teamTasks]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -318,16 +323,19 @@ export default function App() {
     const today = todayStr();
     if (localStorage.getItem("tt_lastDailyNotif") === today) return;
     localStorage.setItem("tt_lastDailyNotif", today);
-    const active = tasksRef.current.filter(t => todayIdsRef.current.includes(t.id) && t.status !== "Terminé");
-    const count = active.length;
+    const personalActive = tasksRef.current.filter(t => todayIdsRef.current.includes(t.id) && t.status !== "Terminé");
+    const teamActive     = teamTasksRef.current.filter(t => t.scheduledFor === "today" && t.status !== "Terminé");
+    const allActive = [...personalActive, ...teamActive];
+    const count = allActive.length;
     const body = count > 0
-      ? `${count} tâche${count>1?"s":""} : ${active.slice(0,3).map(t=>t.title).join(" • ")}${count>3?" …":""}`
+      ? `${count} tâche${count>1?"s":""} : ${allActive.slice(0,3).map(t=>t.title).join(" • ")}${count>3?" …":""}`
       : "Pas de tâches planifiées aujourd'hui.";
     playChime();
     const n = new Notification("Hey, on fait quoi aujourd'hui ? 👋", {
       body, tag:"daily-reminder", icon:"/favicon.ico", requireInteraction:false
     });
-    n.onclick = () => { window.focus(); setShowQuickAdd(true); n.close(); };
+    // Les membres d'équipe n'ont pas le quick add
+    n.onclick = () => { window.focus(); if (personalActive.length > 0) setShowQuickAdd(true); n.close(); };
   };
 
   useEffect(() => {
@@ -623,6 +631,11 @@ export default function App() {
     try {
       if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
       if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
+      if (change.type === "add") {
+        const newNum = (team.taskCounter || 0) + 1;
+        await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
+        await addDoc(collection(db, "teams", team.id, "tasks"), { ...change.data, id:Date.now(), num:newNum, createdBy:change.proposedBy, createdAt:serverTimestamp() });
+      }
       await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id));
     } catch(e) { setTeamError(e.message); }
   };
@@ -832,10 +845,14 @@ export default function App() {
             setTeamInfo("Modification proposée à l'admin.");
           }
           setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+        } else if (teamRole === "member") {
+          await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
+          setTeamInfo("Tâche proposée à l'admin pour validation.");
+          setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (teamRole === "admin") {
-          const newNum = teamTasks.length + 1;
+          const newNum = (team.taskCounter || 0) + 1;
+          await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
           const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
-          // Étape 2 : planification (même flow que les tâches perso)
           setPendingTask({ id: docRef.id, title: form.title });
           setPendingTeamTaskId(docRef.id);
           setFormStep(2);
@@ -966,7 +983,7 @@ export default function App() {
   const onTouchStart = (e, id, src) => {
     const t=e.touches[0];
     dragRef.current={id,src,startX:t.clientX,startY:t.clientY,curX:t.clientX,curY:t.clientY,moved:false,dragging:false};
-    const isBubble = src==="bubble"||src==="bubble-tomorrow";
+    const isBubble = src==="bubble"||src==="bubble-tomorrow"||src==="team-today"||src==="team-tomorrow";
     const delay = isBubble ? 80 : 500;
     longPressTimer.current = setTimeout(() => {
       if (dragRef.current.id===id) {
@@ -996,6 +1013,12 @@ export default function App() {
     if (src==="bubble-tomorrow"&&zone==="today")  { removeFromTomorrow(id); addToToday(id); return; }
     if (src==="bubble"&&zone==="tomorrow")    { addToTomorrow(id); return; }
     if (src==="bubble"&&typeof zone==="number"&&zone!==id) { reorderBubbles(id,zone); return; }
+    if (src==="team-today"&&zone==="tomorrow")    { moveTeamTask(id,"tomorrow"); return; }
+    if (src==="team-today"&&zone==="list")         { moveTeamTask(id,null); return; }
+    if (src==="team-tomorrow"&&zone==="today")     { moveTeamTask(id,"today"); return; }
+    if (src==="team-tomorrow"&&zone==="list")      { moveTeamTask(id,null); return; }
+    if (src==="team-list"&&zone==="today")         { moveTeamTask(id,"today"); return; }
+    if (src==="team-list"&&zone==="tomorrow")      { moveTeamTask(id,"tomorrow"); return; }
   };
   useEffect(() => {
     const h = (e) => { if (dragRef.current?.id) onTouchMove(e); };
@@ -1163,7 +1186,10 @@ export default function App() {
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
         {row("📋","Total tâches",   total)}
-        {row("✅","Terminées",       done+"/"+total, "#3aaa3a")}
+        <div onClick={()=>{setShowTeamDone(true);setShowStats(false);}} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44`,cursor:"pointer" }}>
+          <span style={{ fontSize:11,color:theme.textMuted }}>✅ Terminées →</span>
+          <span style={{ fontSize:13,fontWeight:700,color:"#3aaa3a" }}>{done}/{total}</span>
+        </div>
         {row("⏳","En cours/À faire",active, theme.accent)}
         {scheduled > 0 && row("☀️","Planif. aujourd'hui", scheduled)}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
@@ -1416,6 +1442,7 @@ export default function App() {
                         draggable={teamRole==="admin"}
                         onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-today"):undefined}
                         onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-today"):undefined}
                         onClick={()=>setTeamModal(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}cc,${dot})`,boxShadow:`0 0 16px ${dot}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
                         {task.num}
@@ -1448,6 +1475,7 @@ export default function App() {
                         draggable={teamRole==="admin"}
                         onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-tomorrow"):undefined}
                         onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
                         onClick={()=>setTeamModal(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}55,${dot}77)`,boxShadow:`0 0 10px ${dot}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${dot}66`,cursor:"pointer" }}>
                         {task.num}
@@ -1458,15 +1486,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Mobile — bouton ajouter équipe */}
-            {isMobile && teamRole==="admin" && (
-              <div style={{ padding:"10px 16px 14px" }}>
-                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                  style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-                  + Ajouter tâche équipe
-                </button>
-              </div>
-            )}
           </>) : (<>
             {/* TODAY — perso */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
@@ -1800,19 +1819,36 @@ export default function App() {
                       🔔 {teamPending.length} en attente
                     </button>
                   )}
-                  {teamRole==="admin" && (
-                    <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                      style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
-                      + Ajouter
-                    </button>
-                  )}
+                  <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                    style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
+                    {teamRole==="admin"?"+ Ajouter":"+ Proposer"}
+                  </button>
                 </div>
               </div>
               {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
               {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
-              {teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              {teamTasks.filter(t=>t.status!=="Terminé").length === 0 && teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              {/* Sort bar équipe */}
+              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
+                <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
+                {[{v:"num",l:"N°"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"status",l:"Statut"}].map(({v,l})=>(
+                  <button key={v} onClick={()=>{ if(teamSortBy===v){setTeamSortDir(d=>d==="asc"?"desc":"asc");}else{setTeamSortBy(v);setTeamSortDir("asc");} }}
+                    style={{ background:teamSortBy===v?theme.accent+"33":"transparent",border:`1px solid ${teamSortBy===v?theme.accent:theme.border}`,borderRadius:5,padding:"3px 8px",color:teamSortBy===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                    {l}{teamSortBy===v?(teamSortDir==="asc"?" ↑":" ↓"):""}
+                  </button>
+                ))}
+                {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
+              </div>
               <div style={{ display:"grid",gap:5 }}>
-                {teamTasks.map(task => {
+                {[...teamTasks].filter(t=>t.status!=="Terminé").sort((a,b)=>{
+                  if (!teamSortBy) return (a.num||0)-(b.num||0);
+                  const dir = teamSortDir==="asc"?1:-1;
+                  if (teamSortBy==="num")      return ((a.num||0)-(b.num||0))*dir;
+                  if (teamSortBy==="priority") return (["Haute","Moyenne","Basse"].indexOf(a.priority||"Basse")-["Haute","Moyenne","Basse"].indexOf(b.priority||"Basse"))*dir;
+                  if (teamSortBy==="due")      return ((a.due||"9999")>(b.due||"9999")?1:-1)*dir;
+                  if (teamSortBy==="status")   return ((STATUSES.indexOf(a.status))-(STATUSES.indexOf(b.status)))*dir;
+                  return 0;
+                }).map(task => {
                   const tc  = taskColor(task);
                   const bgC = tc ? tc.base+"33" : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
@@ -1823,6 +1859,7 @@ export default function App() {
                       draggable={teamRole==="admin"}
                       onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-list"):undefined}
                       onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                      onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
                       style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
@@ -1854,6 +1891,27 @@ export default function App() {
                   );
                 })}
               </div>
+              {/* Tâches terminées équipe */}
+              {teamTasks.filter(t=>t.status==="Terminé").length > 0 && (
+                <div style={{ marginTop:12 }}>
+                  <button onClick={()=>setShowTeamDone(s=>!s)}
+                    style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"5px 12px",color:theme.textMuted,fontSize:10,cursor:"pointer",width:"100%" }}>
+                    {showTeamDone?"▲":"▼"} {teamTasks.filter(t=>t.status==="Terminé").length} tâche{teamTasks.filter(t=>t.status==="Terminé").length>1?"s":""} terminée{teamTasks.filter(t=>t.status==="Terminé").length>1?"s":""}
+                  </button>
+                  {showTeamDone && (
+                    <div style={{ marginTop:6,display:"grid",gap:4 }}>
+                      {teamTasks.filter(t=>t.status==="Terminé").map(task=>(
+                        <div key={task.id} onClick={()=>setTeamModal(task.id)}
+                          style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer",opacity:0.7 }}>
+                          <span style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700 }}>#{task.num}</span>
+                          <span style={{ fontSize:11,color:theme.textMuted,textDecoration:"line-through",flex:1 }}>{task.title}</span>
+                          <span style={{ fontSize:9,color:"#a040a0" }}>✓</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -2121,12 +2179,12 @@ export default function App() {
             </button>
 
             <button onClick={async()=>{
-              if(!window.confirm("Effacer TOUTES les tâches et réinitialiser l'appli ? Cette action est irréversible.")) return;
+              if(!window.confirm("Effacer toutes tes tâches personnelles ? Tes données d'équipe ne seront pas affectées. Cette action est irréversible.")) return;
               ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
-              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:false}); }catch(e){} }
+              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:true}); }catch(e){} }
               window.location.reload();
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
-              🗑️ Réinitialiser toutes les données
+              🗑️ Réinitialiser les tâches personnelles
             </button>
 
           </div>
@@ -2145,12 +2203,12 @@ export default function App() {
               return (
                 <div key={change.id} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
                   <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
-                    {change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
+                    {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
                   </div>
                   <div style={{ fontSize:11,color:theme.text,marginBottom:4 }}>
-                    Tâche : <strong>{change.type==="delete" ? (task?.title||"#"+change.taskId) : change.data?.title}</strong>
+                    {change.type==="delete" ? <>Supprimer : <strong>{task?.title||"#"+change.taskId}</strong></> : <><strong>{change.data?.title}</strong></>}
                   </div>
-                  {change.type==="edit" && change.data && (
+                  {(change.type==="edit"||change.type==="add") && change.data && (
                     <div style={{ fontSize:10,color:theme.textMuted,marginBottom:8 }}>
                       {change.data.priority && <span style={{ marginRight:8 }}>Priorité : {change.data.priority}</span>}
                       {change.data.status   && <span style={{ marginRight:8 }}>Statut : {change.data.status}</span>}
