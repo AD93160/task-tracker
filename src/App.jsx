@@ -81,6 +81,129 @@ function MemberStats({ member, teamId, db, theme }) {
   );
 }
 
+function TeamPanel({ team, teamRole, teamPending, theme, isMobile, onClose, onOpenTasks, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
+  const [view,      setView]     = useState("list"); // "list" | "detail" | "create"
+  const [teamName,  setTeamName] = useState("");
+  const [invite,    setInvite]   = useState("");
+
+  const bg   = theme.mode === "dark" ? "#12122a" : theme.bgCard;
+  const w    = isMobile ? Math.min(300, window.innerWidth - 16) : 300;
+
+  return (
+    <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:isMobile?8:16 }}
+      onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:bg,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:w,boxShadow:"0 8px 40px #00000099",maxHeight:"75vh",overflowY:"auto" }}>
+
+        {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
+        {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
+
+        {/* ── VUE LISTE ── */}
+        {view === "list" && (
+          <>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16 }}>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>MES ÉQUIPES</div>
+              <button onClick={()=>{setTeamName("");setView("create");}} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"4px 10px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>+ Nouvelle</button>
+            </div>
+            {!team ? (
+              <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>
+                Aucune équipe pour l'instant.<br/>
+                <span style={{ fontSize:10,color:theme.accent,cursor:"pointer" }} onClick={()=>{setTeamName("");setView("create");}}>Créer une équipe →</span>
+              </div>
+            ) : (
+              <div onClick={()=>setView("detail")} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:theme.bg,borderRadius:10,cursor:"pointer",border:`1px solid ${theme.border}`,marginBottom:8 }}>
+                <div>
+                  <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{team.name}</div>
+                  <div style={{ fontSize:10,color:theme.textMuted,marginTop:2 }}>{teamRole==="admin"?"👑 Admin":`${(team.members||[]).length} membre(s)`}</div>
+                </div>
+                <span style={{ color:theme.textMuted,fontSize:18 }}>›</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── VUE CRÉER ── */}
+        {view === "create" && (
+          <>
+            <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:16 }}>
+              <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>NOUVELLE ÉQUIPE</div>
+            </div>
+            <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Nom de l'équipe"
+              autoFocus onKeyDown={e=>{ if(e.key==="Enter" && teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
+              style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:12 }}/>
+            <button onClick={()=>{ if(teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
+              style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700 }}>
+              Créer l'équipe
+            </button>
+          </>
+        )}
+
+        {/* ── VUE DÉTAIL ── */}
+        {view === "detail" && team && (
+          <>
+            <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
+              <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
+              <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{team.name}</div>
+            </div>
+            <div style={{ fontSize:10,color:theme.textMuted,marginBottom:14,paddingLeft:24 }}>
+              {teamRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${team.adminEmail}`}
+            </div>
+
+            <button onClick={onOpenTasks} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
+              📋 Ouvrir l'espace tâches
+              {teamRole==="admin" && teamPending.length > 0 && (
+                <span style={{ background:"#fff",color:theme.accent,borderRadius:"50%",minWidth:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px" }}>{teamPending.length}</span>
+              )}
+            </button>
+
+            <div style={{ fontSize:9,color:"#666688",marginBottom:8,letterSpacing:1 }}>MEMBRES ({(team.members||[]).length})</div>
+            {(team.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
+            {(team.members||[]).map(m => (
+              <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
+                <div>
+                  <div style={{ fontSize:11,color:theme.text }}>{m.displayName}</div>
+                  <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
+                </div>
+                {teamRole==="admin" && (
+                  <button onClick={()=>onRemoveMember(m)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
+                )}
+              </div>
+            ))}
+
+            {teamRole==="admin" && (team.members||[]).length > 0 && (
+              <>
+                <div style={{ fontSize:9,color:"#666688",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
+                {(team.members||[]).map(m => <MemberStats key={m.uid} member={m} teamId={team.id} db={db} theme={theme} />)}
+              </>
+            )}
+
+            {teamRole==="admin" && (
+              <>
+                <div style={{ fontSize:9,color:"#666688",marginBottom:6,marginTop:12,letterSpacing:1 }}>INVITER PAR EMAIL</div>
+                <div style={{ display:"flex",gap:6,marginBottom:16 }}>
+                  <input value={invite} onChange={e=>setInvite(e.target.value)} placeholder="email@exemple.com"
+                    onKeyDown={e=>{ if(e.key==="Enter") { onInvite(invite); setInvite(""); } }}
+                    style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"7px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
+                  <button onClick={()=>{ onInvite(invite); setInvite(""); }} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:11,cursor:"pointer" }}>Envoyer</button>
+                </div>
+              </>
+            )}
+
+            <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12 }}>
+              {teamRole==="admin" && (
+                <button onClick={onDissolve} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* fallback si vue inconnue */}
+        {view !== "list" && view !== "create" && view !== "detail" && setView("list")}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
   const [tasks,        setTasks]        = useState(() => load("tt_tasks", INIT));
@@ -498,12 +621,12 @@ export default function App() {
     return () => { userUnsub(); teamUnsub(); };
   }, [user]);
 
-  const createTeam = async () => {
-    if (!user || !teamForm.name.trim()) return;
+  const createTeam = async (name) => {
+    if (!user || !name?.trim()) return;
     try {
-      const ref = await addDoc(collection(db, "teams"), { name:teamForm.name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
+      const ref = await addDoc(collection(db, "teams"), { name:name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
       await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin" }, { merge:true });
-      setTeamForm({ name:"" }); setTeamInfo("Équipe créée !"); setTeamPanelView("detail");
+      setTeamInfo("Équipe créée !");
     } catch(e) { setTeamError(e.message); }
   };
 
@@ -527,13 +650,13 @@ export default function App() {
     } catch(e) { console.error("EmailJS:", e); }
   };
 
-  const inviteMember = async () => {
-    if (!team || !inviteEmail.trim()) return;
-    const email = inviteEmail.trim().toLowerCase();
+  const inviteMember = async (emailArg) => {
+    const raw = (emailArg || inviteEmail).trim().toLowerCase();
+    if (!team || !raw) return;
     try {
-      await setDoc(doc(db, "invitations", email), { teamId:team.id, teamName:team.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
-      await sendInviteEmail(email, team.name, user.email||"");
-      setTeamInfo(`Invitation envoyée à ${email}`); setInviteEmail("");
+      await setDoc(doc(db, "invitations", raw), { teamId:team.id, teamName:team.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
+      await sendInviteEmail(raw, team.name, user.email||"");
+      setTeamInfo(`Invitation envoyée à ${raw}`); setInviteEmail("");
     } catch(e) { setTeamError(e.message); }
   };
 
@@ -2304,120 +2427,18 @@ export default function App() {
 
       {/* Panneau Équipe */}
       {showTeam && (
-        <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:isMobile?8:16 }}
-          onClick={()=>setShowTeam(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:isMobile?Math.min(300,window.innerWidth-16):300,boxShadow:"0 8px 40px #00000099",maxHeight:"75vh",overflowY:"auto" }}>
-
-            {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
-            {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
-
-            {/* ── VUE LISTE ── */}
-            {teamPanelView === "list" && (
-              <>
-                <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16 }}>
-                  <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>MES ÉQUIPES</div>
-                  <button onClick={()=>{setTeamForm({name:""});setTeamPanelView("create");}} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"4px 10px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>+ Nouvelle</button>
-                </div>
-                {!team ? (
-                  <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>
-                    Vous n'appartenez à aucune équipe.<br/>
-                    <span style={{ fontSize:10,color:theme.accent,cursor:"pointer" }} onClick={()=>{setTeamForm({name:""});setTeamPanelView("create");}}>Créer une équipe →</span>
-                  </div>
-                ) : (
-                  <div onClick={()=>setTeamPanelView("detail")} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:theme.bg,borderRadius:10,cursor:"pointer",border:`1px solid ${theme.border}`,marginBottom:8, transition:"border-color .15s" }}
-                    onMouseEnter={e=>e.currentTarget.style.borderColor=theme.accent}
-                    onMouseLeave={e=>e.currentTarget.style.borderColor=theme.border}>
-                    <div>
-                      <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{team.name}</div>
-                      <div style={{ fontSize:10,color:theme.textMuted,marginTop:2 }}>{teamRole==="admin"?"👑 Admin":`${(team.members||[]).length} membre(s)`}</div>
-                    </div>
-                    <span style={{ color:theme.textMuted,fontSize:14 }}>›</span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* ── VUE CRÉER ── */}
-            {teamPanelView === "create" && (
-              <>
-                <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:16 }}>
-                  <button onClick={()=>setTeamPanelView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
-                  <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>NOUVELLE ÉQUIPE</div>
-                </div>
-                <input value={teamForm.name} onChange={e=>setTeamForm({name:e.target.value})} placeholder="Nom de l'équipe"
-                  autoFocus onKeyDown={e=>e.key==="Enter"&&createTeam()}
-                  style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:12 }}/>
-                <button onClick={createTeam} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700 }}>Créer l'équipe</button>
-              </>
-            )}
-
-            {/* ── VUE DÉTAIL ── */}
-            {teamPanelView === "detail" && team && (
-              <>
-                <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
-                  <button onClick={()=>setTeamPanelView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
-                  <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{team.name}</div>
-                </div>
-                <div style={{ fontSize:10,color:theme.textMuted,marginBottom:14,paddingLeft:22 }}>
-                  {teamRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${team.adminEmail}`}
-                </div>
-
-                {/* Ouvrir l'espace tâches */}
-                <button onClick={()=>{setTeamSpace(true);setShowTeam(false);}} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
-                  📋 Ouvrir l'espace tâches
-                  {teamRole==="admin" && teamPending.length > 0 && (
-                    <span style={{ background:"#fff",color:theme.accent,borderRadius:"50%",minWidth:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px" }}>{teamPending.length}</span>
-                  )}
-                </button>
-
-                {/* Membres */}
-                <div style={{ fontSize:9,color:"#444466",marginBottom:8,letterSpacing:1 }}>MEMBRES ({(team.members||[]).length})</div>
-                {(team.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
-                {(team.members||[]).map(m => (
-                  <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
-                    <div>
-                      <div style={{ fontSize:11,color:theme.text }}>{m.displayName}</div>
-                      <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
-                    </div>
-                    {teamRole==="admin" && (
-                      <button onClick={()=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
-                        style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
-                    )}
-                  </div>
-                ))}
-
-                {/* Stats membres (admin seulement) */}
-                {teamRole==="admin" && (team.members||[]).length > 0 && (
-                  <>
-                    <div style={{ fontSize:9,color:"#444466",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
-                    {(team.members||[]).map(m => (
-                      <MemberStats key={m.uid} member={m} teamId={team.id} db={db} theme={theme} />
-                    ))}
-                  </>
-                )}
-
-                {/* Inviter (admin seulement) */}
-                {teamRole==="admin" && (
-                  <>
-                    <div style={{ fontSize:9,color:"#444466",marginBottom:6,marginTop:12,letterSpacing:1 }}>INVITER PAR EMAIL</div>
-                    <div style={{ display:"flex",gap:6,marginBottom:16 }}>
-                      <input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="email@exemple.com"
-                        onKeyDown={e=>e.key==="Enter"&&inviteMember()}
-                        style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"7px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
-                      <button onClick={inviteMember} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:11,cursor:"pointer" }}>Envoyer</button>
-                    </div>
-                  </>
-                )}
-
-                <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12 }}>
-                  {teamRole==="admin" && (
-                    <button onClick={dissolveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <TeamPanel
+          team={team} teamRole={teamRole} teamPending={teamPending}
+          theme={theme} isMobile={isMobile}
+          onClose={()=>setShowTeam(false)}
+          onOpenTasks={()=>{ setTeamSpace(true); setShowTeam(false); }}
+          onCreateTeam={createTeam}
+          onInvite={inviteMember}
+          onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
+          onDissolve={dissolveTeam}
+          teamError={teamError} teamInfo={teamInfo}
+          setTeamError={setTeamError} setTeamInfo={setTeamInfo}
+        />
       )}
 
       {/* Quick Add depuis notif */}
