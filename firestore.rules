@@ -48,7 +48,9 @@ service cloud.firestore {
     // ── Équipes ───────────────────────────────────────────────────────
     match /teams/{teamId} {
       // Membres et admin peuvent lire
-      allow read: if isMemberOf(teamId) || isAdminOf(teamId);
+      // resource.data.adminUid == request.auth.uid permet aussi les requêtes de collection (sans get())
+      allow read: if isMemberOf(teamId) || isAdminOf(teamId) ||
+                     (isAuth() && resource.data.adminUid == request.auth.uid);
       // N'importe quel user connecté peut créer une équipe (il en devient admin)
       allow create: if isAuth();
       // Admin, membres, et users avec invitation peuvent modifier (rejoindre/quitter)

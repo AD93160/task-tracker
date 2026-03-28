@@ -606,42 +606,67 @@ export default function App() {
     } catch(e) { setAuthError(e.message); }
   };
   useEffect(() => {
-    if (!user) { setTeam(null); setTeamRole(null); setPendingInvite(null); setTeamSpace(false); return; }
-    let teamUnsub = () => {};
+    if (!user) { setTeam(null); setTeamRole(null); setPendingInvite(null); setTeamSpace(false); setAdminTeams([]); return; }
+
+    // Subscriptions dynamiques sur chaque équipe listée dans allTeamIds
+    const teamUnsubs = new Map(); // teamId → unsub fn
+
+    const subscribeToTeam = (teamId, myRole) => {
+      if (teamUnsubs.has(teamId)) return;
+      const unsub = onSnapshot(doc(db, "teams", teamId), tSnap => {
+        if (!tSnap.exists()) {
+          setAdminTeams(prev => prev.filter(t => t.id !== teamId));
+          return;
+        }
+        const t = { id:tSnap.id, ...tSnap.data(), myRole };
+        setAdminTeams(prev => {
+          const idx = prev.findIndex(x => x.id === teamId);
+          if (idx >= 0) { const next=[...prev]; next[idx]=t; return next; }
+          return [...prev, t];
+        });
+      });
+      teamUnsubs.set(teamId, unsub);
+    };
+
     const userUnsub = onSnapshot(doc(db, "users", user.uid), snap => {
       const data = snap.data() || {};
       setTeamRole(data.teamRole || null);
-      teamUnsub();
-      if (data.teamId) {
-        teamUnsub = onSnapshot(doc(db, "teams", data.teamId), tSnap => {
+
+      // Équipe active (teamId principal)
+      const activeId = data.teamId || null;
+      if (activeId) {
+        const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
           if (tSnap.exists()) setTeam({ id:tSnap.id, ...tSnap.data() });
           else { setTeam(null); setTeamSpace(false); }
         });
+        // Stocker dans teamUnsubs pour cleanup
+        if (!teamUnsubs.has("__active__")) teamUnsubs.set("__active__", activeUnsub);
       } else { setTeam(null); setTeamSpace(false); }
+
+      // Toutes les équipes (allTeamIds + teamId actuel)
+      const allIds = Array.from(new Set([
+        ...(data.allTeamIds || []),
+        ...(activeId ? [activeId] : [])
+      ]));
+      allIds.forEach(id => subscribeToTeam(id, id === activeId ? (data.teamRole || "admin") : "admin"));
     });
+
     if (user.email) {
       getDoc(doc(db, "invitations", user.email.toLowerCase())).then(s => {
         setPendingInvite(s.exists() ? { id:s.id, ...s.data() } : null);
       });
     }
-    return () => { userUnsub(); teamUnsub(); };
-  }, [user]);
-
-  // Toutes les équipes où l'user est admin (requête Firestore)
-  useEffect(() => {
-    if (!user) { setAdminTeams([]); return; }
-    const q = query(collection(db, "teams"), where("adminUid", "==", user.uid));
-    const unsub = onSnapshot(q, snap => {
-      setAdminTeams(snap.docs.map(d => ({ id:d.id, ...d.data(), myRole:"admin" })));
-    }, err => console.error("adminTeams query:", err));
-    return unsub;
+    return () => {
+      userUnsub();
+      teamUnsubs.forEach(fn => fn());
+    };
   }, [user?.uid]);
 
   // Activer une équipe (met à jour teamId dans Firestore → déclenche le listener existant)
   const switchActiveTeam = async (t) => {
     if (!user) return;
     const role = t.adminUid === user.uid ? "admin" : "member";
-    try { await setDoc(doc(db, "users", user.uid), { teamId:t.id, teamRole:role }, { merge:true }); }
+    try { await setDoc(doc(db, "users", user.uid), { teamId:t.id, teamRole:role, allTeamIds:arrayUnion(t.id) }, { merge:true }); }
     catch(e) { setTeamError(e.message); }
   };
 
@@ -649,7 +674,7 @@ export default function App() {
     if (!user || !name?.trim()) return;
     try {
       const ref = await addDoc(collection(db, "teams"), { name:name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
-      await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin" }, { merge:true });
+      await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin", allTeamIds:arrayUnion(ref.id) }, { merge:true });
       setTeamInfo("Équipe créée !");
     } catch(e) { setTeamError(e.message); }
   };
@@ -689,7 +714,7 @@ export default function App() {
     if (!pendingInvite || !user) return;
     try {
       await updateDoc(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
-      await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member" }, { merge:true });
+      await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
       await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase()));
       setPendingInvite(null);
       setTeamSpace(true); // bascule directement sur l'espace équipe
@@ -2454,7 +2479,7 @@ export default function App() {
       {/* Panneau Équipe */}
       {showTeam && (
         <TeamPanel
-          allUserTeams={[...adminTeams, ...(team && !adminTeams.find(t=>t.id===team.id) ? [{...team,myRole:teamRole||"member"}] : [])]}
+          allUserTeams={adminTeams}
           activeTeamId={team?.id}
           teamPending={teamPending}
           theme={theme} isMobile={isMobile}
