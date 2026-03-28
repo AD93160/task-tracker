@@ -1325,28 +1325,47 @@ export default function App() {
   const onDropTomorrow = (e) => { e.preventDefault(); const {id,src,isTeam}=dragRef.current; if(isTeam&&id)moveTeamTask(id,"tomorrow"); else { if((src==="list"||src==="bubble")&&id)addToTomorrow(id); } setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
+  const DRAG_DELAY     = 320;  // ms — long press uniforme toutes sources
+  const DRAG_THRESHOLD = 12;   // px — mouvement max avant activation (scroll sinon)
+
   const onTouchStart = (e, id, src) => {
-    const t=e.touches[0];
-    dragRef.current={id,src,startX:t.clientX,startY:t.clientY,curX:t.clientX,curY:t.clientY,moved:false,dragging:false};
-    const isBubble = src==="bubble"||src==="bubble-tomorrow"||src==="team-today"||src==="team-tomorrow";
-    const delay = isBubble ? 80 : 500;
+    const t = e.touches[0];
+    dragRef.current = { id, src, startX:t.clientX, startY:t.clientY, curX:t.clientX, curY:t.clientY, moved:false, dragging:false };
+    clearTimeout(longPressTimer.current);
     longPressTimer.current = setTimeout(() => {
-      if (dragRef.current.id===id) {
-        dragRef.current.dragging=true;
-        setGhost({id,src,x:dragRef.current.curX,y:dragRef.current.curY});
+      const d = dragRef.current;
+      if (d.id !== id) return;
+      // Annuler si le doigt a trop bougé → intention de scroll
+      if (Math.abs(d.curX - d.startX) > DRAG_THRESHOLD || Math.abs(d.curY - d.startY) > DRAG_THRESHOLD) return;
+      d.dragging = true;
+      setGhost({ id, src, x:d.curX, y:d.curY });
+      if (navigator.vibrate) navigator.vibrate(18); // retour haptique
+    }, DRAG_DELAY);
+  };
+
+  const onTouchMove = (e) => {
+    const t = e.touches[0];
+    const d = dragRef.current;
+    if (!d.id) return;
+    d.curX = t.clientX; d.curY = t.clientY;
+    if (!d.dragging) {
+      // Si le doigt bouge trop avant l'activation → scroll natif, annuler drag
+      const dx = Math.abs(t.clientX - d.startX);
+      const dy = Math.abs(t.clientY - d.startY);
+      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        clearTimeout(longPressTimer.current);
+        dragRef.current = {};
       }
-    }, delay);
-  };
-  const onTouchMove  = (e) => {
-    const t=e.touches[0]; const {id,src,dragging,startX,startY}=dragRef.current; if(!id)return;
-    dragRef.current.curX=t.clientX; dragRef.current.curY=t.clientY;
-    if (!dragging) {
-      if (src==="list" && (Math.abs(t.clientX-startX)>8||Math.abs(t.clientY-startY)>8)) { clearTimeout(longPressTimer.current); dragRef.current={}; }
-      return;
+      return; // laisser le scroll se faire
     }
-    dragRef.current.moved=true; setGhost({id,src,x:t.clientX,y:t.clientY}); setDropZone(getZoneAtPoint(t.clientX,t.clientY)); e.preventDefault();
+    // En mode drag actif : bloquer le scroll et déplacer le ghost
+    d.moved = true;
+    setGhost({ id:d.id, src:d.src, x:t.clientX, y:t.clientY });
+    setDropZone(getZoneAtPoint(t.clientX, t.clientY));
+    e.preventDefault();
   };
-  const onTouchEnd   = (e) => {
+
+  const onTouchEnd = (e) => {
     clearTimeout(longPressTimer.current);
     const t=e.changedTouches[0]; const {id,src,moved,dragging}=dragRef.current; dragRef.current={}; setGhost(null); setDropZone(null);
     if (!id||!moved||!dragging) return;
