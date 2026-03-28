@@ -104,6 +104,7 @@ export default function App() {
   const [dropZone,     setDropZone]     = useState(null);
   const [listening,    setListening]    = useState(false);
   const [voiceError,   setVoiceError]   = useState(null);
+  const [authLoading,  setAuthLoading]  = useState(true);
   const [user,         setUser]         = useState(null);
   const [syncing,      setSyncing]      = useState(false);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
@@ -129,8 +130,11 @@ export default function App() {
   const [pendingInvite,    setPendingInvite]    = useState(null);
   const [teamError,        setTeamError]        = useState(null);
   const [teamInfo,         setTeamInfo]         = useState(null);
-  const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null); // Firestore ID tâche équipe en attente de planif
-  const [statsView,        setStatsView]        = useState("perso"); // "perso" | "team"
+  const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null);
+  const [statsView,        setStatsView]        = useState("perso");
+  const [teamSortBy,       setTeamSortBy]       = useState(null);
+  const [teamSortDir,      setTeamSortDir]       = useState("asc");
+  const [showTeamDone,     setShowTeamDone]      = useState(false);
   const [teamTasks,        setTeamTasks]        = useState([]);
   const [teamPending,      setTeamPending]      = useState([]);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
@@ -200,8 +204,11 @@ export default function App() {
   const fromFirestore    = useRef(false);
   const longPressTimer   = useRef(null);
   const tasksRef         = useRef(tasks);
-  const todayIdsRef      = useRef(todayIds);
-  const sendDailyNotifCb = useRef(null);
+  const todayIdsRef         = useRef(todayIds);
+  const teamTasksRef        = useRef([]);
+  const sendDailyNotifCb    = useRef(null);
+  const teamPendingPrevCount = useRef(-1); // -1 = pas encore initialisé (évite notif au 1er chargement)
+  const teamTasksPrevIds    = useRef(null); // null = pas encore initialisé
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -277,8 +284,9 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
   useEffect(() => { localStorage.setItem("tt_dailyNotif",   JSON.stringify(dailyNotifEnabled)); }, [dailyNotifEnabled]);
   useEffect(() => { localStorage.setItem("tt_dailyNotifTime",JSON.stringify(dailyNotifTime)); }, [dailyNotifTime]);
-  useEffect(() => { tasksRef.current = tasks; },    [tasks]);
-  useEffect(() => { todayIdsRef.current = todayIds; }, [todayIds]);
+  useEffect(() => { tasksRef.current    = tasks;     }, [tasks]);
+  useEffect(() => { todayIdsRef.current = todayIds;  }, [todayIds]);
+  useEffect(() => { teamTasksRef.current = teamTasks;}, [teamTasks]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -318,16 +326,19 @@ export default function App() {
     const today = todayStr();
     if (localStorage.getItem("tt_lastDailyNotif") === today) return;
     localStorage.setItem("tt_lastDailyNotif", today);
-    const active = tasksRef.current.filter(t => todayIdsRef.current.includes(t.id) && t.status !== "Terminé");
-    const count = active.length;
+    const personalActive = tasksRef.current.filter(t => todayIdsRef.current.includes(t.id) && t.status !== "Terminé");
+    const teamActive     = teamTasksRef.current.filter(t => t.scheduledFor === "today" && t.status !== "Terminé");
+    const allActive = [...personalActive, ...teamActive];
+    const count = allActive.length;
     const body = count > 0
-      ? `${count} tâche${count>1?"s":""} : ${active.slice(0,3).map(t=>t.title).join(" • ")}${count>3?" …":""}`
+      ? `${count} tâche${count>1?"s":""} : ${allActive.slice(0,3).map(t=>t.title).join(" • ")}${count>3?" …":""}`
       : "Pas de tâches planifiées aujourd'hui.";
     playChime();
     const n = new Notification("Hey, on fait quoi aujourd'hui ? 👋", {
       body, tag:"daily-reminder", icon:"/favicon.ico", requireInteraction:false
     });
-    n.onclick = () => { window.focus(); setShowQuickAdd(true); n.close(); };
+    // Les membres d'équipe n'ont pas le quick add
+    n.onclick = () => { window.focus(); if (personalActive.length > 0) setShowQuickAdd(true); n.close(); };
   };
 
   useEffect(() => {
@@ -374,6 +385,9 @@ export default function App() {
         const newUid  = u?.uid   ?? null;
         if (prevUid !== newUid && newUid !== null) {
           // Utilisateur différent (ou premier login) → vider les données du user précédent
+          // IMPORTANT : fromFirestore.current = true avant de vider pour éviter de sauvegarder
+          // des données vides dans Firestore (ce qui écraserait les vraies données)
+          fromFirestore.current = true;
           ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
@@ -382,6 +396,7 @@ export default function App() {
         }
         return u;
       });
+      setAuthLoading(false);
     });
     return unsub;
   }, []);
@@ -569,17 +584,58 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!teamSpace || !team) { setTeamTasks([]); setTeamPending([]); return; }
-    const unsubTasks = onSnapshot(collection(db, "teams", team.id, "tasks"), snap => {
-      const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
-      t.sort((a,b) => (a.num||0)-(b.num||0));
-      setTeamTasks(t);
-    });
-    const unsubPending = onSnapshot(collection(db, "teams", team.id, "pendingChanges"), snap => {
-      setTeamPending(snap.docs.map(d => ({ ...d.data(), id:d.id })));
-    });
+    if (!teamSpace || !team) {
+      setTeamTasks([]); setTeamPending([]);
+      teamTasksPrevIds.current = null; teamPendingPrevCount.current = -1;
+      return;
+    }
+    const teamId = team.id;
+    teamTasksPrevIds.current = null; // reset à chaque changement d'équipe
+    teamPendingPrevCount.current = -1;
+    const unsubTasks = onSnapshot(
+      collection(db, "teams", teamId, "tasks"),
+      snap => {
+        const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
+        t.sort((a,b) => (a.num||0)-(b.num||0));
+        // Notification membre : nouvelle tâche ajoutée ou modifiée
+        if (teamTasksPrevIds.current !== null && teamRole === "member") {
+          const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
+          if (newTasks.length > 0 && Notification.permission === "granted") {
+            new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
+              body: newTasks.map(tk => tk.title).join(" • "),
+              icon: "/favicon.ico", tag: "team-task-added"
+            });
+          }
+        }
+        teamTasksPrevIds.current = new Set(t.map(tk => tk.id));
+        setTeamTasks(t);
+      },
+      err => console.error("team tasks subscription error:", err.message)
+    );
+    let unsubPending = () => {};
+    if (teamRole === "admin") {
+      unsubPending = onSnapshot(collection(db, "teams", teamId, "pendingChanges"), snap => {
+        const items = snap.docs.map(d => ({ ...d.data(), id:d.id }));
+        // Notification admin : nouvelle proposition d'un membre
+        if (teamPendingPrevCount.current >= 0 && items.length > teamPendingPrevCount.current) {
+          if (Notification.permission === "granted") {
+            const newest = items[items.length - 1];
+            const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
+            new Notification("Task Tracker — Modification proposée 🔔", {
+              body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
+              icon: "/favicon.ico", tag: "team-pending"
+            });
+          }
+        }
+        teamPendingPrevCount.current = items.length;
+        setTeamPending(items);
+      });
+    } else {
+      setTeamPending([]);
+    }
     return () => { unsubTasks(); unsubPending(); };
-  }, [teamSpace, team]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamSpace, team?.id, teamRole]);
 
   useEffect(() => {
     if (!teamModal || !team) { setTeamComments([]); return; }
@@ -605,6 +661,13 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
+  const cycleTeamStatus = async (firestoreId, currentStatus) => {
+    if (!team || teamRole !== "admin") return;
+    const next = STATUSES[(STATUSES.indexOf(currentStatus) + 1) % STATUSES.length];
+    try { await updateDoc(doc(db, "teams", team.id, "tasks", firestoreId), { status: next }); }
+    catch(e) { setTeamError(e.message); }
+  };
+
   const deleteTeamTask = async (taskId) => {
     if (!team) return;
     if (teamRole === "admin") {
@@ -623,6 +686,11 @@ export default function App() {
     try {
       if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
       if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
+      if (change.type === "add") {
+        const newNum = (team.taskCounter || 0) + 1;
+        await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
+        await addDoc(collection(db, "teams", team.id, "tasks"), { ...change.data, id:Date.now(), num:newNum, createdBy:change.proposedBy, createdAt:serverTimestamp() });
+      }
       await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id));
     } catch(e) { setTeamError(e.message); }
   };
@@ -832,10 +900,14 @@ export default function App() {
             setTeamInfo("Modification proposée à l'admin.");
           }
           setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+        } else if (teamRole === "member") {
+          await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
+          setTeamInfo("Tâche proposée à l'admin pour validation.");
+          setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (teamRole === "admin") {
-          const newNum = teamTasks.length + 1;
+          const newNum = (team.taskCounter || 0) + 1;
+          await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
           const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
-          // Étape 2 : planification (même flow que les tâches perso)
           setPendingTask({ id: docRef.id, title: form.title });
           setPendingTeamTaskId(docRef.id);
           setFormStep(2);
@@ -934,14 +1006,39 @@ export default function App() {
       if (src==="bubble-tomorrow"&&e.clientY<rect.top+rect.height/2) { removeFromTomorrow(id); addToToday(id); return; }
     }
   };
-  const onDropToday    = (e) => { e.preventDefault(); const {id,src}=dragRef.current; if(src==="list"&&id)addToToday(id); if(src==="bubble-tomorrow"&&id){removeFromTomorrow(id);addToToday(id);} setDropZone(null); };
-  const onDropTomorrow = (e) => { e.preventDefault(); const {id,src}=dragRef.current; if((src==="list"||src==="bubble")&&id)addToTomorrow(id); setDropZone(null); };
+  const moveTeamTask = (firestoreId, scheduledFor) => {
+    if (!team) return;
+    updateDoc(doc(db, "teams", team.id, "tasks", firestoreId), { scheduledFor: scheduledFor ?? null }).catch(()=>{});
+  };
+  const onDragStartTeam = (e, taskId, src) => {
+    dragRef.current = { id:taskId, src, isTeam:true };
+    e.dataTransfer.effectAllowed = "move";
+    const task = teamTasks.find(t => t.id === taskId);
+    const dot  = STATUS_DOT[task?.status || "À faire"];
+    const el   = document.createElement("div");
+    el.style.cssText = `width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 35%,${dot}cc,${dot});display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;position:fixed;top:-100px;left:-100px;`;
+    el.textContent = String(task?.num || "?");
+    document.body.appendChild(el);
+    e.dataTransfer.setDragImage(el, 27, 27);
+    setTimeout(()=>{ if(document.body.contains(el)) document.body.removeChild(el); }, 0);
+  };
+  const onDragEndTeam = (e) => {
+    const {id, src} = dragRef.current; dragRef.current={}; setDropZone(null); if (!id||!team) return;
+    if (leftRef.current) {
+      const rect = leftRef.current.getBoundingClientRect();
+      if (e.clientX > rect.right) { if(src==="team-today"||src==="team-tomorrow") moveTeamTask(id, null); return; }
+      if (src==="team-today"    && e.clientY > rect.top+rect.height/2) { moveTeamTask(id,"tomorrow"); return; }
+      if (src==="team-tomorrow" && e.clientY < rect.top+rect.height/2) { moveTeamTask(id,"today");    return; }
+    }
+  };
+  const onDropToday    = (e) => { e.preventDefault(); const {id,src,isTeam}=dragRef.current; if(isTeam&&id)moveTeamTask(id,"today"); else { if(src==="list"&&id)addToToday(id); if(src==="bubble-tomorrow"&&id){removeFromTomorrow(id);addToToday(id);} } setDropZone(null); };
+  const onDropTomorrow = (e) => { e.preventDefault(); const {id,src,isTeam}=dragRef.current; if(isTeam&&id)moveTeamTask(id,"tomorrow"); else { if((src==="list"||src==="bubble")&&id)addToTomorrow(id); } setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
   const onTouchStart = (e, id, src) => {
     const t=e.touches[0];
     dragRef.current={id,src,startX:t.clientX,startY:t.clientY,curX:t.clientX,curY:t.clientY,moved:false,dragging:false};
-    const isBubble = src==="bubble"||src==="bubble-tomorrow";
+    const isBubble = src==="bubble"||src==="bubble-tomorrow"||src==="team-today"||src==="team-tomorrow";
     const delay = isBubble ? 80 : 500;
     longPressTimer.current = setTimeout(() => {
       if (dragRef.current.id===id) {
@@ -971,6 +1068,12 @@ export default function App() {
     if (src==="bubble-tomorrow"&&zone==="today")  { removeFromTomorrow(id); addToToday(id); return; }
     if (src==="bubble"&&zone==="tomorrow")    { addToTomorrow(id); return; }
     if (src==="bubble"&&typeof zone==="number"&&zone!==id) { reorderBubbles(id,zone); return; }
+    if (src==="team-today"&&zone==="tomorrow")    { moveTeamTask(id,"tomorrow"); return; }
+    if (src==="team-today"&&zone==="list")         { moveTeamTask(id,null); return; }
+    if (src==="team-tomorrow"&&zone==="today")     { moveTeamTask(id,"today"); return; }
+    if (src==="team-tomorrow"&&zone==="list")      { moveTeamTask(id,null); return; }
+    if (src==="team-list"&&zone==="today")         { moveTeamTask(id,"today"); return; }
+    if (src==="team-list"&&zone==="tomorrow")      { moveTeamTask(id,"tomorrow"); return; }
   };
   useEffect(() => {
     const h = (e) => { if (dragRef.current?.id) onTouchMove(e); };
@@ -1118,13 +1221,13 @@ export default function App() {
 
   const renderTeamStats = () => {
     const total     = teamTasks.length;
-    const done      = teamTasks.filter(t => t.status === "Terminé").length;
+    const doneCount = teamTasks.filter(t => t.status === "Terminé").length;
     const active    = teamTasks.filter(t => t.status !== "Terminé").length;
-    const rate      = total > 0 ? Math.round((done/total)*100) : 0;
+    const rate      = total > 0 ? Math.round((doneCount/total)*100) : 0;
     const scheduled = teamTasks.filter(t => t.scheduledFor === "today").length;
-    const row = (emoji, label, value, color) => (
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44` }}>
-        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}</span>
+    const SR = ({ emoji, label, value, color, onClick }) => (
+      <div onClick={onClick} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44`,cursor:onClick?"pointer":"default" }}>
+        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}{onClick?" →":""}</span>
         <span style={{ fontSize:13,fontWeight:700,color:color||theme.text }}>{value}</span>
       </div>
     );
@@ -1137,10 +1240,11 @@ export default function App() {
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
-        {row("📋","Total tâches",   total)}
-        {row("✅","Terminées",       done+"/"+total, "#3aaa3a")}
-        {row("⏳","En cours/À faire",active, theme.accent)}
-        {scheduled > 0 && row("☀️","Planif. aujourd'hui", scheduled)}
+        <SR emoji="📋" label="Total tâches"     value={total} />
+        <SR emoji="✅" label="Terminées"         value={`${doneCount}/${total}`} color="#3aaa3a" onClick={()=>{setShowTeamDone(true);setShowStats(false);}} />
+        <SR emoji="⏳" label="En cours / À faire" value={active} color={theme.accent} />
+        {scheduled > 0 && <SR emoji="☀️" label="Planif. aujourd'hui" value={scheduled} />}
+        {(team?.members||[]).length > 0 && <SR emoji="👥" label="Membres" value={(team?.members||[]).length} />}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
       </div>
     );
@@ -1221,14 +1325,55 @@ export default function App() {
 
   // ─── JSX Return ────────────────────────────────────────────────────
 
+  if (authLoading) return (
+    <div style={{ height:"100vh", background:"#0e0e1a", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
+      <img src="/favicon.svg" alt="logo" style={{ width:48, height:48, opacity:0.5, animation:"pulse 1.5s infinite" }} />
+    </div>
+  );
+
+  if (!user) return (
+    <div style={{ height:"100vh", background:"#0e0e1a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#c8c8e8" }}>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
+      <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:24 }} />
+      <div style={{ fontSize:20, fontWeight:800, letterSpacing:3, color:"#E8630A", marginBottom:8 }}>TASK TRACKER PRO</div>
+      <div style={{ fontSize:12, color:"#666688", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
+      {authError && <div style={{ color:"#ff6b6b", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
+      {authInfo  && <div style={{ color:"#6bcb77", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
+      <div style={{ background:"#1a1a2e", border:"1px solid #2a2a4a", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320 }}>
+        <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #2a2a4a" }}>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"#E8630A":"transparent", border:"none", color:emailMode==="login"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"#E8630A":"transparent", border:"none", color:emailMode==="register"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Inscription</button>
+        </div>
+        <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#0e0e1a", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
+        <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))}
+          onKeyDown={e=>{ if(e.key==="Enter") loginEmail(); }}
+          style={{ width:"100%", padding:"10px 12px", background:"#0e0e1a", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:13, marginBottom:16, boxSizing:"border-box" }} />
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8630A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+          {emailMode==="login"?"Se connecter":"Créer un compte"}
+        </button>
+        <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 0", background:"transparent", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:12, cursor:"pointer" }}>
+          Continuer avec Google
+        </button>
+        {unverifiedEmail && (
+          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #E8630A44", borderRadius:8, color:"#E8630A", fontSize:11, cursor:"pointer" }}>
+            Renvoyer l'email de vérification
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:"'DM Mono','Courier New',monospace", color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
-        * { box-sizing:border-box; -webkit-touch-callout:none; }
-        html, body { height:100%; overflow:hidden; margin:0; }
+        * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+        html, body { height:100%; overflow:hidden; margin:0; padding:0; }
+        #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         ::placeholder { color:#444466; }
         input,textarea,select { outline:none; user-select:text; -webkit-touch-callout:default; }
+        button { touch-action:manipulation; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(var(--date-icon-invert, 0)); cursor:pointer; }
         .row:hover { background:#16162e !important; }
         .bubble { transition:transform .12s; cursor:grab; touch-action:none; }
@@ -1253,12 +1398,12 @@ export default function App() {
         <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
           <img src="/favicon.svg" alt="logo" style={{ width: isMobile ? 28 : 34, height: isMobile ? 28 : 34, display:"block" }} />
         </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-          {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+        <div style={{ display:"flex", gap:isMobile?5:10, alignItems:"center", flexWrap:"nowrap", overflow:"visible" }}>
+          {syncing && <span style={{ fontSize:9, color:theme.textMuted, flexShrink:0 }}>↑</span>}
           {user && team && (
-            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
-              <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
-              <button onClick={()=>setTeamSpace(true)}  style={{ padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥 {isMobile?"":team.name}</button>
+            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10, flexShrink:0 }}>
+              <button onClick={()=>setTeamSpace(false)} style={{ padding:isMobile?"3px 7px":"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>{isMobile?"Moi":"Perso"}</button>
+              <button onClick={()=>setTeamSpace(true)}  style={{ padding:isMobile?"3px 7px":"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥{!isMobile&&" "+team.name}</button>
             </div>
           )}
           {user && (
@@ -1343,8 +1488,8 @@ export default function App() {
               )}
             </div>
           )}
-          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>📊</button>
-          <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>⚙️</button>
+          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
+          <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>⚙️</button>
         </div>
       </div>
 
@@ -1366,106 +1511,175 @@ export default function App() {
       <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow: "hidden" }}>
 
         {/* ── LEFT — masqué en mode équipe ── */}
-        {!teamSpace && <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
+        <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
 
-          {/* TODAY */}
-          <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-            style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
-            <div style={{ marginBottom:14 }}>
-              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
-              <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                {todayIds.length===0 ? "Glisse des tâches ici" : `${todayIds.length} tâche${todayIds.length>1?"s":""}  ·  glisse pour réorganiser`}
+          {teamSpace && team ? (<>
+            {/* TODAY — équipe */}
+            <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
+                <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
+                  {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (teamRole==="admin"?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today").length>1?"s":""}`}
+                </div>
               </div>
+              {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (
+                <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
+                  {teamRole==="admin" && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                  {teamTasks.filter(t=>t.scheduledFor==="today").map(task => {
+                    const dot = STATUS_DOT[task.status]||"#888";
+                    return (
+                      <div key={task.id} className="bubble"
+                        draggable={teamRole==="admin"}
+                        onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-today"):undefined}
+                        onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-today"):undefined}
+                        onClick={()=>setTeamModal(task.id)}
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}cc,${dot})`,boxShadow:`0 0 16px ${dot}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
+                        {task.num}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {todayIds.length===0 ? (
-              <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
-                <div style={{ fontSize:20 }}>←</div>
-                <div>glisse ici</div>
-              </div>
-            ) : (
-              <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
-                {todayIds.map(id => {
-                  const task = getTask(id); if (!task) return null;
-                  const tc   = taskColor(task);
-                  const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]);
-                  return (
-                    <div key={id} data-bubbleid={id} className={`bubble${isOverBubble(id)?" over":""}`}
-                      draggable onDragStart={e=>onDragStart(e,id,"bubble")} onDragEnd={onDragEnd}
-                      onDragOver={e=>{e.preventDefault();e.stopPropagation();setDropZone(id);}} onDrop={e=>onDropBubble(e,id)}
-                      onTouchStart={e=>onTouchStart(e,id,"bubble")}
-                      onClick={()=>!dragRef.current?.moved&&setModal(id)}
-                      style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",opacity:ghost?.id===id?0.2:1 }}>
-                      {taskNum(id)}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
-          {/* TOMORROW */}
-          <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-            style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
-            <div style={{ marginBottom:14 }}>
-              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
-              <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                {tomorrowIds.length===0 ? "Glisse des tâches ici" : `${tomorrowIds.length} tâche${tomorrowIds.length>1?"s":""}`}
+            {/* TOMORROW — équipe */}
+            <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
+                <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (teamRole==="admin"?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length>1?"s":""}`}
+                </div>
               </div>
+              {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (
+                <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
+                  {teamRole==="admin" && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").map(task => {
+                    const dot = STATUS_DOT[task.status]||"#888";
+                    return (
+                      <div key={task.id} className="bubble"
+                        draggable={teamRole==="admin"}
+                        onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-tomorrow"):undefined}
+                        onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
+                        onClick={()=>setTeamModal(task.id)}
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}55,${dot}77)`,boxShadow:`0 0 10px ${dot}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${dot}66`,cursor:"pointer" }}>
+                        {task.num}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {tomorrowIds.length===0 ? (
-              <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
-                <div style={{ fontSize:20 }}>←</div>
-                <div>glisse ici</div>
-              </div>
-            ) : (
-              <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
-                {tomorrowIds.map(({id}) => {
-                  const task = getTask(id); if (!task) return null;
-                  const tc2  = taskColor(task);
-                  const bCol2 = task.status==="Terminé"&&task.completion ? task.completion.color : (tc2?tc2.light:STATUS_DOT[task.status]);
-                  return (
-                    <div key={id} className="bubble" draggable
-                      onDragStart={e=>onDragStart(e,id,"bubble-tomorrow")} onDragEnd={onDragEnd}
-                      onTouchStart={e=>onTouchStart(e,id,"bubble-tomorrow")}
-                      onClick={()=>!dragRef.current?.moved&&setModal(id)}
-                      style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol2}55,${bCol2}77)`,boxShadow:`0 0 10px ${bCol2}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===id?0.2:0.7,border:`2px dashed ${bCol2}66` }}>
-                      {taskNum(id)}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
-          {isMobile && (
-            <div style={{ padding:"10px 16px 14px", display:"flex", gap:8 }}>
-              <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
-                style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-                + Ajouter
-              </button>
-              <div style={{ position:"relative" }}>
-                <button onClick={listening?stopVoice:startVoice}
-                  style={{ height:"100%",background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"10px 14px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                  {listening?"⏹":"🎙️"}
-                  {listening && <span style={{ position:"absolute",top:-3,right:-3,width:8,height:8,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
+          </>) : (<>
+            {/* TODAY — perso */}
+            <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
+                <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
+                  {todayIds.length===0 ? "Glisse des tâches ici" : `${todayIds.length} tâche${todayIds.length>1?"s":""}  ·  glisse pour réorganiser`}
+                </div>
+              </div>
+              {todayIds.length===0 ? (
+                <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
+                  <div style={{ fontSize:20 }}>←</div>
+                  <div>glisse ici</div>
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                  {todayIds.map(id => {
+                    const task = getTask(id); if (!task) return null;
+                    const tc   = taskColor(task);
+                    const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]);
+                    return (
+                      <div key={id} data-bubbleid={id} className={`bubble${isOverBubble(id)?" over":""}`}
+                        draggable onDragStart={e=>onDragStart(e,id,"bubble")} onDragEnd={onDragEnd}
+                        onDragOver={e=>{e.preventDefault();e.stopPropagation();setDropZone(id);}} onDrop={e=>onDropBubble(e,id)}
+                        onTouchStart={e=>onTouchStart(e,id,"bubble")}
+                        onClick={()=>!dragRef.current?.moved&&setModal(id)}
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",opacity:ghost?.id===id?0.2:1 }}>
+                        {taskNum(id)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* TOMORROW — perso */}
+            <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
+                <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
+                  {tomorrowIds.length===0 ? "Glisse des tâches ici" : `${tomorrowIds.length} tâche${tomorrowIds.length>1?"s":""}`}
+                </div>
+              </div>
+              {tomorrowIds.length===0 ? (
+                <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
+                  <div style={{ fontSize:20 }}>←</div>
+                  <div>glisse ici</div>
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                  {tomorrowIds.map(({id}) => {
+                    const task = getTask(id); if (!task) return null;
+                    const tc2  = taskColor(task);
+                    const bCol2 = task.status==="Terminé"&&task.completion ? task.completion.color : (tc2?tc2.light:STATUS_DOT[task.status]);
+                    return (
+                      <div key={id} className="bubble" draggable
+                        onDragStart={e=>onDragStart(e,id,"bubble-tomorrow")} onDragEnd={onDragEnd}
+                        onTouchStart={e=>onTouchStart(e,id,"bubble-tomorrow")}
+                        onClick={()=>!dragRef.current?.moved&&setModal(id)}
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol2}55,${bCol2}77)`,boxShadow:`0 0 10px ${bCol2}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===id?0.2:0.7,border:`2px dashed ${bCol2}66` }}>
+                        {taskNum(id)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {isMobile && (
+              <div style={{ padding:"10px 16px 14px", display:"flex", gap:8 }}>
+                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+                  + Ajouter
                 </button>
-                {voiceError && (
-                  <div style={{ position:"absolute",bottom:52,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
-                    {voiceError}
-                    <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
-                  </div>
-                )}
-                {listening && (
-                  <div style={{ position:"absolute",bottom:52,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
-                    <span style={{ width:8,height:8,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
-                    En écoute…
-                  </div>
-                )}
+                <div style={{ position:"relative" }}>
+                  <button onClick={listening?stopVoice:startVoice}
+                    style={{ height:"100%",background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"10px 14px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
+                    {listening?"⏹":"🎙️"}
+                    {listening && <span style={{ position:"absolute",top:-3,right:-3,width:8,height:8,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
+                  </button>
+                  {voiceError && (
+                    <div style={{ position:"absolute",bottom:52,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
+                      {voiceError}
+                      <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
+                    </div>
+                  )}
+                  {listening && (
+                    <div style={{ position:"absolute",bottom:52,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
+                      <span style={{ width:8,height:8,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
+                      En écoute…
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </>)}
 
-        </div>}{/* end LEFT */}
+        </div>{/* end LEFT */}
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
@@ -1699,19 +1913,36 @@ export default function App() {
                       🔔 {teamPending.length} en attente
                     </button>
                   )}
-                  {teamRole==="admin" && (
-                    <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                      style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
-                      + Ajouter
-                    </button>
-                  )}
+                  <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                    style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
+                    {teamRole==="admin"?(isMobile?"+ Ajouter":"+"):"+ Proposer"}
+                  </button>
                 </div>
               </div>
               {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
               {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
-              {teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              {teamTasks.filter(t=>t.status!=="Terminé").length === 0 && teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              {/* Sort bar équipe */}
+              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
+                <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
+                {[{v:"num",l:"N°"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"status",l:"Statut"}].map(({v,l})=>(
+                  <button key={v} onClick={()=>{ if(teamSortBy===v){setTeamSortDir(d=>d==="asc"?"desc":"asc");}else{setTeamSortBy(v);setTeamSortDir("asc");} }}
+                    style={{ background:teamSortBy===v?theme.accent+"33":"transparent",border:`1px solid ${teamSortBy===v?theme.accent:theme.border}`,borderRadius:5,padding:"3px 8px",color:teamSortBy===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                    {l}{teamSortBy===v?(teamSortDir==="asc"?" ↑":" ↓"):""}
+                  </button>
+                ))}
+                {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
+              </div>
               <div style={{ display:"grid",gap:5 }}>
-                {teamTasks.map(task => {
+                {[...teamTasks].filter(t=>t.status!=="Terminé").sort((a,b)=>{
+                  if (!teamSortBy) return (a.num||0)-(b.num||0);
+                  const dir = teamSortDir==="asc"?1:-1;
+                  if (teamSortBy==="num")      return ((a.num||0)-(b.num||0))*dir;
+                  if (teamSortBy==="priority") return (["Haute","Moyenne","Basse"].indexOf(a.priority||"Basse")-["Haute","Moyenne","Basse"].indexOf(b.priority||"Basse"))*dir;
+                  if (teamSortBy==="due")      return ((a.due||"9999")>(b.due||"9999")?1:-1)*dir;
+                  if (teamSortBy==="status")   return ((STATUSES.indexOf(a.status))-(STATUSES.indexOf(b.status)))*dir;
+                  return 0;
+                }).map(task => {
                   const tc  = taskColor(task);
                   const bgC = tc ? tc.base+"33" : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
@@ -1719,10 +1950,14 @@ export default function App() {
                   const dot = STATUS_DOT[task.status]||"#888";
                   return (
                     <div key={task.id} className="row"
+                      draggable={teamRole==="admin"}
+                      onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-list"):undefined}
+                      onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
+                      onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
                       style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
-                      <button onClick={e=>{e.stopPropagation();}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }}/>
+                      <button onClick={e=>{e.stopPropagation();if(teamRole==="admin")cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:teamRole==="admin"?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={teamRole==="admin"?"Changer statut":task.status}/>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
                           <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
@@ -1750,6 +1985,7 @@ export default function App() {
                   );
                 })}
               </div>
+              {/* Tâches terminées : accessibles via les stats (même comportement que page perso) */}
             </div>
           )}
 
@@ -2017,12 +2253,12 @@ export default function App() {
             </button>
 
             <button onClick={async()=>{
-              if(!window.confirm("Effacer TOUTES les tâches et réinitialiser l'appli ? Cette action est irréversible.")) return;
+              if(!window.confirm("Effacer toutes tes tâches personnelles ? Tes données d'équipe ne seront pas affectées. Cette action est irréversible.")) return;
               ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
-              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:false}); }catch(e){} }
+              if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:true}); }catch(e){} }
               window.location.reload();
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
-              🗑️ Réinitialiser toutes les données
+              🗑️ Réinitialiser les tâches personnelles
             </button>
 
           </div>
@@ -2041,12 +2277,12 @@ export default function App() {
               return (
                 <div key={change.id} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
                   <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
-                    {change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
+                    {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
                   </div>
                   <div style={{ fontSize:11,color:theme.text,marginBottom:4 }}>
-                    Tâche : <strong>{change.type==="delete" ? (task?.title||"#"+change.taskId) : change.data?.title}</strong>
+                    {change.type==="delete" ? <>Supprimer : <strong>{task?.title||"#"+change.taskId}</strong></> : <><strong>{change.data?.title}</strong></>}
                   </div>
-                  {change.type==="edit" && change.data && (
+                  {(change.type==="edit"||change.type==="add") && change.data && (
                     <div style={{ fontSize:10,color:theme.textMuted,marginBottom:8 }}>
                       {change.data.priority && <span style={{ marginRight:8 }}>Priorité : {change.data.priority}</span>}
                       {change.data.status   && <span style={{ marginRight:8 }}>Statut : {change.data.status}</span>}
@@ -2069,7 +2305,7 @@ export default function App() {
       {showTeam && (
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowTeam(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>ÉQUIPE</div>
 
             {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
@@ -2132,9 +2368,6 @@ export default function App() {
                 )}
 
                 <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12,display:"flex",gap:8,flexDirection:"column" }}>
-                  {teamRole==="member" && (
-                    <button onClick={leaveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a3a1a",borderRadius:8,padding:"8px",color:"#cc7700",fontSize:11,cursor:"pointer" }}>Quitter l'équipe</button>
-                  )}
                   {teamRole==="admin" && (
                     <button onClick={dissolveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
                   )}
