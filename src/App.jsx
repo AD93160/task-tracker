@@ -78,7 +78,7 @@ function MemberStats({ member, teamTasks, theme }) {
   );
 }
 
-function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
+function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onPromote, onDemote, isOwner, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
   const [view,         setView]        = useState("list"); // "list" | "detail" | "create"
   const [selectedTeam, setSelectedTeam]= useState(null);
   const [teamName,     setTeamName]    = useState("");
@@ -115,7 +115,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
                   <div>
                     <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{t.name}</div>
                     <div style={{ fontSize:10,color:theme.textMuted,marginTop:2 }}>
-                      {t.myRole==="admin"?"👑 Admin":`👤 ${(t.members||[]).length} membre(s)`}
+                      {t.myRole==="admin"?"👑 Admin":t.myRole==="co-admin"?"⭐ Co-admin":`👤 ${(t.members||[]).length} membre(s)`}
                       {t.id===activeTeamId && <span style={{ marginLeft:6,color:theme.accent,fontSize:9 }}>● actif</span>}
                     </div>
                   </div>
@@ -151,7 +151,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
               <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{sel.name}</div>
             </div>
             <div style={{ fontSize:10,color:theme.textMuted,marginBottom:14,paddingLeft:24 }}>
-              {sel.myRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${sel.adminEmail}`}
+              {sel.myRole==="admin" ? "👑 Vous êtes admin" : sel.myRole==="co-admin" ? "⭐ Vous êtes co-admin" : `Admin : ${sel.adminEmail}`}
             </div>
 
             <button onClick={()=>onActivateTeam(sel)} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
@@ -163,17 +163,29 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
 
             <div style={{ fontSize:9,color:"#666688",marginBottom:8,letterSpacing:1 }}>MEMBRES ({(sel.members||[]).length})</div>
             {(sel.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
-            {(sel.members||[]).map(m => (
-              <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
-                <div>
-                  <div style={{ fontSize:11,color:theme.text }}>{m.displayName}</div>
-                  <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
+            {(sel.members||[]).map(m => {
+              const mIsCoAdmin = (sel.coAdminUids||[]).includes(m.uid);
+              return (
+                <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
+                  <div>
+                    <div style={{ fontSize:11,color:theme.text,display:"flex",alignItems:"center",gap:6 }}>
+                      {m.displayName}
+                      {mIsCoAdmin && <span style={{ fontSize:9,color:"#f0c040",padding:"1px 5px",border:"1px solid #f0c04066",borderRadius:4 }}>⭐ co-admin</span>}
+                    </div>
+                    <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
+                  </div>
+                  {isOwner && (
+                    <div style={{ display:"flex",gap:5 }}>
+                      {mIsCoAdmin
+                        ? <button onClick={()=>onDemote(m)} style={{ background:"transparent",border:"1px solid #f0c04066",borderRadius:6,padding:"3px 8px",color:"#f0c040",fontSize:10,cursor:"pointer" }}>↓ Membre</button>
+                        : <button onClick={()=>onPromote(m)} style={{ background:"transparent",border:"1px solid #f0c04066",borderRadius:6,padding:"3px 8px",color:"#f0c040",fontSize:10,cursor:"pointer" }}>↑ Co-admin</button>
+                      }
+                      <button onClick={()=>onRemoveMember(m)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
+                    </div>
+                  )}
                 </div>
-                {sel.myRole==="admin" && (
-                  <button onClick={()=>onRemoveMember(m)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
-                )}
-              </div>
-            ))}
+              );
+            })}
 
             {sel.myRole==="admin" && (sel.members||[]).length > 0 && (
               <>
@@ -766,8 +778,26 @@ export default function App() {
     catch(e) { setTeamError(e.message); }
   };
 
+  const isAdminRole = (role) => role === "admin" || role === "co-admin";
+
+  const promoteToCoAdmin = async (member) => {
+    if (!team || team.adminUid !== user?.uid) return;
+    try {
+      await setDoc(doc(db, "users", member.uid), { teamRole: "co-admin" }, { merge: true });
+      await updateDoc(doc(db, "teams", team.id), { coAdminUids: arrayUnion(member.uid) });
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const demoteToMember = async (member) => {
+    if (!team || team.adminUid !== user?.uid) return;
+    try {
+      await setDoc(doc(db, "users", member.uid), { teamRole: "member" }, { merge: true });
+      await updateDoc(doc(db, "teams", team.id), { coAdminUids: arrayRemove(member.uid) });
+    } catch(e) { setTeamError(e.message); }
+  };
+
   const removeMember = async (member) => {
-    if (!team || teamRole !== "admin") return;
+    if (!team || !isAdminRole(teamRole)) return;
     try {
       await updateDoc(doc(db, "teams", team.id), { members: arrayRemove(member) });
       await setDoc(doc(db, "users", member.uid), { teamId:null, teamRole:null }, { merge:true });
@@ -775,7 +805,7 @@ export default function App() {
   };
 
   const leaveTeam = async () => {
-    if (!user || !team || teamRole === "admin") return;
+    if (!user || !team || isAdminRole(teamRole)) return;
     if (!window.confirm("Quitter l'équipe ?")) return;
     try {
       const me = team.members.find(m => m.uid === user.uid);
@@ -812,7 +842,7 @@ export default function App() {
         const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
         t.sort((a,b) => (a.num||0)-(b.num||0));
         // Notification membre : nouvelle tâche ajoutée ou modifiée
-        if (teamTasksPrevIds.current !== null && teamRole === "member") {
+        if (teamTasksPrevIds.current !== null && !isAdminRole(teamRole)) {
           const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
           if (newTasks.length > 0 && Notification.permission === "granted") {
             new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
@@ -876,7 +906,7 @@ export default function App() {
   };
 
   const cycleTeamStatus = async (firestoreId, currentStatus) => {
-    if (!team || teamRole !== "admin") return;
+    if (!team || !isAdminRole(teamRole)) return;
     const next = STATUSES[(STATUSES.indexOf(currentStatus) + 1) % STATUSES.length];
     try { await updateDoc(doc(db, "teams", team.id, "tasks", firestoreId), { status: next }); }
     catch(e) { setTeamError(e.message); }
@@ -884,7 +914,7 @@ export default function App() {
 
   const deleteTeamTask = async (taskId) => {
     if (!team) return;
-    if (teamRole === "admin") {
+    if (isAdminRole(teamRole)) {
       try { await deleteDoc(doc(db, "teams", team.id, "tasks", taskId)); } catch(e) { setTeamError(e.message); }
     } else {
       if (!window.confirm("Proposer la suppression à l'admin ?")) return;
@@ -896,7 +926,7 @@ export default function App() {
   };
 
   const approveChange = async (change) => {
-    if (teamRole !== "admin") return;
+    if (!isAdminRole(teamRole)) return;
     try {
       if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
       if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
@@ -910,7 +940,7 @@ export default function App() {
   };
 
   const rejectChange = async (changeId) => {
-    if (teamRole !== "admin") return;
+    if (!isAdminRole(teamRole)) return;
     try { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId)); }
     catch(e) { setTeamError(e.message); }
   };
@@ -1107,18 +1137,18 @@ export default function App() {
       const cleanForm = { ...form, recurrence:form.recurrence||"none" };
       try {
         if (editingId !== null) {
-          if (teamRole === "admin") {
+          if (isAdminRole(teamRole)) {
             await updateDoc(doc(db, "teams", team.id, "tasks", editingId), cleanForm);
           } else {
             await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"edit", taskId:editingId, proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
             setTeamInfo("Modification proposée à l'admin.");
           }
           setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
-        } else if (teamRole === "member") {
+        } else if (!isAdminRole(teamRole)) {
           setPendingMemberProposal(cleanForm);
           setPendingTask({ id: Date.now(), title: form.title });
           setFormStep(2);
-        } else if (teamRole === "admin") {
+        } else {
           const newNum = (team.taskCounter || 0) + 1;
           await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
           const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
@@ -1417,7 +1447,7 @@ export default function App() {
           {task.notes && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:14,padding:"8px 10px",background:theme.bg,borderRadius:8 }}>{task.notes}</div>}
           <button onClick={()=>{ openEdit(task); closeModal(); }}
             style={{ width:"100%",background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.accent,fontSize:11,cursor:"pointer",marginBottom:18 }}>
-            {teamRole==="admin" ? "✎ Modifier" : "✎ Proposer une modification"}
+            {isAdminRole(teamRole) ? "✎ Modifier" : "✎ Proposer une modification"}
           </button>
           {/* Commentaires */}
           <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:10 }}>COMMENTAIRES ({teamComments.length})</div>
@@ -1647,7 +1677,7 @@ export default function App() {
           {user && (
             <button onClick={()=>{setTeamPanelView("list");setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
               👥
-              {teamRole==="admin" && teamPending.length > 0 && (
+              {isAdminRole(teamRole) && teamPending.length > 0 && (
                 <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
               )}
             </button>
@@ -1758,12 +1788,12 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (teamRole==="admin"?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today").length>1?"s":""}`}
                 </div>
               </div>
               {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
-                  {teamRole==="admin" && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
+                  {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
@@ -1772,10 +1802,10 @@ export default function App() {
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
                       <div key={task.id} className="bubble"
-                        draggable={teamRole==="admin"}
-                        onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-today"):undefined}
-                        onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
-                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-today"):undefined}
+                        draggable={isAdminRole(teamRole)}
+                        onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-today"):undefined}
+                        onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
+                        onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-today"):undefined}
                         onClick={()=>setTeamModal(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
                         {task.num}
@@ -1792,12 +1822,12 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (teamRole==="admin"?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length>1?"s":""}`}
                 </div>
               </div>
               {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
-                  {teamRole==="admin" && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
+                  {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
@@ -1806,10 +1836,10 @@ export default function App() {
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
                       <div key={task.id} className="bubble"
-                        draggable={teamRole==="admin"}
-                        onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-tomorrow"):undefined}
-                        onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
-                        onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
+                        draggable={isAdminRole(teamRole)}
+                        onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-tomorrow"):undefined}
+                        onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
+                        onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
                         onClick={()=>setTeamModal(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer" }}>
                         {task.num}
@@ -1946,7 +1976,7 @@ export default function App() {
           <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
             {!isMobile && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-              {teamSpace && teamRole==="member" ? "+ Proposer" : "+ Ajouter"}
+              {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
             </button>}
             {!isMobile && <div style={{ position:"relative" }}>
               <button onClick={listening?stopVoice:startVoice}
@@ -2170,7 +2200,7 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
                 <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
-                  {teamRole==="admin" && teamPending.length > 0 && (
+                  {isAdminRole(teamRole) && teamPending.length > 0 && (
                     <button onClick={()=>setShowPendingPanel(true)} style={{ background:"#cc303022",border:"1px solid #cc303066",borderRadius:8,padding:"5px 12px",color:"#cc3030",fontSize:11,cursor:"pointer",fontWeight:700 }}>
                       🔔 {teamPending.length} en attente
                     </button>
@@ -2178,14 +2208,14 @@ export default function App() {
                   {isMobile && (
                     <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
                       style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>
-                      {teamRole==="admin"?"+ Ajouter":"+ Proposer"}
+                      {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
                     </button>
                   )}
                 </div>
               </div>
               {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
               {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
-              {teamTasks.filter(t=>t.status!=="Terminé").length === 0 && teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{teamRole==="admin"?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
+              {teamTasks.filter(t=>t.status!=="Terminé").length === 0 && teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{isAdminRole(teamRole)?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
               {/* Sort bar équipe */}
               <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
                 <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
@@ -2214,14 +2244,14 @@ export default function App() {
                   const dot = STATUS_DOT[task.status]||"#888";
                   return (
                     <div key={task.id} className="row"
-                      draggable={teamRole==="admin"}
-                      onDragStart={teamRole==="admin"?e=>onDragStartTeam(e,task.id,"team-list"):undefined}
-                      onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
-                      onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-list"):undefined}
+                      draggable={isAdminRole(teamRole)}
+                      onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-list"):undefined}
+                      onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
+                      onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
                       style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
-                      <button onClick={e=>{e.stopPropagation();if(teamRole==="admin")cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:teamRole==="admin"?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={teamRole==="admin"?"Changer statut":task.status}/>
+                      <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
                           <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
@@ -2241,7 +2271,7 @@ export default function App() {
                         </div>
                       </div>
                       <div style={{ display:"flex",gap:4,flexShrink:0 }}>
-                        {teamRole==="member" && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
+                        {!isAdminRole(teamRole) && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
                         <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
                           style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                       </div>
@@ -2449,7 +2479,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                {teamRole==="admin" && (
+                {isAdminRole(teamRole) && (
                   <button onClick={()=>cycleTeamStatus(t.id,"Terminé")}
                     style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",marginLeft:10,flexShrink:0 }}>↩</button>
                 )}
@@ -2561,7 +2591,7 @@ export default function App() {
       )}
 
       {/* Panneau changements en attente */}
-      {showPendingPanel && teamRole==="admin" && (
+      {showPendingPanel && isAdminRole(teamRole) && (
         <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"#00000088" }}
           onClick={()=>setShowPendingPanel(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:340,maxHeight:"75vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
@@ -2609,6 +2639,9 @@ export default function App() {
           onCreateTeam={createTeam}
           onInvite={inviteMember}
           onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
+          onPromote={m=>{ if(window.confirm(`Promouvoir ${m.email} en co-admin ?`)) promoteToCoAdmin(m); }}
+          onDemote={m=>{ if(window.confirm(`Rétrograder ${m.email} en membre ?`)) demoteToMember(m); }}
+          isOwner={team?.adminUid === user?.uid}
           onDissolve={dissolveTeam}
           teamError={teamError} teamInfo={teamInfo}
           setTeamError={setTeamError} setTeamInfo={setTeamInfo}
