@@ -1699,7 +1699,7 @@ export default function App() {
               )}
             </div>
           )}
-          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
+          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);if(teamSpace&&team)setStatsView("team");else setStatsView("perso");}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
           <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>⚙️</button>
         </div>
       </div>
