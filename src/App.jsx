@@ -2398,6 +2398,37 @@ export default function App() {
         </div>
       )}
 
+      {/* Tâches terminées — équipe */}
+      {showTeamDone && (
+        <div style={{ position:"fixed",inset:0,zIndex:250,background:"#000000bb",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"60px 16px 16px" }}
+          onClick={()=>setShowTeamDone(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES TERMINÉES — {team?.name?.toUpperCase()}</div>
+              <button onClick={()=>setShowTeamDone(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+            </div>
+            {[...teamTasks.filter(t=>t.status==="Terminé")].sort((a,b)=>(a.num||0)-(b.num||0)).map(t=>(
+              <div key={t.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:11,color:theme.textMuted,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>#{t.num} {t.title}</div>
+                  {t.completion && (
+                    <div style={{ fontSize:9,color:theme.textMuted,marginTop:2 }}>
+                      🏆 {t.completion.doneDate}
+                      {t.completion.deltaLabel && <span style={{ marginLeft:6,color:t.completion.deltaMin<0?"#3aaa3a":"#cc3030" }}>{t.completion.deltaMin<0?"⚡ ":"⚠ "}{t.completion.deltaLabel}</span>}
+                    </div>
+                  )}
+                </div>
+                {teamRole==="admin" && (
+                  <button onClick={()=>cycleTeamStatus(t.id,"Terminé")}
+                    style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",marginLeft:10,flexShrink:0 }}>↩</button>
+                )}
+              </div>
+            ))}
+            {teamTasks.filter(t=>t.status==="Terminé").length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche terminée</div>}
+          </div>
+        </div>
+      )}
+
       {/* Theme */}
       {showTheme && (
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
