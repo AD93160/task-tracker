@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, Component } from "react";
+import { useState, useRef, useEffect, useMemo, Component } from "react";
 import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -81,13 +81,15 @@ function MemberStats({ member, teamId, db, theme }) {
   );
 }
 
-function TeamPanel({ team, teamRole, teamPending, theme, isMobile, onClose, onOpenTasks, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
-  const [view,      setView]     = useState("list"); // "list" | "detail" | "create"
-  const [teamName,  setTeamName] = useState("");
-  const [invite,    setInvite]   = useState("");
+function TeamPanel({ allUserTeams, activeTeamId, teamPending, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
+  const [view,         setView]        = useState("list"); // "list" | "detail" | "create"
+  const [selectedTeam, setSelectedTeam]= useState(null);
+  const [teamName,     setTeamName]    = useState("");
+  const [invite,       setInvite]      = useState("");
 
   const bg   = theme.mode === "dark" ? "#12122a" : theme.bgCard;
   const w    = isMobile ? Math.min(300, window.innerWidth - 16) : 300;
+  const sel  = selectedTeam;
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:isMobile?8:16 }}
@@ -104,19 +106,25 @@ function TeamPanel({ team, teamRole, teamPending, theme, isMobile, onClose, onOp
               <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>MES ÉQUIPES</div>
               <button onClick={()=>{setTeamName("");setView("create");}} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"4px 10px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>+ Nouvelle</button>
             </div>
-            {!team ? (
+            {allUserTeams.length === 0 ? (
               <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>
                 Aucune équipe pour l'instant.<br/>
                 <span style={{ fontSize:10,color:theme.accent,cursor:"pointer" }} onClick={()=>{setTeamName("");setView("create");}}>Créer une équipe →</span>
               </div>
             ) : (
-              <div onClick={()=>setView("detail")} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:theme.bg,borderRadius:10,cursor:"pointer",border:`1px solid ${theme.border}`,marginBottom:8 }}>
-                <div>
-                  <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{team.name}</div>
-                  <div style={{ fontSize:10,color:theme.textMuted,marginTop:2 }}>{teamRole==="admin"?"👑 Admin":`${(team.members||[]).length} membre(s)`}</div>
+              allUserTeams.map(t => (
+                <div key={t.id} onClick={()=>{setSelectedTeam(t);setView("detail");}}
+                  style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:theme.bg,borderRadius:10,cursor:"pointer",border:`1px solid ${t.id===activeTeamId?theme.accent:theme.border}`,marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{t.name}</div>
+                    <div style={{ fontSize:10,color:theme.textMuted,marginTop:2 }}>
+                      {t.myRole==="admin"?"👑 Admin":`👤 ${(t.members||[]).length} membre(s)`}
+                      {t.id===activeTeamId && <span style={{ marginLeft:6,color:theme.accent,fontSize:9 }}>● actif</span>}
+                    </div>
+                  </div>
+                  <span style={{ color:theme.textMuted,fontSize:18 }}>›</span>
                 </div>
-                <span style={{ color:theme.textMuted,fontSize:18 }}>›</span>
-              </div>
+              ))
             )}
           </>
         )}
@@ -139,66 +147,63 @@ function TeamPanel({ team, teamRole, teamPending, theme, isMobile, onClose, onOp
         )}
 
         {/* ── VUE DÉTAIL ── */}
-        {view === "detail" && team && (
+        {view === "detail" && sel && (
           <>
             <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
               <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
-              <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{team.name}</div>
+              <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{sel.name}</div>
             </div>
             <div style={{ fontSize:10,color:theme.textMuted,marginBottom:14,paddingLeft:24 }}>
-              {teamRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${team.adminEmail}`}
+              {sel.myRole==="admin" ? "👑 Vous êtes admin" : `Admin : ${sel.adminEmail}`}
             </div>
 
-            <button onClick={onOpenTasks} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
-              📋 Ouvrir l'espace tâches
-              {teamRole==="admin" && teamPending.length > 0 && (
+            <button onClick={()=>onActivateTeam(sel)} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
+              📋 {sel.id===activeTeamId ? "Ouvrir l'espace tâches" : "Activer et ouvrir"}
+              {sel.myRole==="admin" && sel.id===activeTeamId && teamPending.length > 0 && (
                 <span style={{ background:"#fff",color:theme.accent,borderRadius:"50%",minWidth:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px" }}>{teamPending.length}</span>
               )}
             </button>
 
-            <div style={{ fontSize:9,color:"#666688",marginBottom:8,letterSpacing:1 }}>MEMBRES ({(team.members||[]).length})</div>
-            {(team.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
-            {(team.members||[]).map(m => (
+            <div style={{ fontSize:9,color:"#666688",marginBottom:8,letterSpacing:1 }}>MEMBRES ({(sel.members||[]).length})</div>
+            {(sel.members||[]).length === 0 && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12 }}>Aucun membre pour l'instant.</div>}
+            {(sel.members||[]).map(m => (
               <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
                 <div>
                   <div style={{ fontSize:11,color:theme.text }}>{m.displayName}</div>
                   <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
                 </div>
-                {teamRole==="admin" && (
+                {sel.myRole==="admin" && (
                   <button onClick={()=>onRemoveMember(m)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
                 )}
               </div>
             ))}
 
-            {teamRole==="admin" && (team.members||[]).length > 0 && (
+            {sel.myRole==="admin" && (sel.members||[]).length > 0 && (
               <>
                 <div style={{ fontSize:9,color:"#666688",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
-                {(team.members||[]).map(m => <MemberStats key={m.uid} member={m} teamId={team.id} db={db} theme={theme} />)}
+                {(sel.members||[]).map(m => <MemberStats key={m.uid} member={m} teamId={sel.id} db={db} theme={theme} />)}
               </>
             )}
 
-            {teamRole==="admin" && (
+            {sel.myRole==="admin" && (
               <>
                 <div style={{ fontSize:9,color:"#666688",marginBottom:6,marginTop:12,letterSpacing:1 }}>INVITER PAR EMAIL</div>
                 <div style={{ display:"flex",gap:6,marginBottom:16 }}>
                   <input value={invite} onChange={e=>setInvite(e.target.value)} placeholder="email@exemple.com"
-                    onKeyDown={e=>{ if(e.key==="Enter") { onInvite(invite); setInvite(""); } }}
+                    onKeyDown={e=>{ if(e.key==="Enter") { onInvite(invite, sel); setInvite(""); } }}
                     style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"7px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
-                  <button onClick={()=>{ onInvite(invite); setInvite(""); }} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:11,cursor:"pointer" }}>Envoyer</button>
+                  <button onClick={()=>{ onInvite(invite, sel); setInvite(""); }} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:11,cursor:"pointer" }}>Envoyer</button>
                 </div>
               </>
             )}
 
             <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12 }}>
-              {teamRole==="admin" && (
-                <button onClick={onDissolve} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
+              {sel.myRole==="admin" && (
+                <button onClick={()=>onDissolve(sel)} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
               )}
             </div>
           </>
         )}
-
-        {/* fallback si vue inconnue */}
-        {view !== "list" && view !== "create" && view !== "detail" && setView("list")}
       </div>
     </div>
   );
@@ -247,6 +252,7 @@ export default function App() {
   const [team,             setTeam]             = useState(null);
   const [teamRole,         setTeamRole]         = useState(null);   // "admin"|"member"|null
   const [teamSpace,        setTeamSpace]        = useState(false);  // false=perso true=équipe
+  const [adminTeams,       setAdminTeams]       = useState([]);      // toutes les équipes où l'user est admin
   const [showTeam,         setShowTeam]         = useState(false);
   const [teamPanelView,    setTeamPanelView]    = useState("list"); // "list"|"detail"|"create"
   const [teamForm,         setTeamForm]         = useState({ name:"" });
@@ -621,6 +627,24 @@ export default function App() {
     return () => { userUnsub(); teamUnsub(); };
   }, [user]);
 
+  // Toutes les équipes où l'user est admin (requête Firestore)
+  useEffect(() => {
+    if (!user) { setAdminTeams([]); return; }
+    const q = query(collection(db, "teams"), where("adminUid", "==", user.uid));
+    const unsub = onSnapshot(q, snap => {
+      setAdminTeams(snap.docs.map(d => ({ id:d.id, ...d.data(), myRole:"admin" })));
+    }, err => console.error("adminTeams query:", err));
+    return unsub;
+  }, [user?.uid]);
+
+  // Activer une équipe (met à jour teamId dans Firestore → déclenche le listener existant)
+  const switchActiveTeam = async (t) => {
+    if (!user) return;
+    const role = t.adminUid === user.uid ? "admin" : "member";
+    try { await setDoc(doc(db, "users", user.uid), { teamId:t.id, teamRole:role }, { merge:true }); }
+    catch(e) { setTeamError(e.message); }
+  };
+
   const createTeam = async (name) => {
     if (!user || !name?.trim()) return;
     try {
@@ -650,12 +674,13 @@ export default function App() {
     } catch(e) { console.error("EmailJS:", e); }
   };
 
-  const inviteMember = async (emailArg) => {
+  const inviteMember = async (emailArg, targetTeam) => {
     const raw = (emailArg || inviteEmail).trim().toLowerCase();
-    if (!team || !raw) return;
+    const t   = targetTeam || team;
+    if (!t || !raw) return;
     try {
-      await setDoc(doc(db, "invitations", raw), { teamId:team.id, teamName:team.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
-      await sendInviteEmail(raw, team.name, user.email||"");
+      await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
+      await sendInviteEmail(raw, t.name, user.email||"");
       setTeamInfo(`Invitation envoyée à ${raw}`); setInviteEmail("");
     } catch(e) { setTeamError(e.message); }
   };
@@ -696,13 +721,14 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
-  const dissolveTeam = async () => {
-    if (!team || teamRole !== "admin") return;
-    if (!window.confirm("Dissoudre l'équipe ? Tous les membres seront retirés.")) return;
+  const dissolveTeam = async (targetTeam) => {
+    const t = targetTeam || team;
+    if (!t || !user) return;
+    if (!window.confirm(`Dissoudre "${t.name}" ? Tous les membres seront retirés.`)) return;
     try {
-      for (const m of team.members) await setDoc(doc(db, "users", m.uid), { teamId:null, teamRole:null }, { merge:true });
+      for (const m of (t.members||[])) await setDoc(doc(db, "users", m.uid), { teamId:null, teamRole:null }, { merge:true });
       await setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null }, { merge:true });
-      await deleteDoc(doc(db, "teams", team.id));
+      await deleteDoc(doc(db, "teams", t.id));
       setTeamSpace(false);
     } catch(e) { setTeamError(e.message); }
   };
@@ -2428,10 +2454,12 @@ export default function App() {
       {/* Panneau Équipe */}
       {showTeam && (
         <TeamPanel
-          team={team} teamRole={teamRole} teamPending={teamPending}
+          allUserTeams={[...adminTeams, ...(team && !adminTeams.find(t=>t.id===team.id) ? [{...team,myRole:teamRole||"member"}] : [])]}
+          activeTeamId={team?.id}
+          teamPending={teamPending}
           theme={theme} isMobile={isMobile}
           onClose={()=>setShowTeam(false)}
-          onOpenTasks={()=>{ setTeamSpace(true); setShowTeam(false); }}
+          onActivateTeam={t=>{ switchActiveTeam(t); setTeamSpace(true); setShowTeam(false); }}
           onCreateTeam={createTeam}
           onInvite={inviteMember}
           onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
