@@ -382,6 +382,9 @@ export default function App() {
         const newUid  = u?.uid   ?? null;
         if (prevUid !== newUid && newUid !== null) {
           // Utilisateur différent (ou premier login) → vider les données du user précédent
+          // IMPORTANT : fromFirestore.current = true avant de vider pour éviter de sauvegarder
+          // des données vides dans Firestore (ce qui écraserait les vraies données)
+          fromFirestore.current = true;
           ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
