@@ -786,7 +786,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!teamSpace || !team) {
+    if (!team) {
       setTeamTasks([]); setTeamPending([]);
       teamTasksPrevIds.current = null; teamPendingPrevCount.current = -1;
       return;
@@ -837,7 +837,7 @@ export default function App() {
     }
     return () => { unsubTasks(); unsubPending(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamSpace, team?.id, teamRole]);
+  }, [team?.id, teamRole]);
 
   useEffect(() => {
     if (!teamModal || !team) { setTeamComments([]); return; }
@@ -2347,7 +2347,7 @@ export default function App() {
       {showStats && (
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowStats(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:320,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:320,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:team?12:20 }}>STATISTIQUES</div>
             {team && (
               <div style={{ display:"flex",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,overflow:"hidden",fontSize:10,marginBottom:20 }}>
