@@ -203,9 +203,11 @@ export default function App() {
   const fromFirestore    = useRef(false);
   const longPressTimer   = useRef(null);
   const tasksRef         = useRef(tasks);
-  const todayIdsRef      = useRef(todayIds);
-  const teamTasksRef     = useRef([]);
-  const sendDailyNotifCb = useRef(null);
+  const todayIdsRef         = useRef(todayIds);
+  const teamTasksRef        = useRef([]);
+  const sendDailyNotifCb    = useRef(null);
+  const teamPendingPrevCount = useRef(-1); // -1 = pas encore initialisé (évite notif au 1er chargement)
+  const teamTasksPrevIds    = useRef(null); // null = pas encore initialisé
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -580,13 +582,30 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!teamSpace || !team) { setTeamTasks([]); setTeamPending([]); return; }
+    if (!teamSpace || !team) {
+      setTeamTasks([]); setTeamPending([]);
+      teamTasksPrevIds.current = null; teamPendingPrevCount.current = -1;
+      return;
+    }
     const teamId = team.id;
+    teamTasksPrevIds.current = null; // reset à chaque changement d'équipe
+    teamPendingPrevCount.current = -1;
     const unsubTasks = onSnapshot(
       collection(db, "teams", teamId, "tasks"),
       snap => {
         const t = snap.docs.map(d => ({ ...d.data(), id:d.id }));
         t.sort((a,b) => (a.num||0)-(b.num||0));
+        // Notification membre : nouvelle tâche ajoutée ou modifiée
+        if (teamTasksPrevIds.current !== null && teamRole === "member") {
+          const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
+          if (newTasks.length > 0 && Notification.permission === "granted") {
+            new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
+              body: newTasks.map(tk => tk.title).join(" • "),
+              icon: "/favicon.ico", tag: "team-task-added"
+            });
+          }
+        }
+        teamTasksPrevIds.current = new Set(t.map(tk => tk.id));
         setTeamTasks(t);
       },
       err => console.error("team tasks subscription error:", err.message)
@@ -594,7 +613,20 @@ export default function App() {
     let unsubPending = () => {};
     if (teamRole === "admin") {
       unsubPending = onSnapshot(collection(db, "teams", teamId, "pendingChanges"), snap => {
-        setTeamPending(snap.docs.map(d => ({ ...d.data(), id:d.id })));
+        const items = snap.docs.map(d => ({ ...d.data(), id:d.id }));
+        // Notification admin : nouvelle proposition d'un membre
+        if (teamPendingPrevCount.current >= 0 && items.length > teamPendingPrevCount.current) {
+          if (Notification.permission === "granted") {
+            const newest = items[items.length - 1];
+            const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
+            new Notification("Task Tracker — Modification proposée 🔔", {
+              body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
+              icon: "/favicon.ico", tag: "team-pending"
+            });
+          }
+        }
+        teamPendingPrevCount.current = items.length;
+        setTeamPending(items);
       });
     } else {
       setTeamPending([]);
@@ -625,6 +657,13 @@ export default function App() {
       });
       setCommentInput("");
     } catch(e) { setTeamError(e.message); }
+  };
+
+  const cycleTeamStatus = async (firestoreId, currentStatus) => {
+    if (!team || teamRole !== "admin") return;
+    const next = STATUSES[(STATUSES.indexOf(currentStatus) + 1) % STATUSES.length];
+    try { await updateDoc(doc(db, "teams", team.id, "tasks", firestoreId), { status: next }); }
+    catch(e) { setTeamError(e.message); }
   };
 
   const deleteTeamTask = async (taskId) => {
@@ -1180,13 +1219,13 @@ export default function App() {
 
   const renderTeamStats = () => {
     const total     = teamTasks.length;
-    const done      = teamTasks.filter(t => t.status === "Terminé").length;
+    const doneCount = teamTasks.filter(t => t.status === "Terminé").length;
     const active    = teamTasks.filter(t => t.status !== "Terminé").length;
-    const rate      = total > 0 ? Math.round((done/total)*100) : 0;
+    const rate      = total > 0 ? Math.round((doneCount/total)*100) : 0;
     const scheduled = teamTasks.filter(t => t.scheduledFor === "today").length;
-    const row = (emoji, label, value, color) => (
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44` }}>
-        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}</span>
+    const SR = ({ emoji, label, value, color, onClick }) => (
+      <div onClick={onClick} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44`,cursor:onClick?"pointer":"default" }}>
+        <span style={{ fontSize:11,color:theme.textMuted }}>{emoji} {label}{onClick?" →":""}</span>
         <span style={{ fontSize:13,fontWeight:700,color:color||theme.text }}>{value}</span>
       </div>
     );
@@ -1199,13 +1238,11 @@ export default function App() {
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
-        {row("📋","Total tâches",   total)}
-        <div onClick={()=>{setShowTeamDone(true);setShowStats(false);}} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${theme.border}44`,cursor:"pointer" }}>
-          <span style={{ fontSize:11,color:theme.textMuted }}>✅ Terminées →</span>
-          <span style={{ fontSize:13,fontWeight:700,color:"#3aaa3a" }}>{done}/{total}</span>
-        </div>
-        {row("⏳","En cours/À faire",active, theme.accent)}
-        {scheduled > 0 && row("☀️","Planif. aujourd'hui", scheduled)}
+        <SR emoji="📋" label="Total tâches"     value={total} />
+        <SR emoji="✅" label="Terminées"         value={`${doneCount}/${total}`} color="#3aaa3a" onClick={()=>{setShowTeamDone(true);setShowStats(false);}} />
+        <SR emoji="⏳" label="En cours / À faire" value={active} color={theme.accent} />
+        {scheduled > 0 && <SR emoji="☀️" label="Planif. aujourd'hui" value={scheduled} />}
+        {(team?.members||[]).length > 0 && <SR emoji="👥" label="Membres" value={(team?.members||[]).length} />}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
       </div>
     );
@@ -1290,10 +1327,12 @@ export default function App() {
     <div style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:"'DM Mono','Courier New',monospace", color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
-        * { box-sizing:border-box; -webkit-touch-callout:none; }
-        html, body { height:100%; overflow:hidden; margin:0; }
+        * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+        html, body { height:100%; overflow:hidden; margin:0; padding:0; }
+        #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         ::placeholder { color:#444466; }
         input,textarea,select { outline:none; user-select:text; -webkit-touch-callout:default; }
+        button { touch-action:manipulation; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(var(--date-icon-invert, 0)); cursor:pointer; }
         .row:hover { background:#16162e !important; }
         .bubble { transition:transform .12s; cursor:grab; touch-action:none; }
@@ -1318,12 +1357,12 @@ export default function App() {
         <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
           <img src="/favicon.svg" alt="logo" style={{ width: isMobile ? 28 : 34, height: isMobile ? 28 : 34, display:"block" }} />
         </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-          {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+        <div style={{ display:"flex", gap:isMobile?5:10, alignItems:"center", flexWrap:"nowrap", overflow:"hidden" }}>
+          {syncing && <span style={{ fontSize:9, color:theme.textMuted, flexShrink:0 }}>↑</span>}
           {user && team && (
-            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
-              <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
-              <button onClick={()=>setTeamSpace(true)}  style={{ padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥 {isMobile?"":team.name}</button>
+            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10, flexShrink:0 }}>
+              <button onClick={()=>setTeamSpace(false)} style={{ padding:isMobile?"3px 7px":"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>{isMobile?"Moi":"Perso"}</button>
+              <button onClick={()=>setTeamSpace(true)}  style={{ padding:isMobile?"3px 7px":"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥{!isMobile&&" "+team.name}</button>
             </div>
           )}
           {user && (
@@ -1408,8 +1447,8 @@ export default function App() {
               )}
             </div>
           )}
-          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>📊</button>
-          <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer" }}>⚙️</button>
+          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
+          <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>⚙️</button>
         </div>
       </div>
 
@@ -1835,7 +1874,7 @@ export default function App() {
                   )}
                   <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
                     style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
-                    {teamRole==="admin"?"+ Ajouter":"+ Proposer"}
+                    {teamRole==="admin"?(isMobile?"+ Ajouter":"+"):"+ Proposer"}
                   </button>
                 </div>
               </div>
@@ -1877,7 +1916,7 @@ export default function App() {
                       onClick={()=>setTeamModal(task.id)}
                       style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
-                      <button onClick={e=>{e.stopPropagation();}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }}/>
+                      <button onClick={e=>{e.stopPropagation();if(teamRole==="admin")cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:teamRole==="admin"?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={teamRole==="admin"?"Changer statut":task.status}/>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
                           <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
@@ -1905,27 +1944,7 @@ export default function App() {
                   );
                 })}
               </div>
-              {/* Tâches terminées équipe */}
-              {teamTasks.filter(t=>t.status==="Terminé").length > 0 && (
-                <div style={{ marginTop:12 }}>
-                  <button onClick={()=>setShowTeamDone(s=>!s)}
-                    style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"5px 12px",color:theme.textMuted,fontSize:10,cursor:"pointer",width:"100%" }}>
-                    {showTeamDone?"▲":"▼"} {teamTasks.filter(t=>t.status==="Terminé").length} tâche{teamTasks.filter(t=>t.status==="Terminé").length>1?"s":""} terminée{teamTasks.filter(t=>t.status==="Terminé").length>1?"s":""}
-                  </button>
-                  {showTeamDone && (
-                    <div style={{ marginTop:6,display:"grid",gap:4 }}>
-                      {teamTasks.filter(t=>t.status==="Terminé").map(task=>(
-                        <div key={task.id} onClick={()=>setTeamModal(task.id)}
-                          style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer",opacity:0.7 }}>
-                          <span style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700 }}>#{task.num}</span>
-                          <span style={{ fontSize:11,color:theme.textMuted,textDecoration:"line-through",flex:1 }}>{task.title}</span>
-                          <span style={{ fontSize:9,color:"#a040a0" }}>✓</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Tâches terminées : accessibles via les stats (même comportement que page perso) */}
             </div>
           )}
 
@@ -2245,7 +2264,7 @@ export default function App() {
       {showTeam && (
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowTeam(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>ÉQUIPE</div>
 
             {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
@@ -2308,9 +2327,6 @@ export default function App() {
                 )}
 
                 <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:12,display:"flex",gap:8,flexDirection:"column" }}>
-                  {teamRole==="member" && (
-                    <button onClick={leaveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a3a1a",borderRadius:8,padding:"8px",color:"#cc7700",fontSize:11,cursor:"pointer" }}>Quitter l'équipe</button>
-                  )}
                   {teamRole==="admin" && (
                     <button onClick={dissolveTeam} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"8px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>Dissoudre l'équipe</button>
                   )}
