@@ -331,6 +331,7 @@ export default function App() {
   const ghostRef         = useRef(null);
   const recognitionRef   = useRef(null);
   const fromFirestore    = useRef(false);
+  const lastFirestoreSnapshot = useRef(null);
   const longPressTimer   = useRef(null);
   const tasksRef         = useRef(tasks);
   const todayIdsRef         = useRef(todayIds);
@@ -553,8 +554,18 @@ export default function App() {
     const ref = doc(db, "users", user.uid);
     const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
-        fromFirestore.current = true;
         const data = snap.data();
+        const snap_str = JSON.stringify({
+          tasks: data.tasks || [],
+          todayIds: data.todayIds || [],
+          todayDates: data.todayDates || {},
+          tomorrowIds: data.tomorrowIds || [],
+          scheduledIds: data.scheduledIds || [],
+          highlighted: data.highlighted || [],
+          taskCounter: data.taskCounter ?? 0,
+        });
+        lastFirestoreSnapshot.current = snap_str;
+        fromFirestore.current = true;
         if (data.tasks)        setTasks(data.tasks);
         if (data.todayIds)     setTodayIds(data.todayIds);
         if (data.todayDates)   setTodayDates(data.todayDates);
@@ -571,7 +582,20 @@ export default function App() {
   // Sync local → Firestore à chaque changement (sauf si la mise à jour vient de Firestore)
   useEffect(() => {
     if (!user) return;
-    if (fromFirestore.current) { fromFirestore.current = false; return; }
+    const currentSnapshot = JSON.stringify({
+      tasks,
+      todayIds,
+      todayDates,
+      tomorrowIds,
+      scheduledIds,
+      highlighted,
+      taskCounter,
+    });
+    if (fromFirestore.current) {
+      fromFirestore.current = false;
+      // Si les données locales sont identiques au dernier snapshot Firestore, c'est un écho → on skippe
+      if (lastFirestoreSnapshot.current === currentSnapshot) return;
+    }
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
@@ -584,7 +608,9 @@ export default function App() {
       const statsRef = doc(db, "teams", team.id, "memberStats", user.uid);
       saves.push(setDoc(statsRef, { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
     }
-    Promise.all(saves).finally(() => setSyncing(false));
+    Promise.all(saves)
+      .catch(err => console.error("Save to Firestore failed:", err))
+      .finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
 
   const loginGoogle = async () => {
