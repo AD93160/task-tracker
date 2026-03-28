@@ -85,7 +85,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
   const [invite,       setInvite]      = useState("");
 
   const bg   = theme.mode === "dark" ? "#12122a" : theme.bgCard;
-  const w    = isMobile ? Math.min(300, window.innerWidth - 16) : 300;
+  const w    = isMobile ? Math.min(360, window.innerWidth - 16) : 380;
   const sel  = selectedTeam;
 
   return (
@@ -166,21 +166,35 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
             {(sel.members||[]).map(m => {
               const mIsCoAdmin = (sel.coAdminUids||[]).includes(m.uid);
               return (
-                <div key={m.uid} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:theme.bg,borderRadius:8,marginBottom:6 }}>
-                  <div>
-                    <div style={{ fontSize:11,color:theme.text,display:"flex",alignItems:"center",gap:6 }}>
-                      {m.displayName}
-                      {mIsCoAdmin && <span style={{ fontSize:9,color:"#f0c040",padding:"1px 5px",border:"1px solid #f0c04066",borderRadius:4 }}>⭐ co-admin</span>}
+                <div key={m.uid} style={{ background:theme.bg,borderRadius:10,marginBottom:8,overflow:"hidden",border:`1px solid ${theme.border}` }}>
+                  {/* Ligne infos */}
+                  <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px" }}>
+                    <div style={{ width:32,height:32,borderRadius:"50%",background:mIsCoAdmin?"#f0c04022":"#66688822",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0 }}>
+                      {mIsCoAdmin ? "⭐" : "👤"}
                     </div>
-                    <div style={{ fontSize:9,color:theme.textMuted }}>{m.email}</div>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:12,fontWeight:600,color:theme.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{m.displayName || m.email}</div>
+                      <div style={{ fontSize:10,color:theme.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{m.email}</div>
+                    </div>
+                    {mIsCoAdmin && <span style={{ marginLeft:"auto",flexShrink:0,fontSize:9,fontWeight:700,color:"#f0c040",background:"#f0c04015",padding:"2px 7px",borderRadius:12,border:"1px solid #f0c04044",letterSpacing:0.5 }}>CO-ADMIN</span>}
                   </div>
+                  {/* Ligne actions (admin owner seulement) */}
                   {isOwner && (
-                    <div style={{ display:"flex",gap:5 }}>
+                    <div style={{ display:"flex",borderTop:`1px solid ${theme.border}` }}>
                       {mIsCoAdmin
-                        ? <button onClick={()=>onDemote(m)} style={{ background:"transparent",border:"1px solid #f0c04066",borderRadius:6,padding:"3px 8px",color:"#f0c040",fontSize:10,cursor:"pointer" }}>↓ Membre</button>
-                        : <button onClick={()=>onPromote(m)} style={{ background:"transparent",border:"1px solid #f0c04066",borderRadius:6,padding:"3px 8px",color:"#f0c040",fontSize:10,cursor:"pointer" }}>↑ Co-admin</button>
+                        ? <button onClick={()=>onDemote(m)}
+                            style={{ flex:1,background:"transparent",border:"none",borderRight:`1px solid ${theme.border}`,padding:"7px 0",color:theme.textMuted,fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
+                            <span style={{ fontSize:13 }}>👤</span> Rétrograder
+                          </button>
+                        : <button onClick={()=>onPromote(m)}
+                            style={{ flex:1,background:"transparent",border:"none",borderRight:`1px solid ${theme.border}`,padding:"7px 0",color:"#c8a000",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
+                            <span style={{ fontSize:13 }}>⭐</span> Co-admin
+                          </button>
                       }
-                      <button onClick={()=>onRemoveMember(m)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:6,padding:"3px 8px",color:"#cc3030",fontSize:10,cursor:"pointer" }}>Retirer</button>
+                      <button onClick={()=>onRemoveMember(m)}
+                        style={{ flex:1,background:"transparent",border:"none",padding:"7px 0",color:"#cc3030",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
+                        <span style={{ fontSize:13 }}>✕</span> Retirer
+                      </button>
                     </div>
                   )}
                 </div>
