@@ -370,6 +370,23 @@ export default function App() {
     return null;
   };
 
+  // Variante pour les tâches équipe : utilise scheduledFor au lieu de todayIds/tomorrowIds
+  const teamTaskColor = (task) => {
+    if (!task || task.status === "Terminé") return null;
+    const today = todayStr();
+    const tom = new Date(); tom.setDate(tom.getDate()+1);
+    const tomorrow = tom.toISOString().split("T")[0];
+    if (task.due) {
+      if (task.due < today) return RED;
+      if (task.due === today || task.scheduledFor === "today") return GOLD;
+      if (task.due === tomorrow || task.scheduledFor === "tomorrow") return ORANGE;
+      return GREEN;
+    }
+    if (task.scheduledFor === "today")    return GOLD;
+    if (task.scheduledFor === "tomorrow") return ORANGE;
+    return null;
+  };
+
   const exportIcs = (task) => {
     if (!task.due) return;
     const d = task.due.replace(/-/g,"");
@@ -1727,7 +1744,8 @@ export default function App() {
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
                   {teamTasks.filter(t=>t.scheduledFor==="today").map(task => {
-                    const dot = STATUS_DOT[task.status]||"#888";
+                    const tc = teamTaskColor(task);
+                    const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
                       <div key={task.id} className="bubble"
                         draggable={teamRole==="admin"}
@@ -1735,7 +1753,7 @@ export default function App() {
                         onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
                         onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-today"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}cc,${dot})`,boxShadow:`0 0 16px ${dot}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
                         {task.num}
                       </div>
                     );
@@ -1760,7 +1778,8 @@ export default function App() {
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
                   {teamTasks.filter(t=>t.scheduledFor==="tomorrow").map(task => {
-                    const dot = STATUS_DOT[task.status]||"#888";
+                    const tc = teamTaskColor(task);
+                    const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
                       <div key={task.id} className="bubble"
                         draggable={teamRole==="admin"}
@@ -1768,7 +1787,7 @@ export default function App() {
                         onDragEnd={teamRole==="admin"?onDragEndTeam:undefined}
                         onTouchStart={teamRole==="admin"?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${dot}55,${dot}77)`,boxShadow:`0 0 10px ${dot}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${dot}66`,cursor:"pointer" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer" }}>
                         {task.num}
                       </div>
                     );
@@ -2157,7 +2176,7 @@ export default function App() {
                   if (teamSortBy==="status")   return ((STATUSES.indexOf(a.status))-(STATUSES.indexOf(b.status)))*dir;
                   return 0;
                 }).map(task => {
-                  const tc  = taskColor(task);
+                  const tc  = teamTaskColor(task);
                   const bgC = tc ? tc.base+"33" : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
                   const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
