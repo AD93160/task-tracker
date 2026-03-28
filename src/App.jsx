@@ -260,6 +260,7 @@ export default function App() {
   const [teamError,        setTeamError]        = useState(null);
   const [teamInfo,         setTeamInfo]         = useState(null);
   const [pendingTeamTaskId,setPendingTeamTaskId]= useState(null);
+  const [pendingMemberProposal,setPendingMemberProposal]= useState(null);
   const [statsView,        setStatsView]        = useState("perso");
   const [teamSortBy,       setTeamSortBy]       = useState(null);
   const [teamSortDir,      setTeamSortDir]       = useState("asc");
@@ -1114,9 +1115,9 @@ export default function App() {
           }
           setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (teamRole === "member") {
-          await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
-          setTeamInfo("Tâche proposée à l'admin pour validation.");
-          setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+          setPendingMemberProposal(cleanForm);
+          setPendingTask({ id: Date.now(), title: form.title });
+          setFormStep(2);
         } else if (teamRole === "admin") {
           const newNum = (team.taskCounter || 0) + 1;
           await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
@@ -1167,13 +1168,26 @@ export default function App() {
   const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
 
+    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); };
+
+    // ── Proposition membre équipe ──
+    if (pendingMemberProposal && team) {
+      const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
+      try {
+        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:{...pendingMemberProposal, scheduledFor:scheduled}, createdAt:serverTimestamp(), status:"pending" });
+        setTeamInfo("Tâche proposée à l'admin pour validation.");
+      } catch(e) { setTeamError(e.message); }
+      setPendingMemberProposal(null);
+      resetForm();
+      return;
+    }
+
     // ── Tâche équipe (admin) ──
     if (pendingTeamTaskId && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try { await updateDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId), { scheduledFor: scheduled }); } catch(e) {}
       setPendingTeamTaskId(null);
-      setPendingTask(null); setFormStep(1);
-      setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      resetForm();
       return;
     }
 
@@ -1191,8 +1205,7 @@ export default function App() {
       else if (date===tomorrowStr) addToTomorrow(id);
       else setScheduledIds(p=>[...p,{id,dueDate:date}]);
     }
-    setPendingTask(null); setFormStep(1);
-    setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+    resetForm();
   };
 
   const getZoneAtPoint = (x, y) => {
@@ -2103,7 +2116,8 @@ export default function App() {
               {formStep===2 && (
                 <>
                   <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,marginBottom:4 }}>QUAND PLANIFIER ?</div>
-                  <div style={{ fontSize:11,color:theme.textMuted,marginBottom:16 }}>"{pendingTask?.title}"</div>
+                  <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
+                  {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
                   <div style={{ display:"grid",gap:8 }}>
                     <button onClick={()=>applySchedule("today")} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:10,padding:"12px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12 }}>
                       <span style={{ fontSize:20 }}>☀️</span>
@@ -2138,6 +2152,10 @@ export default function App() {
                         <div style={{ fontSize:10,color:theme.textMuted }}>Reste en attente dans la liste</div>
                       </div>
                     </button>
+                  </div>
+                  <div style={{ display:"flex",justifyContent:"flex-end",marginTop:10 }}>
+                    <button onClick={()=>{setPendingMemberProposal(null);setPendingTeamTaskId(null);setPendingTask(null);setFormStep(1);setShowForm(false);}}
+                      style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
                   </div>
                 </>
               )}
