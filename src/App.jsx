@@ -249,6 +249,8 @@ export default function App() {
   const [showQuickAdd,     setShowQuickAdd]     = useState(false);
   const [quickTitle,       setQuickTitle]       = useState("");
   const [quickPriority,    setQuickPriority]    = useState("Moyenne");
+  const [quickSchedule,    setQuickSchedule]    = useState(null); // "today"|"tomorrow"|"none"
+  const [showAddMenu,      setShowAddMenu]      = useState(false);
   const [team,             setTeam]             = useState(null);
   const [teamRole,         setTeamRole]         = useState(null);   // "admin"|"member"|null
   const [teamSpace,        setTeamSpace]        = useState(false);  // false=perso true=équipe
@@ -628,20 +630,28 @@ export default function App() {
       teamUnsubs.set(teamId, unsub);
     };
 
+    let currentActiveId = null;
+
     const userUnsub = onSnapshot(doc(db, "users", user.uid), snap => {
       const data = snap.data() || {};
       setTeamRole(data.teamRole || null);
 
-      // Équipe active (teamId principal)
+      // Équipe active (teamId principal) — re-subscribe uniquement si l'ID change
       const activeId = data.teamId || null;
-      if (activeId) {
-        const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
-          if (tSnap.exists()) setTeam({ id:tSnap.id, ...tSnap.data() });
-          else { setTeam(null); setTeamSpace(false); }
-        });
-        // Stocker dans teamUnsubs pour cleanup
-        if (!teamUnsubs.has("__active__")) teamUnsubs.set("__active__", activeUnsub);
-      } else { setTeam(null); setTeamSpace(false); }
+      if (activeId !== currentActiveId) {
+        if (teamUnsubs.has("__active__")) {
+          teamUnsubs.get("__active__")();
+          teamUnsubs.delete("__active__");
+        }
+        currentActiveId = activeId;
+        if (activeId) {
+          const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
+            if (tSnap.exists()) setTeam({ id:tSnap.id, ...tSnap.data() });
+            else { setTeam(null); setTeamSpace(false); }
+          });
+          teamUnsubs.set("__active__", activeUnsub);
+        } else { setTeam(null); setTeamSpace(false); }
+      }
 
       // Toutes les équipes (allTeamIds + teamId actuel)
       const allIds = Array.from(new Set([
@@ -1111,7 +1121,18 @@ export default function App() {
       const newNum = taskCounter + 1;
       setTaskCounter(c => c + 1);
       const newTask = {...form, id:Date.now(), num:newNum};
-      setTasks(prev=>[...prev,newTask]); setPendingTask(newTask); setFormStep(2); setCustomDate("");
+      setTasks(prev=>[...prev,newTask]);
+      if (quickSchedule) {
+        const id = newTask.id;
+        const today = todayStr();
+        if (quickSchedule === "today")    setTodayIds(p => p.includes(id) ? p : [...p, id]);
+        if (quickSchedule === "tomorrow") setTomorrowIds(p => p.find(e=>e.id===id) ? p : [...p, {id, addedDate:today}]);
+        setQuickSchedule(null);
+        setPendingTask(null); setFormStep(1);
+        setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      } else {
+        setPendingTask(newTask); setFormStep(2); setCustomDate("");
+      }
     }
   };
 
@@ -1527,7 +1548,8 @@ export default function App() {
         <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8630A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
-        <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 0", background:"transparent", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:12, cursor:"pointer" }}>
+        <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #dadce0", borderRadius:8, color:"#3c4043", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continuer avec Google
         </button>
         {unverifiedEmail && (
@@ -1540,7 +1562,7 @@ export default function App() {
   );
 
   return (
-    <div style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:"'DM Mono','Courier New',monospace", color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
+    <div style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
         * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
@@ -1827,10 +1849,27 @@ export default function App() {
 
             {isMobile && (
               <div style={{ padding:"10px 16px 14px", display:"flex", gap:8 }}>
-                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
-                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-                  + Ajouter
-                </button>
+                {/* Quick-add avec choix de planification */}
+                <div style={{ flex:1, position:"relative" }}>
+                  <button onClick={()=>setShowAddMenu(s=>!s)}
+                    style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
+                    + Ajouter {showAddMenu?"▲":"▼"}
+                  </button>
+                  {showAddMenu && (
+                    <div style={{ position:"absolute",bottom:"110%",left:0,right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,overflow:"hidden",zIndex:50,boxShadow:"0 4px 20px #00000044" }}>
+                      {[{key:"today",icon:"☀️",label:"Aujourd'hui"},{key:"tomorrow",icon:"🌙",label:"Demain"},{key:"none",icon:"📋",label:"Non planifié"}].map(({key,icon,label},i,arr)=>(
+                        <button key={key} onClick={()=>{
+                          setQuickSchedule(key); setShowAddMenu(false);
+                          setShowForm(true); setEditingId(null); setFormStep(1);
+                          setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});
+                          setRecurDay(""); setRecurMonthDay("");
+                        }} style={{ width:"100%",background:"transparent",border:"none",borderBottom:i<arr.length-1?`1px solid ${theme.border}44`:"none",padding:"11px 16px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10 }}>
+                          <span style={{ fontSize:16 }}>{icon}</span>{label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div style={{ position:"relative" }}>
                   <button onClick={listening?stopVoice:startVoice}
                     style={{ height:"100%",background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"10px 14px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
@@ -1862,7 +1901,7 @@ export default function App() {
 
           {/* Top bar (desktop only — on mobile the button is in the left panel) */}
           <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
-            {!isMobile && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+            {!isMobile && !teamSpace && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               + Ajouter
             </button>}
@@ -2082,14 +2121,14 @@ export default function App() {
             <div style={{ marginBottom:16 }}>
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
-                <div style={{ display:"flex",gap:8 }}>
+                <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
                   {teamRole==="admin" && teamPending.length > 0 && (
                     <button onClick={()=>setShowPendingPanel(true)} style={{ background:"#cc303022",border:"1px solid #cc303066",borderRadius:8,padding:"5px 12px",color:"#cc3030",fontSize:11,cursor:"pointer",fontWeight:700 }}>
                       🔔 {teamPending.length} en attente
                     </button>
                   )}
                   <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                    style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer" }}>
+                    style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:isMobile&&teamRole==="member"?120:undefined,textAlign:"center" }}>
                     {teamRole==="admin"?(isMobile?"+ Ajouter":"+"):"+ Proposer"}
                   </button>
                 </div>
@@ -2238,7 +2277,7 @@ export default function App() {
                         <span style={{ fontSize:11 }}>🏆</span>
                         <span style={{ fontSize:9,color:task.completion.color,fontWeight:600 }}>
                           {task.completion.doneAt
-                            ? new Date(task.completion.doneAt).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
+                            ? new Date(task.completion.doneAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
                             : task.completion.doneDate}
                         </span>
                         {task.completion.deltaLabel && (
@@ -2344,10 +2383,10 @@ export default function App() {
       {showTheme && (
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowTheme(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"#12122a",border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>APPARENCE</div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>MODE</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
               {["dark","light"].map(m=>(
                 <button key={m} onClick={()=>{ const p=PRESETS[m][0]; setTheme(t=>({...t,mode:m,bg:p.bg,bgLeft:p.bgLeft,bgCard:p.bgCard,accent:p.accent,text:p.text,textMuted:p.textMuted,border:p.border})); }}
@@ -2357,7 +2396,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>PALETTE</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>PALETTE</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:7,marginBottom:18 }}>
               {PRESETS[theme.mode].map(p=>(
                 <button key={p.name} onClick={()=>setTheme(t=>({...t,...p,font:t.font,titleFont:t.titleFont,mode:t.mode}))}
@@ -2368,42 +2407,42 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>ACCENT</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>ACCENT</div>
             <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
               <input type="color" value={theme.accent} onChange={e=>setTheme(t=>({...t,accent:e.target.value}))}
                 style={{ width:40,height:32,border:"none",borderRadius:6,cursor:"pointer" }} />
-              <span style={{ fontSize:11,color:"#666688" }}>{theme.accent}</span>
+              <span style={{ fontSize:11,color:theme.textMuted }}>{theme.accent}</span>
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>POLICE TEXTE</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TEXTE</div>
             <div style={{ display:"grid",gap:5,marginBottom:18 }}>
               {FONTS.map(f=>(
                 <button key={f.value} onClick={()=>setTheme(t=>({...t,font:f.value}))}
-                  style={{ background:theme.font===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.font===f.value?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.font===f.value?"#fff":"#666688",fontSize:12,fontFamily:`'${f.value}',monospace`,textAlign:"left" }}>
+                  style={{ background:theme.font===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.font===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.font===f.value?theme.accent:theme.textMuted,fontSize:12,fontFamily:`'${f.value}',monospace`,textAlign:"left" }}>
                   {f.label}
                 </button>
               ))}
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>POLICE TITRE</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TITRE</div>
             <div style={{ display:"grid",gap:5,marginBottom:18 }}>
               {TITLE_FONTS.map(f=>(
                 <button key={f.value} onClick={()=>setTheme(t=>({...t,titleFont:f.value}))}
-                  style={{ background:theme.titleFont===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.titleFont===f.value?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.titleFont===f.value?"#fff":"#666688",fontSize:14,fontFamily:`'${f.value}',sans-serif`,textAlign:"left",fontWeight:700 }}>
+                  style={{ background:theme.titleFont===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.titleFont===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.titleFont===f.value?theme.accent:theme.textMuted,fontSize:14,fontFamily:`'${f.value}',sans-serif`,textAlign:"left",fontWeight:700 }}>
                   {f.label}
                 </button>
               ))}
             </div>
 
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:18 }}>
               {[{v:"fr-FR",l:"Français"},{v:"en-US",l:"English (US)"},{v:"en-GB",l:"English (UK)"},{v:"de-DE",l:"Deutsch"},{v:"es-ES",l:"Español"},{v:"it-IT",l:"Italiano"}].map(({v,l})=>(
-                <button key={v} onClick={()=>setLocale(v)} style={{ background:locale===v?theme.accent+"33":"transparent",border:`1px solid ${locale===v?theme.accent:"#2a2a5a"}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",color:locale===v?"#fff":"#666688",fontSize:10 }}>{l}</button>
+                <button key={v} onClick={()=>setLocale(v)} style={{ background:locale===v?theme.accent+"33":"transparent",border:`1px solid ${locale===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",color:locale===v?theme.accent:theme.textMuted,fontSize:10 }}>{l}</button>
               ))}
             </div>
 
-            <div style={{ fontSize:9,color:"#444466",marginBottom:6,letterSpacing:1 }}>RAPPEL QUOTIDIEN</div>
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RAPPEL QUOTIDIEN</div>
             <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
               <span style={{ fontSize:11,color:theme.textMuted }}>Activé</span>
               <div onClick={()=>setDailyNotifEnabled(v=>!v)} style={{ width:32,height:18,borderRadius:9,background:dailyNotifEnabled?theme.accent:theme.border,position:"relative",transition:"background .2s",cursor:"pointer" }}>
