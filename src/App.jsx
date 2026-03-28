@@ -2641,8 +2641,45 @@ export default function App() {
             </div>
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RAPPEL QUOTIDIEN</div>
+            {/* Statut permission */}
+            {(() => {
+              const perm = "Notification" in window ? Notification.permission : "unsupported";
+              const cfg = {
+                granted:     { bg:"#2a7a2a22", border:"#2a7a2a66", color:"#3aaa3a", label:"✓ Notifications autorisées" },
+                denied:      { bg:"#cc303022", border:"#cc303066", color:"#cc3030", label:"✕ Notifications bloquées — à débloquer dans les réglages du navigateur" },
+                default:     { bg:"#f0c04022", border:"#f0c04066", color:"#c8a000", label:"⚠ Permission non accordée" },
+                unsupported: { bg:"#44444422", border:"#44444466", color:"#888",    label:"✕ Notifications non supportées sur cet appareil/navigateur" },
+              }[perm];
+              return (
+                <div style={{ background:cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:8, padding:"7px 10px", marginBottom:10, fontSize:10, color:cfg.color, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+                  <span>{cfg.label}</span>
+                  {perm === "default" && (
+                    <button onClick={()=>Notification.requestPermission().then(()=>{})}
+                      style={{ background:theme.accent, border:"none", borderRadius:6, padding:"3px 8px", color:"#fff", fontSize:10, cursor:"pointer", flexShrink:0 }}>
+                      Autoriser
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+            {/* Bouton test */}
+            <button onClick={async () => {
+              if (!("Notification" in window)) { alert("Notifications non supportées sur ce navigateur."); return; }
+              if (Notification.permission === "denied") { alert("Les notifications sont bloquées. Débloque-les dans les réglages de ton navigateur."); return; }
+              if (Notification.permission !== "granted") {
+                const p = await Notification.requestPermission();
+                if (p !== "granted") { alert("Permission refusée."); return; }
+              }
+              new Notification("Task Tracker Pro 🔔", {
+                body: "Test de notification — tout fonctionne !",
+                icon: "/favicon.ico",
+                tag: "test-notif",
+              });
+            }} style={{ width:"100%", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, padding:"8px", color:theme.textMuted, fontSize:11, cursor:"pointer", marginBottom:12 }}>
+              🔔 Envoyer une notification test
+            </button>
             <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
-              <span style={{ fontSize:11,color:theme.textMuted }}>Activé</span>
+              <span style={{ fontSize:11,color:theme.textMuted }}>Rappel quotidien activé</span>
               <div onClick={()=>setDailyNotifEnabled(v=>!v)} style={{ width:32,height:18,borderRadius:9,background:dailyNotifEnabled?theme.accent:theme.border,position:"relative",transition:"background .2s",cursor:"pointer" }}>
                 <div style={{ position:"absolute",top:2,left:dailyNotifEnabled?16:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px #0006" }}/>
               </div>
