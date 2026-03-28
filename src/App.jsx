@@ -330,8 +330,8 @@ export default function App() {
   const leftRef          = useRef(null);
   const ghostRef         = useRef(null);
   const recognitionRef   = useRef(null);
-  const fromFirestore    = useRef(false);
-  const lastFirestoreSnapshot = useRef(null);
+  const firestoreLoaded  = useRef(false);
+  const lastSavedSnapshot = useRef(null);
   const longPressTimer   = useRef(null);
   const tasksRef         = useRef(tasks);
   const todayIdsRef         = useRef(todayIds);
@@ -532,9 +532,9 @@ export default function App() {
         const newUid  = u?.uid   ?? null;
         if (prevUid !== newUid && newUid !== null) {
           // Utilisateur différent (ou premier login) → vider les données du user précédent
-          // IMPORTANT : fromFirestore.current = true avant de vider pour éviter de sauvegarder
-          // des données vides dans Firestore (ce qui écraserait les vraies données)
-          fromFirestore.current = true;
+          // Réinitialiser les refs de sync pour ne pas sauvegarder des données vides
+          firestoreLoaded.current = false;
+          lastSavedSnapshot.current = null;
           ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
@@ -555,7 +555,8 @@ export default function App() {
     const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
         const data = snap.data();
-        const snap_str = JSON.stringify({
+        // Marquer ce snapshot comme "déjà en Firestore" pour ne pas le re-sauvegarder
+        const snapStr = JSON.stringify({
           tasks: data.tasks || [],
           todayIds: data.todayIds || [],
           todayDates: data.todayDates || {},
@@ -564,8 +565,8 @@ export default function App() {
           highlighted: data.highlighted || [],
           taskCounter: data.taskCounter ?? 0,
         });
-        lastFirestoreSnapshot.current = snap_str;
-        fromFirestore.current = true;
+        lastSavedSnapshot.current = snapStr;
+        firestoreLoaded.current = true;
         if (data.tasks)        setTasks(data.tasks);
         if (data.todayIds)     setTodayIds(data.todayIds);
         if (data.todayDates)   setTodayDates(data.todayDates);
@@ -579,34 +580,21 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  // Sync local → Firestore à chaque changement (sauf si la mise à jour vient de Firestore)
+  // Sync local → Firestore à chaque changement
   useEffect(() => {
-    if (!user) return;
-    const currentSnapshot = JSON.stringify({
-      tasks,
-      todayIds,
-      todayDates,
-      tomorrowIds,
-      scheduledIds,
-      highlighted,
-      taskCounter,
-    });
-    if (fromFirestore.current) {
-      fromFirestore.current = false;
-      // Si les données locales sont identiques au dernier snapshot Firestore, c'est un écho → on skippe
-      if (lastFirestoreSnapshot.current === currentSnapshot) return;
-    }
+    if (!user || !firestoreLoaded.current) return; // Attendre le 1er chargement Firestore
+    const currentSnapshot = JSON.stringify({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter });
+    if (currentSnapshot === lastSavedSnapshot.current) return; // Déjà à jour (écho ou pas de changement)
+    lastSavedSnapshot.current = currentSnapshot; // Marquer avant la sauvegarde async
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
-    const saveUser = setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true });
-    const saves = [saveUser];
+    const saves = [setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true })];
     if (team && teamRole) {
       const total  = tasks.length;
       const done   = tasks.filter(t => t.status === "Terminé").length;
       const active = tasks.filter(t => t.status !== "Terminé").length;
-      const statsRef = doc(db, "teams", team.id, "memberStats", user.uid);
-      saves.push(setDoc(statsRef, { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
+      saves.push(setDoc(doc(db, "teams", team.id, "memberStats", user.uid), { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
     }
     Promise.all(saves)
       .catch(err => console.error("Save to Firestore failed:", err))
