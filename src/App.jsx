@@ -686,10 +686,19 @@ export default function App() {
     };
 
     let currentActiveId = null;
+    let prevTeamRole = null;
 
     const userUnsub = onSnapshot(doc(db, "users", user.uid), snap => {
       const data = snap.data() || {};
-      setTeamRole(data.teamRole || null);
+      const newRole = data.teamRole || null;
+      // Notifier si promu co-admin
+      if (prevTeamRole !== null && prevTeamRole !== "co-admin" && newRole === "co-admin") {
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Task Tracker — Félicitations ! ⭐", { body: "Vous avez été nommé co-admin de l'équipe.", icon: "/favicon.ico" });
+        }
+      }
+      prevTeamRole = newRole;
+      setTeamRole(newRole);
 
       // Équipe active (teamId principal) — re-subscribe uniquement si l'ID change
       const activeId = data.teamId || null;
