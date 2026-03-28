@@ -1677,111 +1677,156 @@ export default function App() {
 
       {/* Header */}
       <div style={{
-        padding: isMobile ? "10px 12px 8px" : "20px 28px 14px",
+        padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
         display:"flex",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
+        flexDirection: "column",
         position: "relative",
       }}>
-        <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize: isMobile ? 15 : 18, fontWeight:800, color:theme.accent, letterSpacing: isMobile ? 1 : 3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
-        <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
-          <img src="/favicon.svg" alt="logo" style={{ width: isMobile ? 28 : 34, height: isMobile ? 28 : 34, display:"block" }} />
-        </div>
-        <div style={{ display:"flex", gap:isMobile?5:10, alignItems:"center", flexWrap:"nowrap", overflow:"visible" }}>
-          {syncing && <span style={{ fontSize:9, color:theme.textMuted, flexShrink:0 }}>↑</span>}
-          {user && team && (
-            <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10, flexShrink:0 }}>
-              <button onClick={()=>setTeamSpace(false)} style={{ padding:isMobile?"3px 7px":"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>{isMobile?"Moi":"Perso"}</button>
-              <button onClick={()=>setTeamSpace(true)}  style={{ padding:isMobile?"3px 7px":"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥{!isMobile&&" "+team.name}</button>
-            </div>
-          )}
-          {user && (
-            <button onClick={()=>{setTeamPanelView("list");setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
-              👥
-              {isAdminRole(teamRole) && teamPending.length > 0 && (
-                <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
-              )}
-            </button>
-          )}
-          {user ? (
-            <div style={{ position:"relative" }}>
-              {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
-              <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
-                {user.photoURL
-                  ? <img src={user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
-                  : <div style={{ width:30,height:30,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:theme.accent }}>
-                      {(user.displayName||user.email||"?")[0].toUpperCase()}
+        {isMobile ? (
+          <>
+            {/* Mobile ligne 1 : logo + titre + avatar */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+              <img src="/favicon.svg" alt="logo" style={{ width:22, height:22, flexShrink:0 }} />
+              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>TASK TRACKER PRO</div>
+              {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {/* Avatar / login */}
+              {user ? (
+                <div style={{ position:"relative" }}>
+                  {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
+                  <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
+                    {user.photoURL
+                      ? <img src={user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
+                      : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:theme.accent }}>
+                          {(user.displayName||user.email||"?")[0].toUpperCase()}
+                        </div>
+                    }
+                  </div>
+                  {showUserMenu && (
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
+                      <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
                     </div>
-                }
-              </div>
-              {showUserMenu && (
-                <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
-                  <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
-                  <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
+                  )}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ position:"relative" }}>
-              {showAuthMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowAuthMenu(false)}/>}
-              <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-              </button>
-              {showAuthMenu && (
-                <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
-                  {authInfo && (
-                    <div style={{ fontSize:10,color:"#2a7a2a",marginBottom:10,padding:"6px 10px",background:"#2a7a2a22",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                      <span>{authInfo}</span>
-                      <button onClick={()=>setAuthInfo(null)} style={{ background:"transparent",border:"none",color:"#2a7a2a",cursor:"pointer",fontSize:12 }}>✕</button>
-                    </div>
-                  )}
-                  {authError && (
-                    <div style={{ fontSize:10,color:"#cc3030",marginBottom:6,padding:"6px 10px",background:"#cc303022",borderRadius:8 }}>
-                      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                        <span>{authError}</span>
-                        <button onClick={()=>{setAuthError(null);setUnverifiedEmail(null);}} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button>
-                      </div>
-                      {unverifiedEmail && emailForm.password && (
-                        <button onClick={resendVerification} style={{ marginTop:6,fontSize:10,color:"#cc3030",background:"transparent",border:"1px solid #cc303066",borderRadius:6,padding:"3px 8px",cursor:"pointer" }}>
-                          Renvoyer l'email de vérification
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {/* Google */}
-                  <button onClick={loginGoogle} style={{ width:"100%",background:theme.mode==="dark"?"#1a1a2e":"#fff",border:`1px solid ${theme.border}`,borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:7,color:theme.text,fontSize:12 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                    Continuer avec Google
+              ) : (
+                <div style={{ position:"relative" }}>
+                  {showAuthMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowAuthMenu(false)}/>}
+                  <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 9px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
                   </button>
-                  {/* Divider */}
-                  <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
-                    <div style={{ flex:1,height:1,background:theme.border }}/>
-                    <span style={{ fontSize:10,color:theme.textMuted }}>ou</span>
-                    <div style={{ flex:1,height:1,background:theme.border }}/>
-                  </div>
-                  {/* Email tabs */}
-                  <div style={{ display:"flex",gap:4,marginBottom:8 }}>
-                    {[{v:"login",l:"Connexion"},{v:"register",l:"Inscription"}].map(({v,l})=>(
-                      <button key={v} onClick={()=>setEmailMode(v)} style={{ flex:1,background:emailMode===v?theme.accent+"22":"transparent",border:`1px solid ${emailMode===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px",color:emailMode===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>{l}</button>
-                    ))}
-                  </div>
-                  <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))}
-                    style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13,marginBottom:6 }} />
-                  <div style={{ display:"flex",gap:6 }}>
-                    <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))}
-                      onKeyDown={e=>e.key==="Enter"&&loginEmail()}
-                      style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13 }} />
-                    <button onClick={loginEmail} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"7px 12px",color:"#fff",fontSize:12,cursor:"pointer" }}>→</button>
-                  </div>
+                  {showAuthMenu && (
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
+                      {authInfo && <div style={{ fontSize:10,color:"#2a7a2a",marginBottom:10,padding:"6px 10px",background:"#2a7a2a22",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}><span>{authInfo}</span><button onClick={()=>setAuthInfo(null)} style={{ background:"transparent",border:"none",color:"#2a7a2a",cursor:"pointer",fontSize:12 }}>✕</button></div>}
+                      {authError && <div style={{ fontSize:10,color:"#cc3030",marginBottom:6,padding:"6px 10px",background:"#cc303022",borderRadius:8 }}><div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span>{authError}</span><button onClick={()=>{setAuthError(null);setUnverifiedEmail(null);}} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button></div>{unverifiedEmail&&emailForm.password&&<button onClick={resendVerification} style={{ marginTop:6,fontSize:10,color:"#cc3030",background:"transparent",border:"1px solid #cc303066",borderRadius:6,padding:"3px 8px",cursor:"pointer" }}>Renvoyer l'email de vérification</button>}</div>}
+                      <button onClick={loginGoogle} style={{ width:"100%",background:theme.mode==="dark"?"#1a1a2e":"#fff",border:`1px solid ${theme.border}`,borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:7,color:theme.text,fontSize:12 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Continuer avec Google
+                      </button>
+                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}><div style={{ flex:1,height:1,background:theme.border }}/><span style={{ fontSize:10,color:theme.textMuted }}>ou</span><div style={{ flex:1,height:1,background:theme.border }}/></div>
+                      <div style={{ display:"flex",gap:4,marginBottom:8 }}>{[{v:"login",l:"Connexion"},{v:"register",l:"Inscription"}].map(({v,l})=>(<button key={v} onClick={()=>setEmailMode(v)} style={{ flex:1,background:emailMode===v?theme.accent+"22":"transparent",border:`1px solid ${emailMode===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px",color:emailMode===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>{l}</button>))}</div>
+                      <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13,marginBottom:6 }} />
+                      <div style={{ display:"flex",gap:6 }}>
+                        <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&loginEmail()} style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13 }} />
+                        <button onClick={loginEmail} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"7px 12px",color:"#fff",fontSize:12,cursor:"pointer" }}>→</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-          <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);if(teamSpace&&team)setStatsView("team");else setStatsView("perso");}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
-          <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:isMobile?"4px 8px":"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>⚙️</button>
-        </div>
+            {/* Mobile ligne 2 : switcher + boutons d'action */}
+            <div style={{ display:"flex", alignItems:"center", gap:6, paddingBottom:8 }}>
+              {user && team ? (
+                <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:20, overflow:"hidden", fontSize:11, flex:1 }}>
+                  <button onClick={()=>setTeamSpace(false)} style={{ flex:1,padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer", borderRadius:20, fontWeight:!teamSpace?700:400 }}>Perso</button>
+                  <button onClick={()=>setTeamSpace(true)}  style={{ flex:1,padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer", borderRadius:20, fontWeight:teamSpace?700:400 }}>👥 {team.name.length > 8 ? team.name.slice(0,8)+"…" : team.name}</button>
+                </div>
+              ) : <div style={{ flex:1 }}/>}
+              {/* Boutons icône */}
+              {user && (
+                <button onClick={()=>{setTeamPanelView("list");setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:10, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:14, cursor:"pointer", position:"relative", flexShrink:0 }}>
+                  👥
+                  {isAdminRole(teamRole) && teamPending.length > 0 && (
+                    <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
+                  )}
+                </button>
+              )}
+              <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);if(teamSpace&&team)setStatsView("team");else setStatsView("perso");}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:10, padding:"5px 10px", color:showStats?theme.accent:theme.textMuted, fontSize:14, cursor:"pointer", flexShrink:0 }}>📊</button>
+              <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:10, padding:"5px 10px", color:showTheme?theme.accent:theme.textMuted, fontSize:14, cursor:"pointer", flexShrink:0 }}>⚙️</button>
+            </div>
+          </>
+        ) : (
+          /* Desktop : ligne unique inchangée */
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
+            <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+            <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
+              <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block" }} />
+            </div>
+            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+              {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {user && team && (
+                <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
+                  <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
+                  <button onClick={()=>setTeamSpace(true)}  style={{ padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥 {team.name}</button>
+                </div>
+              )}
+              {user && (
+                <button onClick={()=>{setTeamPanelView("list");setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
+                  👥
+                  {isAdminRole(teamRole) && teamPending.length > 0 && (
+                    <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
+                  )}
+                </button>
+              )}
+              {user ? (
+                <div style={{ position:"relative" }}>
+                  {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
+                  <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
+                    {user.photoURL
+                      ? <img src={user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
+                      : <div style={{ width:30,height:30,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:theme.accent }}>
+                          {(user.displayName||user.email||"?")[0].toUpperCase()}
+                        </div>
+                    }
+                  </div>
+                  {showUserMenu && (
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
+                      <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ position:"relative" }}>
+                  {showAuthMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowAuthMenu(false)}/>}
+                  <button onClick={()=>setShowAuthMenu(s=>!s)} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+                  </button>
+                  {showAuthMenu && (
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:14,zIndex:300,width:250,boxShadow:"0 8px 40px #00000099" }}>
+                      {authInfo && <div style={{ fontSize:10,color:"#2a7a2a",marginBottom:10,padding:"6px 10px",background:"#2a7a2a22",borderRadius:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}><span>{authInfo}</span><button onClick={()=>setAuthInfo(null)} style={{ background:"transparent",border:"none",color:"#2a7a2a",cursor:"pointer",fontSize:12 }}>✕</button></div>}
+                      {authError && <div style={{ fontSize:10,color:"#cc3030",marginBottom:6,padding:"6px 10px",background:"#cc303022",borderRadius:8 }}><div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span>{authError}</span><button onClick={()=>{setAuthError(null);setUnverifiedEmail(null);}} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer",fontSize:12 }}>✕</button></div>{unverifiedEmail&&emailForm.password&&<button onClick={resendVerification} style={{ marginTop:6,fontSize:10,color:"#cc3030",background:"transparent",border:"1px solid #cc303066",borderRadius:6,padding:"3px 8px",cursor:"pointer" }}>Renvoyer l'email de vérification</button>}</div>}
+                      <button onClick={loginGoogle} style={{ width:"100%",background:theme.mode==="dark"?"#1a1a2e":"#fff",border:`1px solid ${theme.border}`,borderRadius:9,padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:7,color:theme.text,fontSize:12 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Continuer avec Google
+                      </button>
+                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}><div style={{ flex:1,height:1,background:theme.border }}/><span style={{ fontSize:10,color:theme.textMuted }}>ou</span><div style={{ flex:1,height:1,background:theme.border }}/></div>
+                      <div style={{ display:"flex",gap:4,marginBottom:8 }}>{[{v:"login",l:"Connexion"},{v:"register",l:"Inscription"}].map(({v,l})=>(<button key={v} onClick={()=>setEmailMode(v)} style={{ flex:1,background:emailMode===v?theme.accent+"22":"transparent",border:`1px solid ${emailMode===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px",color:emailMode===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>{l}</button>))}</div>
+                      <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13,marginBottom:6 }} />
+                      <div style={{ display:"flex",gap:6 }}>
+                        <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&loginEmail()} style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13 }} />
+                        <button onClick={loginEmail} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"7px 12px",color:"#fff",fontSize:12,cursor:"pointer" }}>→</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <button onClick={()=>{setShowStats(s=>!s);setShowTheme(false);if(teamSpace&&team)setStatsView("team");else setStatsView("perso");}} style={{ background:showStats?theme.accent+"33":"transparent", border:`1px solid ${showStats?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showStats?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>📊</button>
+              <button onClick={()=>{setShowTheme(s=>!s);setShowStats(false);}} style={{ background:showTheme?theme.accent+"33":"transparent", border:`1px solid ${showTheme?theme.accent:theme.border}`, borderRadius:8, padding:"5px 12px", color:showTheme?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", flexShrink:0 }}>⚙️</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ghost drag */}
