@@ -1656,10 +1656,10 @@ export default function App() {
   );
 
   return (
-    <div style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
+    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
-        * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+        * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
         html, body { height:100%; overflow:hidden; margin:0; padding:0; }
         #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         ::placeholder { color:#444466; }
