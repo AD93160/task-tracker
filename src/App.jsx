@@ -1408,7 +1408,7 @@ export default function App() {
             </div>
           )}
           {user && (
-            <button onClick={()=>{setShowTeam(s=>{if(!s)setTeamPanelView("list");return !s;});setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
+            <button onClick={()=>{setTeamPanelView("list");setShowTeam(s=>!s);setShowTheme(false);setShowStats(false);}} style={{ background:showTeam?theme.accent+"33":"transparent", border:`1px solid ${showTeam?theme.accent:theme.border}`, borderRadius:8, padding:"5px 10px", color:showTeam?theme.accent:theme.textMuted, fontSize:13, cursor:"pointer", position:"relative" }}>
               👥
               {teamRole==="admin" && teamPending.length > 0 && (
                 <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>
@@ -2304,9 +2304,9 @@ export default function App() {
 
       {/* Panneau Équipe */}
       {showTeam && (
-        <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
+        <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:isMobile?8:16 }}
           onClick={()=>setShowTeam(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:300,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.mode==="dark"?"#12122a":theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:isMobile?Math.min(300,window.innerWidth-16):300,boxShadow:"0 8px 40px #00000099",maxHeight:"75vh",overflowY:"auto" }}>
 
             {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
             {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
