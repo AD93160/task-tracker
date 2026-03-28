@@ -57,31 +57,28 @@ const PRIO_COLOR = { "Haute":"#ff6b6b", "Moyenne":"#ffd93d", "Basse":"#6bcb77" }
 
 const INIT = [];
 
-function MemberStats({ member, teamId, db, theme }) {
-  const [stats, setStats] = useState(null);
-  useEffect(() => {
-    getDoc(doc(db, "teams", teamId, "memberStats", member.uid)).then(snap => {
-      if (!snap.exists()) return;
-      setStats(snap.data());
-    }).catch(() => {});
-  }, [member.uid, teamId]);
+function MemberStats({ member, teamTasks, theme }) {
+  const mt     = (teamTasks || []).filter(t => t.createdBy === member.uid);
+  const total  = mt.length;
+  const done   = mt.filter(t => t.status === "Terminé").length;
+  const active = mt.filter(t => t.status !== "Terminé").length;
   return (
     <div style={{ background:theme.bg, borderRadius:8, padding:"8px 12px", marginBottom:6 }}>
       <div style={{ fontSize:11, color:theme.text, fontWeight:600, marginBottom:4 }}>{member.displayName || member.email}</div>
-      {stats ? (
-        <div style={{ display:"flex", gap:12, fontSize:10, color:theme.textMuted }}>
-          <span>📋 {stats.total} tâches</span>
-          <span style={{ color:"#6bcb77" }}>✓ {stats.done} terminées</span>
-          <span style={{ color:theme.accent }}>⏳ {stats.active} actives</span>
-        </div>
+      {total === 0 ? (
+        <div style={{ fontSize:10, color:theme.textMuted }}>Aucune tâche créée dans l'équipe</div>
       ) : (
-        <div style={{ fontSize:10, color:theme.textMuted }}>Chargement…</div>
+        <div style={{ display:"flex", gap:12, fontSize:10, color:theme.textMuted }}>
+          <span>📋 {total} tâche{total>1?"s":""}</span>
+          <span style={{ color:"#6bcb77" }}>✓ {done} terminée{done>1?"s":""}</span>
+          <span style={{ color:theme.accent }}>⏳ {active} active{active>1?"s":""}</span>
+        </div>
       )}
     </div>
   );
 }
 
-function TeamPanel({ allUserTeams, activeTeamId, teamPending, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
+function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
   const [view,         setView]        = useState("list"); // "list" | "detail" | "create"
   const [selectedTeam, setSelectedTeam]= useState(null);
   const [teamName,     setTeamName]    = useState("");
@@ -181,7 +178,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, theme, isMobile, o
             {sel.myRole==="admin" && (sel.members||[]).length > 0 && (
               <>
                 <div style={{ fontSize:9,color:"#666688",marginBottom:8,marginTop:8,letterSpacing:1 }}>STATS MEMBRES</div>
-                {(sel.members||[]).map(m => <MemberStats key={m.uid} member={m} teamId={sel.id} db={db} theme={theme} />)}
+                {(sel.members||[]).map(m => <MemberStats key={m.uid} member={m} teamTasks={teamTasks} theme={theme} />)}
               </>
             )}
 
@@ -2573,6 +2570,7 @@ export default function App() {
           allUserTeams={adminTeams}
           activeTeamId={team?.id}
           teamPending={teamPending}
+          teamTasks={teamTasks}
           theme={theme} isMobile={isMobile}
           onClose={()=>setShowTeam(false)}
           onActivateTeam={t=>{ switchActiveTeam(t); setTeamSpace(true); setShowTeam(false); }}
