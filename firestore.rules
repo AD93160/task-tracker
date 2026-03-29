@@ -6,10 +6,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Vérifie si l'utilisateur est admin d'une équipe (via le document team)
+    // Admin original (propriétaire, adminUid)
     function isAdminOf(teamId) {
       return isAuth() &&
              get(/databases/$(database)/documents/teams/$(teamId)).data.adminUid == request.auth.uid;
+    }
+
+    // Co-admin (promu par l'admin, uid dans coAdminUids)
+    function isCoAdminOf(teamId) {
+      return isAuth() &&
+             get(/databases/$(database)/documents/teams/$(teamId)).data.get('coAdminUids', []).hasAny([request.auth.uid]);
+    }
+
+    // Admin OU co-admin
+    function isAdminOrCoAdminOf(teamId) {
+      return isAdminOf(teamId) || isCoAdminOf(teamId);
     }
 
     // Vérifie si l'utilisateur est membre d'une équipe (via son profil user)
@@ -18,7 +29,7 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId == teamId;
     }
 
-    // Vérifie si l'utilisateur a une invitation en attente (pour rejoindre une équipe)
+    // Vérifie si l'utilisateur a une invitation en attente
     function hasInviteTo(teamId) {
       return isAuth() &&
              exists(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())) &&
@@ -27,7 +38,6 @@ service cloud.firestore {
 
     // ── Profils utilisateurs ──────────────────────────────────────────
     match /users/{uid} {
-      // Chaque user lit/écrit son propre doc uniquement (tâches privées)
       allow read, create, update, delete: if isAuth() && request.auth.uid == uid;
       // Exception : n'importe quel user connecté peut mettre à jour teamId/teamRole
       allow update: if isAuth() &&
@@ -37,64 +47,47 @@ service cloud.firestore {
 
     // ── Invitations (indexées par email) ─────────────────────────────
     match /invitations/{email} {
-      // Le destinataire peut lire sa propre invitation
       allow read: if isAuth() && request.auth.token.email.lower() == email;
-      // N'importe quel user connecté peut créer/mettre à jour une invitation (admin qui invite)
       allow create, update: if isAuth();
-      // Le destinataire peut supprimer (accepter ou refuser)
       allow delete: if isAuth() && request.auth.token.email.lower() == email;
     }
 
     // ── Équipes ───────────────────────────────────────────────────────
     match /teams/{teamId} {
-      // Membres et admin peuvent lire
-      // resource.data.adminUid == request.auth.uid permet aussi les requêtes de collection (sans get())
-      allow read: if isMemberOf(teamId) || isAdminOf(teamId) ||
+      allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId) ||
                      (isAuth() && resource.data.adminUid == request.auth.uid);
-      // N'importe quel user connecté peut créer une équipe (il en devient admin)
       allow create: if isAuth();
-      // Admin, membres, et users avec invitation peuvent modifier (rejoindre/quitter)
-      allow update: if isAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
-      // Seul l'admin peut dissoudre l'équipe
+      allow update: if isAdminOrCoAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
       allow delete: if isAdminOf(teamId);
 
-      // ── Stats membres (agrégats uniquement, pas de tâches privées) ────
+      // ── Stats membres ─────────────────────────────────────────────
       match /memberStats/{uid} {
-        // Le membre écrit ses propres stats
         allow write: if isAuth() && request.auth.uid == uid;
-        // L'admin peut lire les stats de tous les membres
-        allow read: if isAdminOf(teamId) || (isAuth() && request.auth.uid == uid);
+        allow read: if isAdminOrCoAdminOf(teamId) || (isAuth() && request.auth.uid == uid);
       }
 
       // ── Tâches d'équipe ───────────────────────────────────────────
       match /tasks/{taskId} {
-        // Tous les membres peuvent lire
-        allow read: if isMemberOf(teamId) || isAdminOf(teamId);
-        // Seul l'admin crée/modifie/supprime directement
-        allow create, update, delete: if isAdminOf(teamId);
+        allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
+        // Admin ET co-admins peuvent créer/modifier/supprimer directement
+        allow create, update, delete: if isAdminOrCoAdminOf(teamId);
 
-        // ── Commentaires ────────────────────────────────────────────
+        // ── Commentaires ─────────────────────────────────────────────
         match /comments/{commentId} {
-          // Tous les membres lisent
-          allow read: if isMemberOf(teamId) || isAdminOf(teamId);
-          // Tous les membres peuvent poster un commentaire
-          allow create: if isMemberOf(teamId) || isAdminOf(teamId);
-          // L'auteur ou l'admin peut supprimer un commentaire
-          allow delete: if isAdminOf(teamId) ||
+          allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
+          allow create: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
+          allow delete: if isAdminOrCoAdminOf(teamId) ||
                          (isAuth() && resource.data.authorUid == request.auth.uid);
-          // Pas d'édition de commentaires
           allow update: if false;
         }
       }
 
       // ── Modifications en attente ──────────────────────────────────
       match /pendingChanges/{changeId} {
-        // Seul l'admin peut voir les propositions
-        allow read: if isAdminOf(teamId);
-        // Les membres (et l'admin) peuvent créer des propositions
-        allow create: if isMemberOf(teamId) || isAdminOf(teamId);
-        // Seul l'admin peut approuver (delete) ou refuser (delete)
-        allow delete: if isAdminOf(teamId);
+        // Admin et co-admins peuvent voir et gérer les propositions
+        allow read: if isAdminOrCoAdminOf(teamId);
+        allow create: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
+        allow delete: if isAdminOrCoAdminOf(teamId);
         allow update: if false;
       }
     }
