@@ -80,13 +80,14 @@ function MemberStats({ member, teamTasks, theme }) {
 
 function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onPromote, onDemote, isOwner, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
   const [view,         setView]        = useState("list"); // "list" | "detail" | "create"
-  const [selectedTeam, setSelectedTeam]= useState(null);
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [teamName,     setTeamName]    = useState("");
   const [invite,       setInvite]      = useState("");
 
   const bg   = theme.mode === "dark" ? "#12122a" : theme.bgCard;
   const w    = isMobile ? Math.min(360, window.innerWidth - 16) : 380;
-  const sel  = selectedTeam;
+  // sel se met à jour automatiquement quand allUserTeams change (plus de snapshot figé)
+  const sel  = allUserTeams.find(t => t.id === selectedTeamId) || null;
 
   return (
     <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:isMobile?8:16 }}
@@ -110,7 +111,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
               </div>
             ) : (
               allUserTeams.map(t => (
-                <div key={t.id} onClick={()=>{setSelectedTeam(t);setView("detail");}}
+                <div key={t.id} onClick={()=>{setSelectedTeamId(t.id);setView("detail");}}
                   style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:theme.bg,borderRadius:10,cursor:"pointer",border:`1px solid ${t.id===activeTeamId?theme.accent:theme.border}`,marginBottom:8 }}>
                   <div>
                     <div style={{ fontSize:13,fontWeight:700,color:theme.text }}>{t.name}</div>
@@ -182,11 +183,11 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
                   {isOwner && (
                     <div style={{ display:"flex",borderTop:`1px solid ${theme.border}` }}>
                       {mIsCoAdmin
-                        ? <button onClick={()=>onDemote(m)}
+                        ? <button onClick={()=>onDemote(m, sel.id)}
                             style={{ flex:1,background:"transparent",border:"none",borderRight:`1px solid ${theme.border}`,padding:"7px 0",color:theme.textMuted,fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
                             <span style={{ fontSize:13 }}>👤</span> Rétrograder
                           </button>
-                        : <button onClick={()=>onPromote(m)}
+                        : <button onClick={()=>onPromote(m, sel.id)}
                             style={{ flex:1,background:"transparent",border:"none",borderRight:`1px solid ${theme.border}`,padding:"7px 0",color:"#c8a000",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
                             <span style={{ fontSize:13 }}>⭐</span> Co-admin
                           </button>
@@ -803,19 +804,21 @@ export default function App() {
 
   const isAdminRole = (role) => role === "admin" || role === "co-admin";
 
-  const promoteToCoAdmin = async (member) => {
-    if (!team || team.adminUid !== user?.uid) return;
+  const promoteToCoAdmin = async (member, teamId) => {
+    const tid = teamId || team?.id;
+    if (!tid || !user) return;
     try {
       await setDoc(doc(db, "users", member.uid), { teamRole: "co-admin" }, { merge: true });
-      await updateDoc(doc(db, "teams", team.id), { coAdminUids: arrayUnion(member.uid) });
+      await updateDoc(doc(db, "teams", tid), { coAdminUids: arrayUnion(member.uid) });
     } catch(e) { setTeamError(e.message); }
   };
 
-  const demoteToMember = async (member) => {
-    if (!team || team.adminUid !== user?.uid) return;
+  const demoteToMember = async (member, teamId) => {
+    const tid = teamId || team?.id;
+    if (!tid || !user) return;
     try {
       await setDoc(doc(db, "users", member.uid), { teamRole: "member" }, { merge: true });
-      await updateDoc(doc(db, "teams", team.id), { coAdminUids: arrayRemove(member.uid) });
+      await updateDoc(doc(db, "teams", tid), { coAdminUids: arrayRemove(member.uid) });
     } catch(e) { setTeamError(e.message); }
   };
 
@@ -2780,8 +2783,8 @@ export default function App() {
           onCreateTeam={createTeam}
           onInvite={inviteMember}
           onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
-          onPromote={m=>{ if(window.confirm(`Promouvoir ${m.email} en co-admin ?`)) promoteToCoAdmin(m); }}
-          onDemote={m=>{ if(window.confirm(`Rétrograder ${m.email} en membre ?`)) demoteToMember(m); }}
+          onPromote={(m, teamId)=>promoteToCoAdmin(m, teamId)}
+          onDemote={(m, teamId)=>demoteToMember(m, teamId)}
           isOwner={team?.adminUid === user?.uid}
           onDissolve={dissolveTeam}
           teamError={teamError} teamInfo={teamInfo}
