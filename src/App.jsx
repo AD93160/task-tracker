@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, Component } from "react";
 import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -2709,6 +2709,23 @@ export default function App() {
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               🗑️ Réinitialiser les tâches personnelles
             </button>
+
+            {team && isAdminRole(teamRole) && (
+              <button onClick={async()=>{
+                if(!window.confirm(`Effacer toutes les tâches de l'équipe "${team.name}" ? Les tâches en attente seront aussi supprimées. Cette action est irréversible.`)) return;
+                try {
+                  const batch = writeBatch(db);
+                  const tasksSnap = await getDocs(collection(db,"teams",team.id,"tasks"));
+                  tasksSnap.forEach(d => batch.delete(d.ref));
+                  const pendingSnap = await getDocs(collection(db,"teams",team.id,"pendingChanges"));
+                  pendingSnap.forEach(d => batch.delete(d.ref));
+                  batch.update(doc(db,"teams",team.id),{ taskCounter:0 });
+                  await batch.commit();
+                } catch(e) { alert("Erreur : "+e.message); }
+              }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
+                🗑️ Réinitialiser les tâches de l'équipe
+              </button>
+            )}
 
           </div>
         </div>
