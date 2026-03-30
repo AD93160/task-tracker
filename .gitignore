@@ -11,3 +11,5 @@ dist/
 
 # Editor
 .DS_Store
+playwright-report/
+test-results/
