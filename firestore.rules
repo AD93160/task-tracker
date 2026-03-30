@@ -38,17 +38,15 @@ service cloud.firestore {
 
     // ── Profils utilisateurs ──────────────────────────────────────────
     match /users/{uid} {
+      // Seul l'utilisateur lui-même peut lire/créer/modifier/supprimer son profil
       allow read, create, update, delete: if isAuth() && request.auth.uid == uid;
-      // Exception : n'importe quel user connecté peut mettre à jour teamId/teamRole
-      allow update: if isAuth() &&
-                    request.resource.data.diff(resource.data)
-                      .affectedKeys().hasOnly(['teamId', 'teamRole']);
     }
 
     // ── Invitations (indexées par email) ─────────────────────────────
     match /invitations/{email} {
       allow read: if isAuth() && request.auth.token.email.lower() == email;
-      allow create, update: if isAuth();
+      // Seul un admin ou co-admin de l'équipe ciblée peut créer/modifier une invitation
+      allow create, update: if isAuth() && isAdminOrCoAdminOf(request.resource.data.teamId);
       allow delete: if isAuth() && request.auth.token.email.lower() == email;
     }
 
@@ -56,7 +54,11 @@ service cloud.firestore {
     match /teams/{teamId} {
       allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId) ||
                      (isAuth() && resource.data.adminUid == request.auth.uid);
-      allow create: if isAuth();
+      allow create: if isAuth() &&
+                       request.resource.data.adminUid == request.auth.uid &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.name.size() <= 50;
       allow update: if isAdminOrCoAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
       allow delete: if isAdminOf(teamId);
 

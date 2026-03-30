@@ -746,9 +746,11 @@ export default function App() {
   };
 
   const createTeam = async (name) => {
-    if (!user || !name?.trim()) return;
+    const trimmedName = name?.trim();
+    if (!user || !trimmedName) return;
+    if (trimmedName.length > 50) { setTeamError("Le nom de l'équipe ne peut pas dépasser 50 caractères"); return; }
     try {
-      const ref = await addDoc(collection(db, "teams"), { name:name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
+      const ref = await addDoc(collection(db, "teams"), { name:trimmedName, adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
       await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin", allTeamIds:arrayUnion(ref.id) }, { merge:true });
       setTeamInfo("Équipe créée !");
     } catch(e) { setTeamError(e.message); }
@@ -778,6 +780,7 @@ export default function App() {
     const raw = (emailArg || inviteEmail).trim().toLowerCase();
     const t   = targetTeam || team;
     if (!t || !raw) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) { setTeamError("Adresse email invalide"); return; }
     try {
       await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
       await sendInviteEmail(raw, t.name, user.email||"");
