@@ -24,6 +24,11 @@ export default defineConfig({
         find: 'firebase/firestore',
         replacement: path.resolve(__dirname, 'src/mocks/firebase-firestore.js'),
       },
+      // Replace firebase/storage with our mock
+      {
+        find: 'firebase/storage',
+        replacement: path.resolve(__dirname, 'src/mocks/firebase-storage.js'),
+      },
     ],
   },
 });
