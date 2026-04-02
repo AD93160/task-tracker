@@ -326,6 +326,8 @@ export default function App() {
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
+  const [showBin,      setShowBin]      = useState(false);
+  const [showTeamBin,  setShowTeamBin]  = useState(false);
   const [visibleTaskCount, setVisibleTaskCount] = useState(100);
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
@@ -1766,18 +1768,7 @@ export default function App() {
         {scheduled > 0 && <SR emoji="☀️" label="Planif. aujourd'hui" value={scheduled} />}
         {(team?.members||[]).length > 0 && <SR emoji="👥" label="Membres" value={(team?.members||[]).length} />}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
-        {isAdminRole(teamRole) && deletedTeamTasks.length > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:2,marginBottom:8 }}>CORBEILLE ({deletedTeamTasks.length})</div>
-            {deletedTeamTasks.map(task => (
-              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:`1px solid ${theme.border}44` }}>
-                <span style={{ fontSize:10,color:theme.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</span>
-                <button onClick={()=>restoreTeamTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 7px",color:theme.accent,fontSize:9,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
-                <button onClick={()=>permanentDeleteTeamTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:9,cursor:"pointer",flexShrink:0 }}>✕</button>
-              </div>
-            ))}
-          </div>
-        )}
+        {isAdminRole(teamRole) && deletedTeamTasks.length > 0 && <SR emoji="🗑️" label="Corbeille équipe" value={deletedTeamTasks.length} color="#cc3030" onClick={()=>{setShowTeamBin(true);setShowStats(false);}} />}
       </div>
     );
   };
@@ -1851,18 +1842,7 @@ export default function App() {
             ))}
           </div>
         )}
-        {deletedTasks.length > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:2,marginBottom:8 }}>CORBEILLE ({deletedTasks.length})</div>
-            {deletedTasks.map(task => (
-              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:`1px solid ${theme.border}44` }}>
-                <span style={{ fontSize:10,color:theme.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</span>
-                <button onClick={()=>restoreTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 7px",color:theme.accent,fontSize:9,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
-                <button onClick={()=>permanentDeleteTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:9,cursor:"pointer",flexShrink:0 }}>✕</button>
-              </div>
-            ))}
-          </div>
-        )}
+        {deletedTasks.length > 0 && <StatRow emoji="🗑️" label="Corbeille" value={deletedTasks.length} color="#cc3030" onClick={()=>{setShowBin(true);setShowStats(false);}} />}
       </>
     );
   };
@@ -2755,6 +2735,54 @@ export default function App() {
               </div>
             )}
             {(!team || statsView === "perso") ? renderStats() : renderTeamStats()}
+          </div>
+        </div>
+      )}
+
+      {/* Corbeille — perso */}
+      {showBin && (
+        <div style={{ position:"fixed",inset:0,zIndex:250,background:"#000000bb",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"60px 16px 16px" }}
+          onClick={()=>setShowBin(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>🗑️ CORBEILLE ({deletedTasks.length})</div>
+              <button onClick={()=>setShowBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+            </div>
+            {deletedTasks.length === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Corbeille vide</div>}
+            {deletedTasks.map(task => (
+              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:11,color:theme.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>#{task.num} {task.title}</div>
+                  {task.due && <div style={{ fontSize:9,color:theme.textMuted,marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                </div>
+                <button onClick={()=>restoreTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
+                <button onClick={()=>permanentDeleteTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"3px 8px",color:"#aa3030",fontSize:10,cursor:"pointer",flexShrink:0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Corbeille — équipe */}
+      {showTeamBin && (
+        <div style={{ position:"fixed",inset:0,zIndex:250,background:"#000000bb",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"60px 16px 16px" }}
+          onClick={()=>setShowTeamBin(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+              <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>🗑️ CORBEILLE — {team?.name?.toUpperCase()} ({deletedTeamTasks.length})</div>
+              <button onClick={()=>setShowTeamBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+            </div>
+            {deletedTeamTasks.length === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Corbeille vide</div>}
+            {deletedTeamTasks.map(task => (
+              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:11,color:theme.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>#{task.num} {task.title}</div>
+                  {task.due && <div style={{ fontSize:9,color:theme.textMuted,marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                </div>
+                <button onClick={()=>restoreTeamTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
+                <button onClick={()=>permanentDeleteTeamTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"3px 8px",color:"#aa3030",fontSize:10,cursor:"pointer",flexShrink:0 }}>✕</button>
+              </div>
+            ))}
           </div>
         </div>
       )}
