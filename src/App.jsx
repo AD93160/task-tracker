@@ -275,6 +275,7 @@ export default function App() {
   const [authLoading,  setAuthLoading]  = useState(true);
   const [user,         setUser]         = useState(null);
   const [syncing,      setSyncing]      = useState(false);
+  const [syncError,    setSyncError]    = useState(null);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -649,7 +650,7 @@ export default function App() {
       saves.push(setDoc(doc(db, "teams", team.id, "memberStats", user.uid), { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
     }
     Promise.all(saves)
-      .catch(err => console.error("Save to Firestore failed:", err))
+      .catch(err => { console.error("Save to Firestore failed:", err); setSyncError("Erreur de synchronisation — vos données n'ont pas été sauvegardées."); setTimeout(() => setSyncError(null), 6000); })
       .finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
 
@@ -791,23 +792,21 @@ export default function App() {
   };
 
   const sendInviteEmail = async (toEmail, teamName, invitedBy) => {
-    try {
-      await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
-          template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-          user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-          template_params: {
-            to_email:   toEmail,
-            team_name:  teamName,
-            invited_by: invitedBy,
-            app_url:    window.location.origin + "/?join=true"
-          }
-        })
-      });
-    } catch(e) { console.error("EmailJS:", e); }
+    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+        template_params: {
+          to_email:   toEmail,
+          team_name:  teamName,
+          invited_by: invitedBy,
+          app_url:    window.location.origin + "/?join=true"
+        }
+      })
+    });
   };
 
   const inviteMember = async (emailArg, targetTeam) => {
@@ -818,8 +817,14 @@ export default function App() {
     if ((t.members || []).some(m => m.email?.toLowerCase() === raw)) { setTeamError("Cette personne est déjà membre de l'équipe"); return; }
     try {
       await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
-      await sendInviteEmail(raw, t.name, user.email||"");
-      setTeamInfo(`Invitation envoyée à ${raw}`); setInviteEmail("");
+      try {
+        await sendInviteEmail(raw, t.name, user.email||"");
+        setTeamInfo(`Invitation envoyée à ${raw}`);
+      } catch(emailErr) {
+        console.error("EmailJS:", emailErr);
+        setTeamInfo(`Invitation créée pour ${raw}. L'email de notification n'a pas pu être envoyé.`);
+      }
+      setInviteEmail("");
     } catch(e) { setTeamError(e.message); }
   };
 
@@ -1083,7 +1088,7 @@ export default function App() {
       const url = await getDownloadURL(sRef);
       await setDoc(doc(db, "users", user.uid), { customPhotoURL: url }, { merge: true });
       setUserPhotoURL(url);
-    } catch(e) { console.error("Avatar upload:", e); }
+    } catch(e) { console.error("Avatar upload:", e); setAuthError("Échec du téléchargement de l'avatar. Vérifiez votre connexion."); }
     setUploadingAvatar(false);
   };
 
@@ -1861,6 +1866,7 @@ export default function App() {
               <img src="/favicon.svg" alt="logo" style={{ width:22, height:22, flexShrink:0 }} />
               <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>TASK TRACKER PRO</div>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
               {user ? (
                 <div style={{ position:"relative" }}>
@@ -1940,6 +1946,7 @@ export default function App() {
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {user && team && (
                 <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
                   <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
