@@ -326,6 +326,7 @@ export default function App() {
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
+  const [visibleTaskCount, setVisibleTaskCount] = useState(100);
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
   const [taskCounter,  setTaskCounter]  = useState(() => load("tt_counter", 0));
@@ -2310,8 +2311,9 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                    <textarea placeholder="Notes..." value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2}
-                      style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 11px",color:theme.text,fontSize:16,resize:"none",width:"100%" }} />
+                    <textarea placeholder="Notes..." value={form.notes} onChange={e=>setForm({...form,notes:e.target.value.slice(0,2000)})} rows={2} maxLength={2000}
+                      style={{ background:theme.bg,border:`1px solid ${form.notes.length>=1900?"#cc3030":theme.border}`,borderRadius:7,padding:"7px 11px",color:theme.text,fontSize:16,resize:"none",width:"100%" }} />
+                    {form.notes.length > 0 && <div style={{ fontSize:9,color:form.notes.length>=1900?"#cc3030":theme.textMuted,textAlign:"right",marginTop:2 }}>{form.notes.length}/2000</div>}
                     <div>
                       <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RÉCURRENCE</div>
                       <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:10 }}>
@@ -2350,6 +2352,7 @@ export default function App() {
                               onChange={e=>{setRecurDay(e.target.value);setRecurMonthDay("");setForm(f=>({...f,recurrence:e.target.value?`monthly-day-${e.target.value}`:"monthly"}));}}
                               style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:65 }} />
                             {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:"monthly"}));setRecurMonthDay("");}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
+                            {recurDay && parseInt(recurDay) > 28 && <span style={{ fontSize:9,color:"#cc9900" }}>⚠ Certains mois n'ont pas ce jour — la tâche sautera ces mois-là.</span>}
                           </div>
                           <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
                             <select value={recurMonthDay.split("-")[0]||""} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"1";setRecurMonthDay(o?`${o}-${d}`:"");setRecurDay("");setForm(f=>({...f,recurrence:o?`monthly-ordinal-${o}-${d}`:"monthly"}));}}
@@ -2580,7 +2583,7 @@ export default function App() {
                 });
               }
               return visible;
-            })().map((task, idx) => {
+            })().slice(0, visibleTaskCount).map((task, idx) => {
               const inToday = todayIds.includes(task.id);
               const inTom   = tomorrowIds.map(e=>e.id).includes(task.id);
               const hl      = isHL(task.id);
@@ -2651,6 +2654,16 @@ export default function App() {
                 </div>
               );
             })}
+            {(() => {
+              const total = tasks.filter(t => t.status !== "Terminé").length;
+              if (total <= visibleTaskCount) return null;
+              return (
+                <button onClick={()=>setVisibleTaskCount(c=>c+100)}
+                  style={{ width:"100%",background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.textMuted,fontSize:11,cursor:"pointer",marginTop:6 }}>
+                  Voir {Math.min(100, total-visibleTaskCount)} tâche{total-visibleTaskCount>1?"s":""} de plus ({visibleTaskCount}/{total})
+                </button>
+              );
+            })()}
             </div>
           </>)}
 
