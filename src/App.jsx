@@ -137,9 +137,10 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
               <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
               <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>NOUVELLE ÉQUIPE</div>
             </div>
-            <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Nom de l'équipe"
+            <input value={teamName} onChange={e=>setTeamName(e.target.value.slice(0,50))} placeholder="Nom de l'équipe"
               autoFocus onKeyDown={e=>{ if(e.key==="Enter" && teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
-              style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:12 }}/>
+              style={{ width:"100%",background:theme.bg,border:`1px solid ${teamName.length>=50?"#cc3030":theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:4 }}/>
+            <div style={{ fontSize:9,color:teamName.length>=45?"#cc3030":theme.textMuted,textAlign:"right",marginBottom:10 }}>{teamName.length}/50</div>
             <button onClick={()=>{ if(teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
               style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700 }}>
               Créer l'équipe
@@ -276,6 +277,8 @@ export default function App() {
   const [user,         setUser]         = useState(null);
   const [syncing,      setSyncing]      = useState(false);
   const [syncError,    setSyncError]    = useState(null);
+  const [toastMsg,     setToastMsg]     = useState(null); // { text, isError }
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -654,6 +657,11 @@ export default function App() {
       .finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
 
+  const toast = (text, isError = false) => {
+    setToastMsg({ text, isError });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
+
   const loginGoogle = async () => {
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
     catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
@@ -829,7 +837,8 @@ export default function App() {
   };
 
   const acceptInvite = async () => {
-    if (!pendingInvite || !user) return;
+    if (!pendingInvite || !user || inviteLoading) return;
+    setInviteLoading(true);
     try {
       const batch = writeBatch(db);
       batch.update(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
@@ -839,12 +848,15 @@ export default function App() {
       setPendingInvite(null);
       setTeamSpace(true); // bascule directement sur l'espace équipe
     } catch(e) { setTeamError(e.message); }
+    finally { setInviteLoading(false); }
   };
 
   const rejectInvite = async () => {
-    if (!user) return;
+    if (!user || inviteLoading) return;
+    setInviteLoading(true);
     try { await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase())); setPendingInvite(null); }
     catch(e) { setTeamError(e.message); }
+    finally { setInviteLoading(false); }
   };
 
   const isAdminRole = (role) => role === "admin" || role === "co-admin";
@@ -1078,8 +1090,8 @@ export default function App() {
 
   const uploadAvatar = async (file) => {
     if (!user || !file) return;
-    if (!file.type.startsWith("image/")) { alert("Seules les images sont acceptées pour l'avatar."); return; }
-    if (file.size > 5 * 1024 * 1024) { alert("Image trop volumineuse (max 5 Mo)."); return; }
+    if (!file.type.startsWith("image/")) { toast("Seules les images sont acceptées pour l'avatar.", true); return; }
+    if (file.size > 5 * 1024 * 1024) { toast("Image trop volumineuse (max 5 Mo).", true); return; }
     setUploadingAvatar(true);
     try {
       const path = `users/${user.uid}/avatar`;
@@ -2023,8 +2035,8 @@ export default function App() {
         <div style={{ background:"#1a3a1a", borderBottom:`1px solid #2a6a2a`, padding:"10px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <span style={{ fontSize:12, color:"#6bcb77" }}>📨 Invitation à rejoindre l'équipe <strong>{pendingInvite.teamName}</strong> (de {pendingInvite.invitedBy})</span>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={acceptInvite} style={{ background:"#2a7a2a", border:"none", borderRadius:7, padding:"5px 14px", color:"#fff", fontSize:11, cursor:"pointer" }}>Accepter</button>
-            <button onClick={rejectInvite} style={{ background:"transparent", border:"1px solid #2a6a2a", borderRadius:7, padding:"5px 14px", color:"#6bcb77", fontSize:11, cursor:"pointer" }}>Refuser</button>
+            <button onClick={acceptInvite} disabled={inviteLoading} style={{ background:"#2a7a2a", border:"none", borderRadius:7, padding:"5px 14px", color:"#fff", fontSize:11, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>{inviteLoading?"…":"Accepter"}</button>
+            <button onClick={rejectInvite} disabled={inviteLoading} style={{ background:"transparent", border:"1px solid #2a6a2a", borderRadius:7, padding:"5px 14px", color:"#6bcb77", fontSize:11, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>{inviteLoading?"…":"Refuser"}</button>
           </div>
         </div>
       )}
@@ -2501,6 +2513,9 @@ export default function App() {
                           <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
                           <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{(task.priority||"?").toUpperCase()}</span>
                           <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
+                          {(isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id)) && (
+                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044" }}>⏳ en attente</span>
+                          )}
                         </div>
                         {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
                         {task.scheduledFor && task.scheduledFor !== null && (
@@ -2822,11 +2837,11 @@ export default function App() {
             })()}
             {/* Bouton test */}
             <button onClick={async () => {
-              if (!("Notification" in window)) { alert("Notifications non supportées sur ce navigateur."); return; }
-              if (Notification.permission === "denied") { alert("Les notifications sont bloquées. Débloque-les dans les réglages de ton navigateur."); return; }
+              if (!("Notification" in window)) { toast("Notifications non supportées sur ce navigateur.", true); return; }
+              if (Notification.permission === "denied") { toast("Les notifications sont bloquées. Débloque-les dans les réglages de ton navigateur.", true); return; }
               if (Notification.permission !== "granted") {
                 const p = await Notification.requestPermission();
-                if (p !== "granted") { alert("Permission refusée."); return; }
+                if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
               new Notification("Task Tracker Pro 🔔", {
                 body: "Test de notification — tout fonctionne !",
@@ -2851,10 +2866,10 @@ export default function App() {
             {!dailyNotifEnabled && <div style={{ marginBottom:18 }}/>}
 
             <button onClick={async()=>{
-              if(!user){alert("Connecte-toi pour sauvegarder le thème.");return;}
+              if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
               await setDoc(ref,{theme},{merge:true});
-              alert("Thème sauvegardé ✓");
+              toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder le thème
             </button>
@@ -2879,7 +2894,7 @@ export default function App() {
                   pendingSnap.forEach(d => batch.delete(d.ref));
                   batch.update(doc(db,"teams",team.id),{ taskCounter:0 });
                   await batch.commit();
-                } catch(e) { alert("Erreur : "+e.message); }
+                } catch(e) { toast("Erreur : "+e.message, true); }
               }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
                 🗑️ Réinitialiser les tâches de l'équipe
               </button>
@@ -3000,6 +3015,13 @@ export default function App() {
 
       {/* Spacer pour le bandeau pub */}
       <div style={{ height:56 }} />
+
+      {/* Toast notifications */}
+      {toastMsg && (
+        <div style={{ position:"fixed", bottom:72, left:"50%", transform:"translateX(-50%)", background:toastMsg.isError?"#2a0a0a":"#0a2a0a", border:`1px solid ${toastMsg.isError?"#cc3030":"#3aaa3a"}`, borderRadius:10, padding:"10px 18px", color:toastMsg.isError?"#ff8080":"#6bcb77", fontSize:12, zIndex:1000, boxShadow:"0 4px 20px #00000088", maxWidth:"90vw", textAlign:"center" }}>
+          {toastMsg.text}
+        </div>
+      )}
 
     </div>
   );
