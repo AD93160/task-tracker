@@ -330,6 +330,8 @@ export default function App() {
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
   const [taskCounter,  setTaskCounter]  = useState(() => load("tt_counter", 0));
+  const [deletedTasks, setDeletedTasks] = useState(() => load("tt_deleted", []));
+  const [deletedTeamTasks, setDeletedTeamTasks] = useState([]);
   const [recurError,   setRecurError]   = useState(null);
 
   useEffect(() => {
@@ -482,6 +484,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
   useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
   useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
+  useEffect(() => { localStorage.setItem("tt_deleted",      JSON.stringify(deletedTasks));  }, [deletedTasks]);
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
   useEffect(() => { localStorage.setItem("tt_dailyNotif",   JSON.stringify(dailyNotifEnabled)); }, [dailyNotifEnabled]);
   useEffect(() => { localStorage.setItem("tt_dailyNotifTime",JSON.stringify(dailyNotifTime)); }, [dailyNotifTime]);
@@ -913,7 +916,7 @@ export default function App() {
 
   useEffect(() => {
     if (!team) {
-      setTeamTasks([]); setTeamPending([]);
+      setTeamTasks([]); setTeamPending([]); setDeletedTeamTasks([]);
       teamTasksPrevIds.current = null; teamPendingPrevCount.current = -1;
       return;
     }
@@ -966,7 +969,10 @@ export default function App() {
         snap => { setMyPendingProposals(snap.docs.map(d => ({ ...d.data(), id:d.id }))); }
       );
     }
-    return () => { unsubTasks(); unsubPending(); };
+    const unsubDeleted = onSnapshot(collection(db, "teams", teamId, "deletedTasks"), snap => {
+      setDeletedTeamTasks(snap.docs.map(d => ({ ...d.data(), id:d.id })));
+    });
+    return () => { unsubTasks(); unsubPending(); unsubDeleted(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team?.id, teamRole]);
 
@@ -1004,7 +1010,11 @@ export default function App() {
   const deleteTeamTask = async (taskId) => {
     if (!team) return;
     if (isAdminRole(teamRole)) {
-      try { await deleteDoc(doc(db, "teams", team.id, "tasks", taskId)); } catch(e) { setTeamError(e.message); }
+      try {
+        const taskData = teamTasks.find(t => t.id === taskId);
+        if (taskData) await setDoc(doc(db, "teams", team.id, "deletedTasks", taskId), { ...taskData, deletedAt: serverTimestamp() });
+        await deleteDoc(doc(db, "teams", team.id, "tasks", taskId));
+      } catch(e) { setTeamError(e.message); }
     } else {
       if (!window.confirm("Proposer la suppression à l'admin ?")) return;
       try {
@@ -1039,6 +1049,23 @@ export default function App() {
   const rejectChange = async (changeId) => {
     if (!isAdminRole(teamRole)) return;
     try { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId)); }
+    catch(e) { setTeamError(e.message); }
+  };
+
+  const restoreTeamTask = async (task) => {
+    if (!team || !isAdminRole(teamRole)) return;
+    try {
+      const newNum = (team.taskCounter || 0) + 1;
+      await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
+      const { deletedAt, id, ...rest } = task;
+      await addDoc(collection(db, "teams", team.id, "tasks"), { ...rest, num:newNum, status:"À faire" });
+      await deleteDoc(doc(db, "teams", team.id, "deletedTasks", task.id));
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const permanentDeleteTeamTask = async (taskId) => {
+    if (!team || !isAdminRole(teamRole)) return;
+    try { await deleteDoc(doc(db, "teams", team.id, "deletedTasks", taskId)); }
     catch(e) { setTeamError(e.message); }
   };
 
@@ -1268,12 +1295,26 @@ export default function App() {
   };
 
   const deleteTask = (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) setDeletedTasks(p => [...p, { ...task, deletedAt: Date.now() }]);
     setTasks(p=>p.filter(t=>t.id!==id));
     setTodayIds(p=>p.filter(i=>i!==id));
     setTodayDates(d=>{const n={...d};delete n[id];return n;});
     setTomorrowIds(p=>p.filter(e=>e.id!==id));
     setScheduledIds(p=>p.filter(e=>e.id!==id));
     setHighlighted(p=>p.filter(i=>i!==id));
+  };
+
+  const restoreTask = (task) => {
+    const newNum = taskCounter + 1;
+    setTaskCounter(c => c + 1);
+    const { deletedAt, ...rest } = task;
+    setTasks(p => [...p, { ...rest, id:Date.now(), num:newNum, status:"À faire", completion:null }]);
+    setDeletedTasks(p => p.filter(t => t.id !== task.id));
+  };
+
+  const permanentDeleteTask = (id) => {
+    setDeletedTasks(p => p.filter(t => t.id !== id));
   };
 
   const duplicateTask = (task) => {
@@ -1725,6 +1766,18 @@ export default function App() {
         {scheduled > 0 && <SR emoji="☀️" label="Planif. aujourd'hui" value={scheduled} />}
         {(team?.members||[]).length > 0 && <SR emoji="👥" label="Membres" value={(team?.members||[]).length} />}
         {total === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Aucune tâche dans l'équipe</div>}
+        {isAdminRole(teamRole) && deletedTeamTasks.length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:2,marginBottom:8 }}>CORBEILLE ({deletedTeamTasks.length})</div>
+            {deletedTeamTasks.map(task => (
+              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <span style={{ fontSize:10,color:theme.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</span>
+                <button onClick={()=>restoreTeamTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 7px",color:theme.accent,fontSize:9,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
+                <button onClick={()=>permanentDeleteTeamTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:9,cursor:"pointer",flexShrink:0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -1794,6 +1847,18 @@ export default function App() {
               <div key={t.id} style={{ display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${theme.border}44` }}>
                 <span style={{ fontSize:10,color:theme.text,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>⚠ {t.title}</span>
                 <span style={{ fontSize:10,color:"#cc3030",marginLeft:8,flexShrink:0 }}>{t.completion.deltaLabel}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {deletedTasks.length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:2,marginBottom:8 }}>CORBEILLE ({deletedTasks.length})</div>
+            {deletedTasks.map(task => (
+              <div key={task.id} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:`1px solid ${theme.border}44` }}>
+                <span style={{ fontSize:10,color:theme.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</span>
+                <button onClick={()=>restoreTask(task)} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 7px",color:theme.accent,fontSize:9,cursor:"pointer",flexShrink:0 }}>↩ Restaurer</button>
+                <button onClick={()=>permanentDeleteTask(task.id)} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:9,cursor:"pointer",flexShrink:0 }}>✕</button>
               </div>
             ))}
           </div>
