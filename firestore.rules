@@ -59,7 +59,12 @@ service cloud.firestore {
                        request.resource.data.name is string &&
                        request.resource.data.name.size() > 0 &&
                        request.resource.data.name.size() <= 50;
-      allow update: if isAdminOrCoAdminOf(teamId) || isMemberOf(teamId) || hasInviteTo(teamId);
+      // Admins/co-admins : mise à jour libre
+      // Membres : uniquement pour quitter l'équipe (retirer son uid de members)
+      // Invités : uniquement pour rejoindre (ajouter son uid à members)
+      allow update: if isAdminOrCoAdminOf(teamId) ||
+                       (isMemberOf(teamId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])) ||
+                       (hasInviteTo(teamId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
       allow delete: if isAdminOf(teamId);
 
       // ── Stats membres ─────────────────────────────────────────────
@@ -86,8 +91,9 @@ service cloud.firestore {
 
       // ── Modifications en attente ──────────────────────────────────
       match /pendingChanges/{changeId} {
-        // Admin et co-admins peuvent voir et gérer les propositions
-        allow read: if isAdminOrCoAdminOf(teamId);
+        // Admin et co-admins voient tout ; les membres voient uniquement leurs propres propositions
+        allow read: if isAdminOrCoAdminOf(teamId) ||
+                       (isMemberOf(teamId) && resource.data.proposedBy == request.auth.uid);
         allow create: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
         allow delete: if isAdminOrCoAdminOf(teamId);
         allow update: if false;
