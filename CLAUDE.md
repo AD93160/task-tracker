@@ -79,4 +79,26 @@ user           // Firebase user
 
 ## Branche de travail
 - Production : `main` → Vercel déploie automatiquement
-- Features : `claude/fix-mobile-layout-6KpTy` (à merger dans main quand terminé)
+- Features : `claude/add-e2e-tests-playwright-S5Li3` (branche active)
+
+## Tests E2E (Playwright)
+- Fichier : `tests/e2e/app.spec.js` — 94 tests au total
+- Mocks Firebase : `src/mocks/firebase-auth.js` et `src/mocks/firebase-firestore.js`
+- Injection de données de test via `window.__testFirestoreData` (clés = chemins Firestore)
+- Viewports testés : Desktop (1280×720), Tablet (820×1180), Mobile (390×844)
+- Groupes de tests :
+  - `Desktop — Page perso` (34 tests)
+  - `Tablet — Page perso` (10 tests)
+  - `Mobile — Page perso` (12 tests)
+  - `Desktop — Page équipe (admin)` (16 tests)
+  - `Desktop — Page équipe (membre)` (6 tests)
+  - `Tablet — Page équipe` (5 tests)
+  - `Mobile — Page équipe` (7 tests)
+- Lancer les tests : `npx playwright test`
+- Lancer en mode visuel : `npx playwright test --headed`
+
+## Firebase Storage
+- Projet : `task-tracker-2ea82`
+- Bucket : `us-central1` (no-cost tier)
+- Règles : `storage.rules` → déployées via `firebase deploy --only storage --project task-tracker-2ea82`
+- Usage : avatars utilisateurs + pièces jointes de tâches

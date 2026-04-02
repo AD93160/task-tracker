@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, Component } from "react";
-import { auth, provider, db } from "./firebase";
+import { auth, provider, db, storage } from "./firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
@@ -78,11 +79,13 @@ function MemberStats({ member, teamTasks, theme }) {
   );
 }
 
-function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onPromote, onDemote, isOwner, onDissolve, teamError, teamInfo, setTeamError, setTeamInfo }) {
+function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, isMobile, onClose, onActivateTeam, onCreateTeam, onInvite, onRemoveMember, onPromote, onDemote, isOwner, onDissolve, onRenameTeam, teamError, teamInfo, setTeamError, setTeamInfo }) {
   const [view,         setView]        = useState("list"); // "list" | "detail" | "create"
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [teamName,     setTeamName]    = useState("");
   const [invite,       setInvite]      = useState("");
+  const [editingTeamName, setEditingTeamName] = useState(false);
+  const [newTeamNameVal,  setNewTeamNameVal]  = useState("");
 
   const bg   = theme.mode === "dark" ? "#12122a" : theme.bgCard;
   const w    = isMobile ? Math.min(360, window.innerWidth - 16) : 380;
@@ -134,9 +137,10 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
               <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
               <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>NOUVELLE ÉQUIPE</div>
             </div>
-            <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Nom de l'équipe"
+            <input value={teamName} onChange={e=>setTeamName(e.target.value.slice(0,50))} placeholder="Nom de l'équipe"
               autoFocus onKeyDown={e=>{ if(e.key==="Enter" && teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
-              style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:12 }}/>
+              style={{ width:"100%",background:theme.bg,border:`1px solid ${teamName.length>=50?"#cc3030":theme.border}`,borderRadius:8,padding:"10px 12px",color:theme.text,fontSize:12,outline:"none",boxSizing:"border-box",marginBottom:4 }}/>
+            <div style={{ fontSize:9,color:teamName.length>=45?"#cc3030":theme.textMuted,textAlign:"right",marginBottom:10 }}>{teamName.length}/50</div>
             <button onClick={()=>{ if(teamName.trim()) { onCreateTeam(teamName.trim()); setView("detail"); } }}
               style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:700 }}>
               Créer l'équipe
@@ -148,8 +152,21 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
         {view === "detail" && sel && (
           <>
             <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
-              <button onClick={()=>setView("list")} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
-              <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{sel.name}</div>
+              <button onClick={()=>{setView("list");setEditingTeamName(false);}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:20,cursor:"pointer",padding:0,lineHeight:1 }}>‹</button>
+              {editingTeamName ? (
+                <div style={{ display:"flex",alignItems:"center",gap:6,flex:1 }}>
+                  <input value={newTeamNameVal} onChange={e=>setNewTeamNameVal(e.target.value)}
+                    autoFocus onKeyDown={e=>{ if(e.key==="Enter"&&newTeamNameVal.trim()){onRenameTeam(sel.id,newTeamNameVal);setEditingTeamName(false);} if(e.key==="Escape")setEditingTeamName(false); }}
+                    style={{ flex:1,background:theme.bg,border:`1px solid ${theme.accent}`,borderRadius:7,padding:"4px 8px",color:theme.text,fontSize:13,outline:"none" }}/>
+                  <button onClick={()=>{if(newTeamNameVal.trim()){onRenameTeam(sel.id,newTeamNameVal);setEditingTeamName(false);}}} style={{ background:theme.accent,border:"none",borderRadius:6,padding:"4px 8px",color:"#fff",fontSize:11,cursor:"pointer" }}>✓</button>
+                  <button onClick={()=>setEditingTeamName(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:13,cursor:"pointer" }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ display:"flex",alignItems:"center",gap:8,flex:1 }}>
+                  <div style={{ fontSize:14,fontWeight:800,color:theme.text }}>{sel.name}</div>
+                  {isOwner && <button onClick={()=>{setNewTeamNameVal(sel.name);setEditingTeamName(true);}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:13,cursor:"pointer",padding:0 }} title="Renommer">✎</button>}
+                </div>
+              )}
             </div>
             <div style={{ fontSize:10,color:theme.textMuted,marginBottom:14,paddingLeft:24 }}>
               {sel.myRole==="admin" ? "👑 Vous êtes admin" : sel.myRole==="co-admin" ? "⭐ Vous êtes co-admin" : `Admin : ${sel.adminEmail}`}
@@ -259,6 +276,9 @@ export default function App() {
   const [authLoading,  setAuthLoading]  = useState(true);
   const [user,         setUser]         = useState(null);
   const [syncing,      setSyncing]      = useState(false);
+  const [syncError,    setSyncError]    = useState(null);
+  const [toastMsg,     setToastMsg]     = useState(null); // { text, isError }
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -295,12 +315,18 @@ export default function App() {
   const [teamTasks,        setTeamTasks]        = useState([]);
   const [teamPending,      setTeamPending]      = useState([]);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
+  const [myPendingProposals, setMyPendingProposals] = useState([]);
+  const [showMyPendingPanel, setShowMyPendingPanel] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [userPhotoURL, setUserPhotoURL] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
+  const [visibleTaskCount, setVisibleTaskCount] = useState(100);
   const [sortBy,       setSortBy]       = useState(null);
   const [sortDir,      setSortDir]      = useState("asc");
   const [taskCounter,  setTaskCounter]  = useState(() => load("tt_counter", 0));
@@ -592,6 +618,7 @@ export default function App() {
           scheduledIds: data.scheduledIds || [],
           highlighted: data.highlighted || [],
           taskCounter: data.taskCounter ?? 0,
+          locale: data.locale || navigator.language || "fr-FR",
         });
         lastSavedSnapshot.current = snapStr;
         firestoreLoaded.current = true;
@@ -603,6 +630,8 @@ export default function App() {
         if (data.highlighted)  setHighlighted(data.highlighted);
         if (data.theme)        setTheme(t => ({...t, ...data.theme}));
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
+        if (data.locale)       setLocale(data.locale);
+        if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
       }
     });
     return unsub;
@@ -611,13 +640,13 @@ export default function App() {
   // Sync local → Firestore à chaque changement
   useEffect(() => {
     if (!user || !firestoreLoaded.current) return; // Attendre le 1er chargement Firestore
-    const currentSnapshot = JSON.stringify({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter });
+    const currentSnapshot = JSON.stringify({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter, locale });
     if (currentSnapshot === lastSavedSnapshot.current) return; // Déjà à jour (écho ou pas de changement)
     lastSavedSnapshot.current = currentSnapshot; // Marquer avant la sauvegarde async
     setSyncing(true);
     const ref = doc(db, "users", user.uid);
     const clean = obj => JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
-    const saves = [setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter }), { merge: true })];
+    const saves = [setDoc(ref, clean({ tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter, locale }), { merge: true })];
     if (team && teamRole) {
       const total  = tasks.length;
       const done   = tasks.filter(t => t.status === "Terminé").length;
@@ -625,9 +654,14 @@ export default function App() {
       saves.push(setDoc(doc(db, "teams", team.id, "memberStats", user.uid), { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
     }
     Promise.all(saves)
-      .catch(err => console.error("Save to Firestore failed:", err))
+      .catch(err => { console.error("Save to Firestore failed:", err); setSyncError("Erreur de synchronisation — vos données n'ont pas été sauvegardées."); setTimeout(() => setSyncError(null), 6000); })
       .finally(() => setSyncing(false));
   }, [tasks, todayIds, todayDates, tomorrowIds, scheduledIds, highlighted, taskCounter]);
+
+  const toast = (text, isError = false) => {
+    setToastMsg({ text, isError });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   const loginGoogle = async () => {
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
@@ -745,61 +779,85 @@ export default function App() {
     catch(e) { setTeamError(e.message); }
   };
 
-  const createTeam = async (name) => {
-    if (!user || !name?.trim()) return;
+  const renameTeam = async (teamId, newName) => {
+    const trimmedName = newName?.trim();
+    if (!teamId || !trimmedName) return;
+    if (trimmedName.length > 50) { setTeamError("Le nom ne peut pas dépasser 50 caractères"); return; }
     try {
-      const ref = await addDoc(collection(db, "teams"), { name:name.trim(), adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
+      await updateDoc(doc(db, "teams", teamId), { name: trimmedName });
+      setTeamInfo("Nom mis à jour !");
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const createTeam = async (name) => {
+    const trimmedName = name?.trim();
+    if (!user || !trimmedName) return;
+    if (trimmedName.length > 50) { setTeamError("Le nom de l'équipe ne peut pas dépasser 50 caractères"); return; }
+    try {
+      const ref = await addDoc(collection(db, "teams"), { name:trimmedName, adminUid:user.uid, adminEmail:user.email||"", members:[], createdAt:serverTimestamp() });
       await setDoc(doc(db, "users", user.uid), { teamId:ref.id, teamRole:"admin", allTeamIds:arrayUnion(ref.id) }, { merge:true });
       setTeamInfo("Équipe créée !");
     } catch(e) { setTeamError(e.message); }
   };
 
   const sendInviteEmail = async (toEmail, teamName, invitedBy) => {
-    try {
-      await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
-          template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-          user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-          template_params: {
-            to_email:   toEmail,
-            team_name:  teamName,
-            invited_by: invitedBy,
-            app_url:    window.location.origin + "/?join=true"
-          }
-        })
-      });
-    } catch(e) { console.error("EmailJS:", e); }
+    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+        template_params: {
+          to_email:   toEmail,
+          team_name:  teamName,
+          invited_by: invitedBy,
+          app_url:    window.location.origin + "/?join=true"
+        }
+      })
+    });
   };
 
   const inviteMember = async (emailArg, targetTeam) => {
     const raw = (emailArg || inviteEmail).trim().toLowerCase();
     const t   = targetTeam || team;
     if (!t || !raw) return;
+    if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(raw)) { setTeamError("Adresse email invalide"); return; }
+    if ((t.members || []).some(m => m.email?.toLowerCase() === raw)) { setTeamError("Cette personne est déjà membre de l'équipe"); return; }
     try {
       await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
-      await sendInviteEmail(raw, t.name, user.email||"");
-      setTeamInfo(`Invitation envoyée à ${raw}`); setInviteEmail("");
+      try {
+        await sendInviteEmail(raw, t.name, user.email||"");
+        setTeamInfo(`Invitation envoyée à ${raw}`);
+      } catch(emailErr) {
+        console.error("EmailJS:", emailErr);
+        setTeamInfo(`Invitation créée pour ${raw}. L'email de notification n'a pas pu être envoyé.`);
+      }
+      setInviteEmail("");
     } catch(e) { setTeamError(e.message); }
   };
 
   const acceptInvite = async () => {
-    if (!pendingInvite || !user) return;
+    if (!pendingInvite || !user || inviteLoading) return;
+    setInviteLoading(true);
     try {
-      await updateDoc(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
-      await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
-      await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase()));
+      const batch = writeBatch(db);
+      batch.update(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
+      batch.set(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
+      batch.delete(doc(db, "invitations", (user.email||"").toLowerCase()));
+      await batch.commit();
       setPendingInvite(null);
       setTeamSpace(true); // bascule directement sur l'espace équipe
     } catch(e) { setTeamError(e.message); }
+    finally { setInviteLoading(false); }
   };
 
   const rejectInvite = async () => {
-    if (!user) return;
+    if (!user || inviteLoading) return;
+    setInviteLoading(true);
     try { await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase())); setPendingInvite(null); }
     catch(e) { setTeamError(e.message); }
+    finally { setInviteLoading(false); }
   };
 
   const isAdminRole = (role) => role === "admin" || role === "co-admin";
@@ -902,6 +960,11 @@ export default function App() {
       });
     } else {
       setTeamPending([]);
+      // Members subscribe to their own proposals
+      unsubPending = onSnapshot(
+        query(collection(db, "teams", teamId, "pendingChanges"), where("proposedBy", "==", user.uid)),
+        snap => { setMyPendingProposals(snap.docs.map(d => ({ ...d.data(), id:d.id }))); }
+      );
     }
     return () => { unsubTasks(); unsubPending(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -954,12 +1017,20 @@ export default function App() {
   const approveChange = async (change) => {
     if (!isAdminRole(teamRole)) return;
     try {
-      if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
+      if (change.type === "edit") {
+        const taskExists = teamTasks.some(t => t.id === change.taskId);
+        if (!taskExists) { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id)); setTeamError("La tâche a été supprimée, modification annulée."); return; }
+        await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
+      }
       if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
       if (change.type === "add") {
         const newNum = (team.taskCounter || 0) + 1;
         await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
         await addDoc(collection(db, "teams", team.id, "tasks"), { ...change.data, id:Date.now(), num:newNum, createdBy:change.proposedBy, createdAt:serverTimestamp() });
+      }
+      if (change.type === "deleteAttachment" && change.data?.attachment) {
+        try { await deleteObject(storageRef(storage, change.data.attachment.storagePath)); } catch(e) {}
+        await updateDoc(doc(db, "teams", team.id, "tasks", change.taskId), { attachments: arrayRemove(change.data.attachment) });
       }
       await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id));
     } catch(e) { setTeamError(e.message); }
@@ -969,6 +1040,69 @@ export default function App() {
     if (!isAdminRole(teamRole)) return;
     try { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId)); }
     catch(e) { setTeamError(e.message); }
+  };
+
+  const uploadAttachment = async (taskId, file, isTeam = false) => {
+    if (!user || !file) return;
+    const ALLOWED_TYPES = ["image/jpeg","image/png","image/gif","image/webp","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
+    if (!ALLOWED_TYPES.some(t => file.type.startsWith("image/") || file.type === t)) {
+      setTeamError("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) { setTeamError("Fichier trop volumineux (max 10 Mo)."); return; }
+    setUploadingAttachment(true);
+    try {
+      const path = isTeam
+        ? `teams/${team.id}/attachments/${taskId}/${Date.now()}_${file.name}`
+        : `users/${user.uid}/attachments/${taskId}/${Date.now()}_${file.name}`;
+      const sRef = storageRef(storage, path);
+      await uploadBytes(sRef, file);
+      const url = await getDownloadURL(sRef);
+      const attachment = { name:file.name, url, type:file.type, size:file.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:path };
+      if (isTeam) {
+        await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { attachments: arrayUnion(attachment) });
+      } else {
+        setTasks(prev => prev.map(t => t.id === taskId ? {...t, attachments:[...(t.attachments||[]),attachment]} : t));
+      }
+    } catch(e) { setTeamError(e.message); }
+    setUploadingAttachment(false);
+  };
+
+  const deleteAttachment = async (taskId, attachment, isTeam = false) => {
+    if (!user) return;
+    const isOwner = attachment.uploadedBy === user.uid;
+    if (isTeam && !isAdminRole(teamRole) && !isOwner) {
+      try {
+        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"deleteAttachment", proposedBy:user.uid, proposedByEmail:user.email||"", taskId, data:{attachment}, createdAt:serverTimestamp(), status:"pending" });
+        setTeamInfo("Demande de suppression envoyée à l'admin.");
+      } catch(e) { setTeamError(e.message); }
+      return;
+    }
+    if (!window.confirm(`Supprimer "${attachment.name}" ?`)) return;
+    try {
+      await deleteObject(storageRef(storage, attachment.storagePath));
+      if (isTeam) {
+        await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { attachments: arrayRemove(attachment) });
+      } else {
+        setTasks(prev => prev.map(t => t.id === taskId ? {...t, attachments:(t.attachments||[]).filter(a=>a.storagePath!==attachment.storagePath)} : t));
+      }
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const uploadAvatar = async (file) => {
+    if (!user || !file) return;
+    if (!file.type.startsWith("image/")) { toast("Seules les images sont acceptées pour l'avatar.", true); return; }
+    if (file.size > 5 * 1024 * 1024) { toast("Image trop volumineuse (max 5 Mo).", true); return; }
+    setUploadingAvatar(true);
+    try {
+      const path = `users/${user.uid}/avatar`;
+      const sRef = storageRef(storage, path);
+      await uploadBytes(sRef, file);
+      const url = await getDownloadURL(sRef);
+      await setDoc(doc(db, "users", user.uid), { customPhotoURL: url }, { merge: true });
+      setUserPhotoURL(url);
+    } catch(e) { console.error("Avatar upload:", e); setAuthError("Échec du téléchargement de l'avatar. Vérifiez votre connexion."); }
+    setUploadingAvatar(false);
   };
 
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
@@ -1462,6 +1596,23 @@ export default function App() {
               ✎ Modifier
             </button>
           </div>
+          {/* Pièces jointes — tâche perso */}
+          <div style={{ marginTop:14 }}>
+            <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:8 }}>PIÈCES JOINTES ({(task.attachments||[]).length})</div>
+            {(task.attachments||[]).map((att,i) => (
+              <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+                <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                  {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
+                </span>
+                <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                <button onClick={()=>deleteAttachment(task.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+              </div>
+            ))}
+            <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
+              <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(task.id,f,false)); e.target.value=""; }}/>
+              {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
+            </label>
+          </div>
         </div>
       </div>
     );
@@ -1509,12 +1660,28 @@ export default function App() {
             ))}
           </div>
           {/* Saisie commentaire */}
-          <div style={{ display:"flex",gap:8 }}>
+          <div style={{ display:"flex",gap:8,marginBottom:18 }}>
             <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
               onKeyDown={e=>e.key==="Enter"&&addComment()}
               style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
             <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"8px 13px",color:"#fff",fontSize:14,cursor:"pointer" }}>↑</button>
           </div>
+          {/* Pièces jointes — tâche équipe */}
+          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:8 }}>PIÈCES JOINTES ({(task.attachments||[]).length})</div>
+          {(task.attachments||[]).map((att,i) => (
+            <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+              <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
+              </span>
+              <span style={{ fontSize:9,color:theme.textMuted,flexShrink:0 }}>{att.uploadedByEmail?.split("@")[0]}</span>
+              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+              <button onClick={()=>deleteAttachment(task.id,att,true)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+            </div>
+          ))}
+          <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
+            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(task.id,f,true)); e.target.value=""; }}/>
+            {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
+          </label>
         </div>
       </div>
     );
@@ -1712,21 +1879,26 @@ export default function App() {
               <img src="/favicon.svg" alt="logo" style={{ width:22, height:22, flexShrink:0 }} />
               <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>TASK TRACKER PRO</div>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
               {user ? (
                 <div style={{ position:"relative" }}>
                   {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
                   <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
-                    {user.photoURL
-                      ? <img src={user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
+                    {(userPhotoURL||user.photoURL)
+                      ? <img src={userPhotoURL||user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block", objectFit:"cover" }} />
                       : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:theme.accent }}>
                           {(user.displayName||user.email||"?")[0].toUpperCase()}
                         </div>
                     }
                   </div>
                   {showUserMenu && (
-                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
-                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:190,boxShadow:"0 8px 40px #00000099" }}>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{user.displayName||user.email}</div>
+                      <label style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",boxSizing:"border-box" }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) uploadAvatar(e.target.files[0]); e.target.value=""; }}/>
+                        {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
+                      </label>
                       <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
                     </div>
                   )}
@@ -1787,6 +1959,7 @@ export default function App() {
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
+              {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {user && team && (
                 <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
                   <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
@@ -1805,16 +1978,20 @@ export default function App() {
                 <div style={{ position:"relative" }}>
                   {showUserMenu && <div style={{ position:"fixed",inset:0,zIndex:299 }} onClick={()=>setShowUserMenu(false)}/>}
                   <div onClick={()=>setShowUserMenu(s=>!s)} style={{ cursor:"pointer" }}>
-                    {user.photoURL
-                      ? <img src={user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block" }} />
+                    {(userPhotoURL||user.photoURL)
+                      ? <img src={userPhotoURL||user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block", objectFit:"cover" }} />
                       : <div style={{ width:30,height:30,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:theme.accent }}>
                           {(user.displayName||user.email||"?")[0].toUpperCase()}
                         </div>
                     }
                   </div>
                   {showUserMenu && (
-                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:170,boxShadow:"0 8px 40px #00000099" }}>
-                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{user.displayName||user.email}</div>
+                    <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:190,boxShadow:"0 8px 40px #00000099" }}>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{user.displayName||user.email}</div>
+                      <label style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",boxSizing:"border-box" }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) uploadAvatar(e.target.files[0]); e.target.value=""; }}/>
+                        {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
+                      </label>
                       <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
                     </div>
                   )}
@@ -1859,8 +2036,8 @@ export default function App() {
         <div style={{ background:"#1a3a1a", borderBottom:`1px solid #2a6a2a`, padding:"10px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <span style={{ fontSize:12, color:"#6bcb77" }}>📨 Invitation à rejoindre l'équipe <strong>{pendingInvite.teamName}</strong> (de {pendingInvite.invitedBy})</span>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={acceptInvite} style={{ background:"#2a7a2a", border:"none", borderRadius:7, padding:"5px 14px", color:"#fff", fontSize:11, cursor:"pointer" }}>Accepter</button>
-            <button onClick={rejectInvite} style={{ background:"transparent", border:"1px solid #2a6a2a", borderRadius:7, padding:"5px 14px", color:"#6bcb77", fontSize:11, cursor:"pointer" }}>Refuser</button>
+            <button onClick={acceptInvite} disabled={inviteLoading} style={{ background:"#2a7a2a", border:"none", borderRadius:7, padding:"5px 14px", color:"#fff", fontSize:11, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>{inviteLoading?"…":"Accepter"}</button>
+            <button onClick={rejectInvite} disabled={inviteLoading} style={{ background:"transparent", border:"1px solid #2a6a2a", borderRadius:7, padding:"5px 14px", color:"#6bcb77", fontSize:11, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>{inviteLoading?"…":"Refuser"}</button>
           </div>
         </div>
       )}
@@ -1874,7 +2051,7 @@ export default function App() {
           {teamSpace && team ? (<>
             {/* TODAY — équipe */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow:"hidden" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -1886,7 +2063,7 @@ export default function App() {
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
                   {teamTasks.filter(t=>t.scheduledFor==="today").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
@@ -1908,7 +2085,7 @@ export default function App() {
 
             {/* TOMORROW — équipe */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow:"hidden" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -1920,7 +2097,7 @@ export default function App() {
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
                   {teamTasks.filter(t=>t.scheduledFor==="tomorrow").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
@@ -1943,7 +2120,7 @@ export default function App() {
           </>) : (<>
             {/* TODAY — perso */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow:"hidden" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -1956,7 +2133,7 @@ export default function App() {
                   <div>glisse ici</div>
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
                   {todayIds.map(id => {
                     const task = getTask(id); if (!task) return null;
                     const tc   = taskColor(task);
@@ -1978,7 +2155,7 @@ export default function App() {
 
             {/* TOMORROW — perso */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow:"hidden" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -1991,7 +2168,7 @@ export default function App() {
                   <div>glisse ici</div>
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start" }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
                   {tomorrowIds.map(({id}) => {
                     const task = getTask(id); if (!task) return null;
                     const tc2  = taskColor(task);
@@ -2012,27 +2189,10 @@ export default function App() {
 
             {isMobile && (
               <div style={{ padding:"10px 16px 14px", display:"flex", gap:8 }}>
-                {/* Quick-add avec choix de planification */}
-                <div style={{ flex:1, position:"relative" }}>
-                  <button onClick={()=>setShowAddMenu(s=>!s)}
-                    style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
-                    + Ajouter {showAddMenu?"▲":"▼"}
-                  </button>
-                  {showAddMenu && (
-                    <div style={{ position:"absolute",bottom:"110%",left:0,right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,overflow:"hidden",zIndex:50,boxShadow:"0 4px 20px #00000044" }}>
-                      {[{key:"today",icon:"☀️",label:"Aujourd'hui"},{key:"tomorrow",icon:"🌙",label:"Demain"},{key:"none",icon:"📋",label:"Non planifié"}].map(({key,icon,label},i,arr)=>(
-                        <button key={key} onClick={()=>{
-                          setQuickSchedule(key); setShowAddMenu(false);
-                          setShowForm(true); setEditingId(null); setFormStep(1);
-                          setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});
-                          setRecurDay(""); setRecurMonthDay("");
-                        }} style={{ width:"100%",background:"transparent",border:"none",borderBottom:i<arr.length-1?`1px solid ${theme.border}44`:"none",padding:"11px 16px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10 }}>
-                          <span style={{ fontSize:16 }}>{icon}</span>{label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+                  + Ajouter
+                </button>
                 <div style={{ position:"relative" }}>
                   <button onClick={listening?stopVoice:startVoice}
                     style={{ height:"100%",background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"10px 14px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
@@ -2091,7 +2251,7 @@ export default function App() {
 
           {/* Form */}
           {showForm && (
-            <div style={{ position:"fixed",inset:0,zIndex:150,background:"#000000bb",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px" }}
+            <div style={{ position:"fixed",inset:0,zIndex:320,background:"#000000bb",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px" }}
               onClick={()=>{setShowForm(false);setEditingId(null);}}>
             <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:"16px",padding:20,width:"100%",maxWidth:520,maxHeight:"85vh",overflowY:"auto" }}>
 
@@ -2151,8 +2311,9 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                    <textarea placeholder="Notes..." value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2}
-                      style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 11px",color:theme.text,fontSize:16,resize:"none",width:"100%" }} />
+                    <textarea placeholder="Notes..." value={form.notes} onChange={e=>setForm({...form,notes:e.target.value.slice(0,2000)})} rows={2} maxLength={2000}
+                      style={{ background:theme.bg,border:`1px solid ${form.notes.length>=1900?"#cc3030":theme.border}`,borderRadius:7,padding:"7px 11px",color:theme.text,fontSize:16,resize:"none",width:"100%" }} />
+                    {form.notes.length > 0 && <div style={{ fontSize:9,color:form.notes.length>=1900?"#cc3030":theme.textMuted,textAlign:"right",marginTop:2 }}>{form.notes.length}/2000</div>}
                     <div>
                       <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>RÉCURRENCE</div>
                       <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:10 }}>
@@ -2191,6 +2352,7 @@ export default function App() {
                               onChange={e=>{setRecurDay(e.target.value);setRecurMonthDay("");setForm(f=>({...f,recurrence:e.target.value?`monthly-day-${e.target.value}`:"monthly"}));}}
                               style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:14,width:65 }} />
                             {recurDay&&<button onClick={()=>{setRecurDay("");setForm(f=>({...f,recurrence:"monthly"}));setRecurMonthDay("");}} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>}
+                            {recurDay && parseInt(recurDay) > 28 && <span style={{ fontSize:9,color:"#cc9900" }}>⚠ Certains mois n'ont pas ce jour — la tâche sautera ces mois-là.</span>}
                           </div>
                           <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
                             <select value={recurMonthDay.split("-")[0]||""} onChange={e=>{const o=e.target.value,d=recurMonthDay.split("-")[1]||"1";setRecurMonthDay(o?`${o}-${d}`:"");setRecurDay("");setForm(f=>({...f,recurrence:o?`monthly-ordinal-${o}-${d}`:"monthly"}));}}
@@ -2290,9 +2452,16 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
                 <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
-                  {isAdminRole(teamRole) && teamPending.length > 0 && (
-                    <button onClick={()=>setShowPendingPanel(true)} style={{ background:"#cc303022",border:"1px solid #cc303066",borderRadius:8,padding:"5px 12px",color:"#cc3030",fontSize:11,cursor:"pointer",fontWeight:700 }}>
-                      🔔 {teamPending.length} en attente
+                  {isAdminRole(teamRole) && (
+                    <button onClick={()=>setShowPendingPanel(true)} style={{ position:"relative",background:teamPending.length>0?"#cc303022":"transparent",border:`1px solid ${teamPending.length>0?"#cc303066":theme.border}`,borderRadius:8,padding:"5px 10px",color:teamPending.length>0?"#cc3030":theme.textMuted,fontSize:13,cursor:"pointer" }}>
+                      🔔
+                      {teamPending.length > 0 && <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>}
+                    </button>
+                  )}
+                  {!isAdminRole(teamRole) && (
+                    <button onClick={()=>setShowMyPendingPanel(true)} style={{ position:"relative",background:myPendingProposals.length>0?theme.accent+"22":"transparent",border:`1px solid ${myPendingProposals.length>0?theme.accent:theme.border}`,borderRadius:8,padding:"5px 10px",color:myPendingProposals.length>0?theme.accent:theme.textMuted,fontSize:13,cursor:"pointer" }}>
+                      🔔
+                      {myPendingProposals.length > 0 && <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:theme.accent,color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{myPendingProposals.length}</span>}
                     </button>
                   )}
                   {isMobile && (
@@ -2347,6 +2516,9 @@ export default function App() {
                           <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
                           <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{(task.priority||"?").toUpperCase()}</span>
                           <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
+                          {(isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id)) && (
+                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044" }}>⏳ en attente</span>
+                          )}
                         </div>
                         {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
                         {task.scheduledFor && task.scheduledFor !== null && (
@@ -2360,11 +2532,12 @@ export default function App() {
                           <span style={{ fontSize:9,color:theme.textMuted }}>💬 commentaires</span>
                         </div>
                       </div>
-                      <div style={{ display:"flex",gap:4,flexShrink:0 }}>
-                        {!isAdminRole(teamRole) && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
+                      <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
                         <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
                           style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
+                        {!isAdminRole(teamRole) && isMobile && <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,padding:"2px 6px",border:`1px solid ${theme.accent}44`,borderRadius:5,cursor:"pointer",textAlign:"center" }}>✏️ proposer</span>}
                       </div>
+                      {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5,flexShrink:0 }}>proposer</span>}
                     </div>
                   );
                 })}
@@ -2410,7 +2583,7 @@ export default function App() {
                 });
               }
               return visible;
-            })().map((task, idx) => {
+            })().slice(0, visibleTaskCount).map((task, idx) => {
               const inToday = todayIds.includes(task.id);
               const inTom   = tomorrowIds.map(e=>e.id).includes(task.id);
               const hl      = isHL(task.id);
@@ -2481,6 +2654,16 @@ export default function App() {
                 </div>
               );
             })}
+            {(() => {
+              const total = tasks.filter(t => t.status !== "Terminé").length;
+              if (total <= visibleTaskCount) return null;
+              return (
+                <button onClick={()=>setVisibleTaskCount(c=>c+100)}
+                  style={{ width:"100%",background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.textMuted,fontSize:11,cursor:"pointer",marginTop:6 }}>
+                  Voir {Math.min(100, total-visibleTaskCount)} tâche{total-visibleTaskCount>1?"s":""} de plus ({visibleTaskCount}/{total})
+                </button>
+              );
+            })()}
             </div>
           </>)}
 
@@ -2638,7 +2821,7 @@ export default function App() {
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:18 }}>
-              {[{v:"fr-FR",l:"Français"},{v:"en-US",l:"English (US)"},{v:"en-GB",l:"English (UK)"},{v:"de-DE",l:"Deutsch"},{v:"es-ES",l:"Español"},{v:"it-IT",l:"Italiano"}].map(({v,l})=>(
+              {[{v:"fr-FR",l:"Français"},{v:"en-US",l:"English (US)"},{v:"en-GB",l:"English (UK)"},{v:"de-DE",l:"Deutsch"},{v:"es-ES",l:"Español"},{v:"it-IT",l:"Italiano"},{v:"zh-CN",l:"中文"},{v:"ja-JP",l:"日本語"},{v:"ko-KR",l:"한국어"}].map(({v,l})=>(
                 <button key={v} onClick={()=>setLocale(v)} style={{ background:locale===v?theme.accent+"33":"transparent",border:`1px solid ${locale===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",color:locale===v?theme.accent:theme.textMuted,fontSize:10 }}>{l}</button>
               ))}
             </div>
@@ -2667,11 +2850,11 @@ export default function App() {
             })()}
             {/* Bouton test */}
             <button onClick={async () => {
-              if (!("Notification" in window)) { alert("Notifications non supportées sur ce navigateur."); return; }
-              if (Notification.permission === "denied") { alert("Les notifications sont bloquées. Débloque-les dans les réglages de ton navigateur."); return; }
+              if (!("Notification" in window)) { toast("Notifications non supportées sur ce navigateur.", true); return; }
+              if (Notification.permission === "denied") { toast("Les notifications sont bloquées. Débloque-les dans les réglages de ton navigateur.", true); return; }
               if (Notification.permission !== "granted") {
                 const p = await Notification.requestPermission();
-                if (p !== "granted") { alert("Permission refusée."); return; }
+                if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
               new Notification("Task Tracker Pro 🔔", {
                 body: "Test de notification — tout fonctionne !",
@@ -2696,10 +2879,10 @@ export default function App() {
             {!dailyNotifEnabled && <div style={{ marginBottom:18 }}/>}
 
             <button onClick={async()=>{
-              if(!user){alert("Connecte-toi pour sauvegarder le thème.");return;}
+              if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
               await setDoc(ref,{theme},{merge:true});
-              alert("Thème sauvegardé ✓");
+              toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder le thème
             </button>
@@ -2724,7 +2907,7 @@ export default function App() {
                   pendingSnap.forEach(d => batch.delete(d.ref));
                   batch.update(doc(db,"teams",team.id),{ taskCounter:0 });
                   await batch.commit();
-                } catch(e) { alert("Erreur : "+e.message); }
+                } catch(e) { toast("Erreur : "+e.message, true); }
               }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
                 🗑️ Réinitialiser les tâches de l'équipe
               </button>
@@ -2770,6 +2953,26 @@ export default function App() {
         </div>
       )}
 
+      {/* Panneau proposals du membre */}
+      {showMyPendingPanel && !isAdminRole(teamRole) && (
+        <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"#00000088" }}
+          onClick={()=>setShowMyPendingPanel(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:340,maxHeight:"75vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>MES PROPOSITIONS EN ATTENTE</div>
+            {myPendingProposals.length===0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:20 }}>Aucune proposition en attente.</div>}
+            {myPendingProposals.map(change => (
+              <div key={change.id} style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
+                <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
+                  {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <span style={{ color:"#f0c040" }}>En attente de validation</span>
+                </div>
+                <div style={{ fontSize:11,color:theme.text }}><strong>{change.data?.title||"—"}</strong></div>
+              </div>
+            ))}
+            <button onClick={()=>setShowMyPendingPanel(false)} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",marginTop:8 }}>Fermer</button>
+          </div>
+        </div>
+      )}
+
       {/* Panneau Équipe */}
       {showTeam && (
         <TeamPanel
@@ -2787,6 +2990,7 @@ export default function App() {
           onDemote={(m, teamId)=>demoteToMember(m, teamId)}
           isOwner={team?.adminUid === user?.uid}
           onDissolve={dissolveTeam}
+          onRenameTeam={renameTeam}
           teamError={teamError} teamInfo={teamInfo}
           setTeamError={setTeamError} setTeamInfo={setTeamInfo}
         />
@@ -2824,6 +3028,13 @@ export default function App() {
 
       {/* Spacer pour le bandeau pub */}
       <div style={{ height:56 }} />
+
+      {/* Toast notifications */}
+      {toastMsg && (
+        <div style={{ position:"fixed", bottom:72, left:"50%", transform:"translateX(-50%)", background:toastMsg.isError?"#2a0a0a":"#0a2a0a", border:`1px solid ${toastMsg.isError?"#cc3030":"#3aaa3a"}`, borderRadius:10, padding:"10px 18px", color:toastMsg.isError?"#ff8080":"#6bcb77", fontSize:12, zIndex:1000, boxShadow:"0 4px 20px #00000088", maxWidth:"90vw", textAlign:"center" }}>
+          {toastMsg.text}
+        </div>
+      )}
 
     </div>
   );
