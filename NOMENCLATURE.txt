@@ -1,0 +1,61 @@
+=====================================================
+  NOMENCLATURE DES TICKETS — TASK TRACKER PRO
+=====================================================
+
+Format : [SUPPORT] [MODE] [RÔLE] SECTION — description
+
+-----------------------------------------------------
+  SUPPORT
+-----------------------------------------------------
+  M   = Mobile uniquement (390px, layout colonne)
+  D   = Desktop + Tablet (820px+, layout 2 panneaux)
+  A   = Tous les supports (Mobile + Desktop + Tablet)
+
+-----------------------------------------------------
+  MODE
+-----------------------------------------------------
+  P   = Page perso
+  E   = Page équipe
+  T   = Tous les modes (Perso + Équipe)
+
+-----------------------------------------------------
+  RÔLE
+-----------------------------------------------------
+  AD  = Admin
+  CO  = Co-admin
+  MB  = Membre
+  TR  = Tous les rôles
+
+-----------------------------------------------------
+  SECTIONS
+-----------------------------------------------------
+  Page perso :
+    AUJOURD'HUI     Zone bulles du jour (panneau gauche)
+    DEMAIN          Zone bulles du lendemain (panneau gauche)
+    LISTE           Liste principale des tâches (panneau droit)
+    FORMULAIRE      Formulaire de création / édition de tâche
+    STATS-PERSO     Panneau statistiques personnelles
+    THÈME           Panneau apparence / réglages
+
+  Page équipe :
+    LISTE-ÉQUIPE    Liste des tâches d'équipe
+    MODAL-ÉQUIPE    Modale détail d'une tâche (commentaires, pièces jointes)
+    EN-ATTENTE      Panneau modifications en attente (admin)
+    MES-PROPS       Panneau mes propositions (membre)
+    STATS-ÉQUIPE    Panneau statistiques équipe
+    PANNEAU-ÉQUIPE  Panneau gestion équipe (membres, invitations)
+
+  Global :
+    HEADER          Barre de navigation en haut
+    INVITATION      Bannière invitation en attente
+
+-----------------------------------------------------
+  EXEMPLES
+-----------------------------------------------------
+  [D][P][TR] LISTE          Liste perso sur desktop, tous rôles
+  [M][E][MB] LISTE-ÉQUIPE   Liste équipe sur mobile, membre
+  [A][E][AD] EN-ATTENTE     Panneau en attente, tous supports, admin
+  [M][T][TR] HEADER         Header sur mobile, tous modes et rôles
+  [D][E][CO] PANNEAU-ÉQUIPE Panneau équipe sur desktop, co-admin
+
+=====================================================
