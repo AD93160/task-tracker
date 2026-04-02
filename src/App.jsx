@@ -814,7 +814,8 @@ export default function App() {
     const raw = (emailArg || inviteEmail).trim().toLowerCase();
     const t   = targetTeam || team;
     if (!t || !raw) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) { setTeamError("Adresse email invalide"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(raw)) { setTeamError("Adresse email invalide"); return; }
+    if ((t.members || []).some(m => m.email?.toLowerCase() === raw)) { setTeamError("Cette personne est déjà membre de l'équipe"); return; }
     try {
       await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
       await sendInviteEmail(raw, t.name, user.email||"");
@@ -825,9 +826,11 @@ export default function App() {
   const acceptInvite = async () => {
     if (!pendingInvite || !user) return;
     try {
-      await updateDoc(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
-      await setDoc(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
-      await deleteDoc(doc(db, "invitations", (user.email||"").toLowerCase()));
+      const batch = writeBatch(db);
+      batch.update(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:user.displayName||user.email||"" }) });
+      batch.set(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
+      batch.delete(doc(db, "invitations", (user.email||"").toLowerCase()));
+      await batch.commit();
       setPendingInvite(null);
       setTeamSpace(true); // bascule directement sur l'espace équipe
     } catch(e) { setTeamError(e.message); }
@@ -996,7 +999,11 @@ export default function App() {
   const approveChange = async (change) => {
     if (!isAdminRole(teamRole)) return;
     try {
-      if (change.type === "edit")   await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
+      if (change.type === "edit") {
+        const taskExists = teamTasks.some(t => t.id === change.taskId);
+        if (!taskExists) { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id)); setTeamError("La tâche a été supprimée, modification annulée."); return; }
+        await setDoc(doc(db, "teams", team.id, "tasks", change.taskId), change.data, { merge:true });
+      }
       if (change.type === "delete") await deleteDoc(doc(db, "teams", team.id, "tasks", change.taskId));
       if (change.type === "add") {
         const newNum = (team.taskCounter || 0) + 1;
@@ -2224,7 +2231,7 @@ export default function App() {
 
           {/* Form */}
           {showForm && (
-            <div style={{ position:"fixed",inset:0,zIndex:150,background:"#000000bb",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px" }}
+            <div style={{ position:"fixed",inset:0,zIndex:320,background:"#000000bb",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px" }}
               onClick={()=>{setShowForm(false);setEditingId(null);}}>
             <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:"16px",padding:20,width:"100%",maxWidth:520,maxHeight:"85vh",overflowY:"auto" }}>
 
