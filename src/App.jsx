@@ -730,15 +730,7 @@ export default function App() {
 
     const userUnsub = onSnapshot(doc(db, "users", user.uid), snap => {
       const data = snap.data() || {};
-      const newRole = data.teamRole || null;
-      // Notifier si promu co-admin
-      if (prevTeamRole !== null && prevTeamRole !== "co-admin" && newRole === "co-admin") {
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Task Tracker — Félicitations ! ⭐", { body: "Vous avez été nommé co-admin de l'équipe.", icon: "/favicon.ico" });
-        }
-      }
-      prevTeamRole = newRole;
-      setTeamRole(newRole);
+      // teamRole est dérivé depuis le document équipe dans activeUnsub
 
       // Équipe active (teamId principal) — re-subscribe uniquement si l'ID change
       const activeId = data.teamId || null;
@@ -750,8 +742,20 @@ export default function App() {
         currentActiveId = activeId;
         if (activeId) {
           const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
-            if (tSnap.exists()) setTeam({ id:tSnap.id, ...tSnap.data() });
-            else { setTeam(null); setTeamSpace(false); }
+            if (tSnap.exists()) {
+              const tData = { id:tSnap.id, ...tSnap.data() };
+              setTeam(tData);
+              const derived = tData.adminUid === user.uid ? "admin"
+                : (tData.coAdminUids||[]).includes(user.uid) ? "co-admin"
+                : "member";
+              if (prevTeamRole !== null && prevTeamRole !== "co-admin" && derived === "co-admin") {
+                if ("Notification" in window && Notification.permission === "granted") {
+                  new Notification("Task Tracker — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
+                }
+              }
+              prevTeamRole = derived;
+              setTeamRole(derived);
+            } else { setTeam(null); setTeamSpace(false); setTeamRole(null); }
           });
           teamUnsubs.set("__active__", activeUnsub);
         } else { setTeam(null); setTeamSpace(false); }
@@ -871,7 +875,6 @@ export default function App() {
     const tid = teamId || team?.id;
     if (!tid || !user) return;
     try {
-      await setDoc(doc(db, "users", member.uid), { teamRole: "co-admin" }, { merge: true });
       await updateDoc(doc(db, "teams", tid), { coAdminUids: arrayUnion(member.uid) });
     } catch(e) { setTeamError(e.message); }
   };
@@ -880,7 +883,6 @@ export default function App() {
     const tid = teamId || team?.id;
     if (!tid || !user) return;
     try {
-      await setDoc(doc(db, "users", member.uid), { teamRole: "member" }, { merge: true });
       await updateDoc(doc(db, "teams", tid), { coAdminUids: arrayRemove(member.uid) });
     } catch(e) { setTeamError(e.message); }
   };
