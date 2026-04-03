@@ -1507,8 +1507,9 @@ export default function App() {
   const onDropTomorrow = (e) => { e.preventDefault(); const {id,src,isTeam}=dragRef.current; if(isTeam&&id)moveTeamTask(id,"tomorrow"); else { if((src==="list"||src==="bubble")&&id)addToTomorrow(id); } setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
-  const DRAG_DELAY     = 320;  // ms — long press uniforme toutes sources
-  const DRAG_THRESHOLD = 12;   // px — mouvement max avant activation (scroll sinon)
+  const DRAG_DELAY     = 400;  // ms — long press uniforme toutes sources
+  const DRAG_THRESHOLD = 14;   // px — mouvement max avant activation (scroll sinon)
+  const SCROLL_AXIS_THRESHOLD = 10; // px — si mouvement vertical dominant → scroll natif
 
   const onTouchStart = (e, id, src) => {
     const t = e.touches[0];
@@ -1534,6 +1535,12 @@ export default function App() {
       // Si le doigt bouge trop avant l'activation → scroll natif, annuler drag
       const dx = Math.abs(t.clientX - d.startX);
       const dy = Math.abs(t.clientY - d.startY);
+      // Scroll vertical dominant → intention de scroll, annuler immédiatement
+      if (dy > SCROLL_AXIS_THRESHOLD && dy > dx) {
+        clearTimeout(longPressTimer.current);
+        dragRef.current = {};
+        return;
+      }
       if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
         clearTimeout(longPressTimer.current);
         dragRef.current = {};
@@ -2121,7 +2128,7 @@ export default function App() {
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-today"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer",touchAction:"none" }}>
                         {task.num}
                       </div>
                     );
@@ -2155,7 +2162,7 @@ export default function App() {
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer",touchAction:"none" }}>
                         {task.num}
                       </div>
                     );
@@ -2191,7 +2198,7 @@ export default function App() {
                         onDragOver={e=>{e.preventDefault();e.stopPropagation();setDropZone(id);}} onDrop={e=>onDropBubble(e,id)}
                         onTouchStart={e=>onTouchStart(e,id,"bubble")}
                         onClick={()=>!dragRef.current?.moved&&setModal(id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",opacity:ghost?.id===id?0.2:1 }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",opacity:ghost?.id===id?0.2:1,touchAction:"none" }}>
                         {taskNum(id)}
                       </div>
                     );
@@ -2225,7 +2232,7 @@ export default function App() {
                         onDragStart={e=>onDragStart(e,id,"bubble-tomorrow")} onDragEnd={onDragEnd}
                         onTouchStart={e=>onTouchStart(e,id,"bubble-tomorrow")}
                         onClick={()=>!dragRef.current?.moved&&setModal(id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol2}55,${bCol2}77)`,boxShadow:`0 0 10px ${bCol2}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===id?0.2:0.7,border:`2px dashed ${bCol2}66` }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol2}55,${bCol2}77)`,boxShadow:`0 0 10px ${bCol2}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===id?0.2:0.7,border:`2px dashed ${bCol2}66`,touchAction:"none" }}>
                         {taskNum(id)}
                       </div>
                     );
@@ -2549,7 +2556,7 @@ export default function App() {
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s" }}>
+                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s",touchAction:"pan-y" }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
                       <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
                       <div style={{ flex:1,minWidth:0 }}>
