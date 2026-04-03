@@ -708,14 +708,18 @@ export default function App() {
     // Subscriptions dynamiques sur chaque équipe listée dans allTeamIds
     const teamUnsubs = new Map(); // teamId → unsub fn
 
-    const subscribeToTeam = (teamId, myRole) => {
+    const subscribeToTeam = (teamId) => {
       if (teamUnsubs.has(teamId)) return;
       const unsub = onSnapshot(doc(db, "teams", teamId), tSnap => {
         if (!tSnap.exists()) {
           setAdminTeams(prev => prev.filter(t => t.id !== teamId));
           return;
         }
-        const t = { id:tSnap.id, ...tSnap.data(), myRole };
+        const tData = tSnap.data();
+        const myRole = tData.adminUid === user.uid ? "admin"
+          : (tData.coAdminUids||[]).includes(user.uid) ? "co-admin"
+          : "member";
+        const t = { id:tSnap.id, ...tData, myRole };
         setAdminTeams(prev => {
           const idx = prev.findIndex(x => x.id === teamId);
           if (idx >= 0) { const next=[...prev]; next[idx]=t; return next; }
@@ -766,7 +770,7 @@ export default function App() {
         ...(data.allTeamIds || []),
         ...(activeId ? [activeId] : [])
       ]));
-      allIds.forEach(id => subscribeToTeam(id, id === activeId ? (data.teamRole || "admin") : "admin"));
+      allIds.forEach(id => subscribeToTeam(id));
     });
 
     if (user.email) {
