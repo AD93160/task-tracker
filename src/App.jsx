@@ -2748,7 +2748,10 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
               <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>🗑️ CORBEILLE ({deletedTasks.length})</div>
-              <button onClick={()=>setShowBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                {deletedTasks.length > 0 && <button onClick={()=>setDeletedTasks([])} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"3px 8px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>Vider</button>}
+                <button onClick={()=>setShowBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+              </div>
             </div>
             {deletedTasks.length === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Corbeille vide</div>}
             {deletedTasks.map(task => (
@@ -2772,7 +2775,10 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:20,width:"100%",maxWidth:520,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
               <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>🗑️ CORBEILLE — {team?.name?.toUpperCase()} ({deletedTeamTasks.length})</div>
-              <button onClick={()=>setShowTeamBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                {deletedTeamTasks.length > 0 && <button onClick={async()=>{ for(const t of deletedTeamTasks) await deleteDoc(doc(db,"teams",team.id,"deletedTasks",t.id)); setDeletedTeamTasks([]); }} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"3px 8px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>Vider</button>}
+                <button onClick={()=>setShowTeamBin(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+              </div>
             </div>
             {deletedTeamTasks.length === 0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"20px 0" }}>Corbeille vide</div>}
             {deletedTeamTasks.map(task => (
