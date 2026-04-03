@@ -2499,6 +2499,12 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
                 <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
+                  {isAdminRole(teamRole) && teamPending.length>0 && (
+                    <button onClick={()=>setShowPendingPanel(true)}
+                      style={{ background:"#f0c04022",border:"1px solid #f0c04066",borderRadius:8,padding:"5px 12px",color:"#f0c040",fontSize:11,cursor:"pointer",fontWeight:700 }}>
+                      ⏳ En attente ({teamPending.length})
+                    </button>
+                  )}
                   {isMobile && (
                     <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
                       style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>
@@ -3016,20 +3022,62 @@ export default function App() {
             {teamPending.length===0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:20 }}>Aucune modification en attente.</div>}
             {teamPending.map(change => {
               const task = teamTasks.find(t=>t.id===change.taskId);
+              // Compute field-level diff for edits
+              const diffFields = [];
+              if (change.type==="edit" && change.data && task) {
+                const fields = [
+                  { key:"title",    label:"Titre" },
+                  { key:"priority", label:"Priorité" },
+                  { key:"status",   label:"Statut" },
+                  { key:"due",      label:"Échéance", fmt: v => v ? formatDate(v) : "—" },
+                  { key:"notes",    label:"Notes" },
+                ];
+                for (const f of fields) {
+                  const oldVal = task[f.key] ?? "";
+                  const newVal = change.data[f.key] ?? "";
+                  if (String(oldVal) !== String(newVal)) {
+                    diffFields.push({ label:f.label, old: f.fmt?f.fmt(oldVal):oldVal||"—", new: f.fmt?f.fmt(newVal):newVal||"—" });
+                  }
+                }
+              }
+              // Fields to display for new task
+              const addFields = change.type==="add" && change.data ? [
+                { label:"Titre",    val: change.data.title },
+                { label:"Priorité", val: change.data.priority },
+                { label:"Statut",   val: change.data.status },
+                { label:"Échéance", val: change.data.due ? formatDate(change.data.due) : null },
+                { label:"Notes",    val: change.data.notes },
+              ].filter(f=>f.val) : [];
               return (
                 <div key={change.id} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
                   <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
                     {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
                   </div>
-                  <div style={{ fontSize:11,color:theme.text,marginBottom:4 }}>
-                    {change.type==="delete" ? <>Supprimer : <strong>{task?.title||"#"+change.taskId}</strong></> : <><strong>{change.data?.title}</strong></>}
-                  </div>
-                  {(change.type==="edit"||change.type==="add") && change.data && (
-                    <div style={{ fontSize:10,color:theme.textMuted,marginBottom:8 }}>
-                      {change.data.priority && <span style={{ marginRight:8 }}>Priorité : {change.data.priority}</span>}
-                      {change.data.status   && <span style={{ marginRight:8 }}>Statut : {change.data.status}</span>}
-                      {change.data.due      && <span>Échéance : {formatDate(change.data.due)}</span>}
-                      {change.data.notes    && <div style={{ marginTop:4,fontStyle:"italic" }}>Notes : {change.data.notes}</div>}
+                  {/* delete */}
+                  {change.type==="delete" && (
+                    <div style={{ fontSize:11,color:theme.text,marginBottom:8 }}>Supprimer : <strong>{task?.title||"#"+change.taskId}</strong></div>
+                  )}
+                  {/* add — show all proposed fields */}
+                  {change.type==="add" && (
+                    <div style={{ fontSize:11,marginBottom:8 }}>
+                      <div style={{ color:theme.text,fontWeight:700,marginBottom:4 }}>{change.data?.title}</div>
+                      {addFields.filter(f=>f.label!=="Titre").map(f=>(
+                        <div key={f.label} style={{ color:theme.textMuted,fontSize:10,marginBottom:2 }}>{f.label} : <span style={{ color:theme.text }}>{f.val}</span></div>
+                      ))}
+                    </div>
+                  )}
+                  {/* edit — show only changed fields with old→new */}
+                  {change.type==="edit" && (
+                    <div style={{ fontSize:11,marginBottom:8 }}>
+                      <div style={{ color:theme.text,fontWeight:700,marginBottom:4 }}>{task?.title||change.data?.title}</div>
+                      {diffFields.length===0
+                        ? <div style={{ color:theme.textMuted,fontSize:10 }}>Aucun champ modifié détecté.</div>
+                        : diffFields.map(f=>(
+                          <div key={f.label} style={{ color:theme.textMuted,fontSize:10,marginBottom:3 }}>
+                            {f.label} : <span style={{ color:"#cc6060",textDecoration:"line-through" }}>{f.old}</span> → <span style={{ color:"#6bcb77" }}>{f.new}</span>
+                          </div>
+                        ))
+                      }
                     </div>
                   )}
                   <div style={{ display:"flex",gap:8 }}>
