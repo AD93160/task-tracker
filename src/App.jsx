@@ -2571,7 +2571,7 @@ export default function App() {
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
                           <span style={{ fontSize:9,color:theme.textMuted }}>💬 commentaires</span>
-                          <span onClick={e=>{e.stopPropagation();const nv=task.notify!==false?false:true;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{notify:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notify:nv}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:task.notify!==false?1:0.4 }}>{task.notify!==false?"🔔":"🔕"}</span>
+                          <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
                         </div>
                       </div>
                       <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
