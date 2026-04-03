@@ -89,6 +89,11 @@ service cloud.firestore {
         }
       }
 
+      // ── Corbeille équipe ─────────────────────────────────────────
+      match /deletedTasks/{taskId} {
+        allow read, write: if isAdminOrCoAdminOf(teamId);
+      }
+
       // ── Modifications en attente ──────────────────────────────────
       match /pendingChanges/{changeId} {
         // Admin et co-admins voient tout ; les membres voient uniquement leurs propres propositions
