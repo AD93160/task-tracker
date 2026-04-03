@@ -2499,18 +2499,6 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
                 <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
-                  {isAdminRole(teamRole) && (
-                    <button onClick={()=>setShowPendingPanel(true)} style={{ position:"relative",background:teamPending.length>0?"#cc303022":"transparent",border:`1px solid ${teamPending.length>0?"#cc303066":theme.border}`,borderRadius:8,padding:"5px 10px",color:teamPending.length>0?"#cc3030":theme.textMuted,fontSize:13,cursor:"pointer" }}>
-                      🔔
-                      {teamPending.length > 0 && <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:"#cc3030",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{teamPending.length}</span>}
-                    </button>
-                  )}
-                  {!isAdminRole(teamRole) && (
-                    <button onClick={()=>setShowMyPendingPanel(true)} style={{ position:"relative",background:myPendingProposals.length>0?theme.accent+"22":"transparent",border:`1px solid ${myPendingProposals.length>0?theme.accent:theme.border}`,borderRadius:8,padding:"5px 10px",color:myPendingProposals.length>0?theme.accent:theme.textMuted,fontSize:13,cursor:"pointer" }}>
-                      🔔
-                      {myPendingProposals.length > 0 && <span style={{ position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:"50%",background:theme.accent,color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px" }}>{myPendingProposals.length}</span>}
-                    </button>
-                  )}
                   {isMobile && (
                     <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
                       style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>
