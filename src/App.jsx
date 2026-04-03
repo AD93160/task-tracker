@@ -1016,6 +1016,8 @@ export default function App() {
         const taskData = teamTasks.find(t => t.id === taskId);
         if (taskData) await setDoc(doc(db, "teams", team.id, "deletedTasks", taskId), { ...taskData, deletedAt: serverTimestamp() });
         await deleteDoc(doc(db, "teams", team.id, "tasks", taskId));
+        setTeamTasks(t => t.filter(task => task.id !== taskId));
+        if (taskData) setDeletedTeamTasks(p => [...p, { ...taskData, deletedAt: Date.now() }]);
       } catch(e) { setTeamError(e.message); }
     } else {
       if (!window.confirm("Proposer la suppression à l'admin ?")) return;
