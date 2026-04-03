@@ -1507,7 +1507,7 @@ export default function App() {
   const onDropTomorrow = (e) => { e.preventDefault(); const {id,src,isTeam}=dragRef.current; if(isTeam&&id)moveTeamTask(id,"tomorrow"); else { if((src==="list"||src==="bubble")&&id)addToTomorrow(id); } setDropZone(null); };
   const onDropBubble   = (e, targetId) => { e.preventDefault(); e.stopPropagation(); const {id,src}=dragRef.current; if(src==="bubble"&&id)reorderBubbles(id,targetId); setDropZone(null); };
 
-  const DRAG_DELAY     = 400;  // ms — long press uniforme toutes sources
+  const DRAG_DELAY     = 250;  // ms — long press uniforme toutes sources
   const DRAG_THRESHOLD = 14;   // px — mouvement max avant activation (scroll sinon)
   const SCROLL_AXIS_THRESHOLD = 10; // px — si mouvement vertical dominant → scroll natif
 
@@ -1741,11 +1741,14 @@ export default function App() {
 
   const renderGhost = () => {
     if (!ghost) return null;
-    const task = getTask(ghost.id); if (!task) return null;
+    const isTeam = ghost.src?.startsWith("team-");
+    const task = isTeam ? teamTasks.find(t=>t.id===ghost.id) : getTask(ghost.id);
+    if (!task) return null;
     const col = STATUS_DOT[task.status];
+    const num = isTeam ? task.num : taskNum(ghost.id);
     return (
       <div ref={ghostRef} style={{ position:"fixed",left:ghost.x-29,top:ghost.y-29,width:58,height:58,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${col}cc,${col})`,boxShadow:`0 0 24px ${col}99`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:17,color:"#fff",zIndex:999,pointerEvents:"none",opacity:0.85,transform:"scale(1.15)" }}>
-        {taskNum(ghost.id)}
+        {num}
       </div>
     );
   };
@@ -2128,7 +2131,7 @@ export default function App() {
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-today"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer",touchAction:"none" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer",touchAction:"none",opacity:ghost?.id===task.id?0.2:1 }}>
                         {task.num}
                       </div>
                     );
@@ -2162,7 +2165,7 @@ export default function App() {
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
                         onClick={()=>setTeamModal(task.id)}
-                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer",touchAction:"none" }}>
+                        style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===task.id?0.2:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer",touchAction:"none" }}>
                         {task.num}
                       </div>
                     );
@@ -2549,6 +2552,7 @@ export default function App() {
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
                   const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
                   const dot = STATUS_DOT[task.status]||"#888";
+                  const isTeamGhost = ghost?.id===task.id;
                   return (
                     <div key={task.id} className="row"
                       draggable={isAdminRole(teamRole)}
@@ -2556,7 +2560,7 @@ export default function App() {
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s",touchAction:"pan-y" }}>
+                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
                       <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
                       <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
                       <div style={{ flex:1,minWidth:0 }}>
