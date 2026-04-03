@@ -2110,7 +2110,7 @@ export default function App() {
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
                   {teamTasks.filter(t=>t.scheduledFor==="today").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
@@ -2144,7 +2144,7 @@ export default function App() {
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
                   {teamTasks.filter(t=>t.scheduledFor==="tomorrow").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
@@ -2180,7 +2180,7 @@ export default function App() {
                   <div>glisse ici</div>
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
                   {todayIds.map(id => {
                     const task = getTask(id); if (!task) return null;
                     const tc   = taskColor(task);
@@ -2215,7 +2215,7 @@ export default function App() {
                   <div>glisse ici</div>
                 </div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", maxHeight: isMobile ? 110 : undefined, overflowY: isMobile ? "auto" : undefined }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
                   {tomorrowIds.map(({id}) => {
                     const task = getTask(id); if (!task) return null;
                     const tc2  = taskColor(task);
