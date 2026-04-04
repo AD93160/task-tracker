@@ -2124,16 +2124,16 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length>1?"s":""}`}
                 </div>
               </div>
-              {teamTasks.filter(t=>t.scheduledFor==="today").length===0 ? (
+              {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="today").map(task => {
+                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
@@ -2158,16 +2158,16 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length>1?"s":""}`}
                 </div>
               </div>
-              {teamTasks.filter(t=>t.scheduledFor==="tomorrow").length===0 ? (
+              {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", overflowX:"hidden", flex:1, overflowY:"auto" }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow").map(task => {
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
