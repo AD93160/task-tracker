@@ -2546,6 +2546,12 @@ export default function App() {
                       ⏳ En attente ({teamPending.length})
                     </button>
                   )}
+                  {teamRole==="member" && (
+                    <button onClick={()=>setShowMyPendingPanel(true)}
+                      style={{ background:"#4a4a8a22",border:"1px solid #4a4a8a66",borderRadius:8,padding:"5px 12px",color:"#8888cc",fontSize:11,cursor:"pointer",fontWeight:700 }}>
+                      📋 Mes propositions{myPendingProposals.length>0?` (${myPendingProposals.length})`:""}
+                    </button>
+                  )}
                   {isMobile && (
                     <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
                       style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>

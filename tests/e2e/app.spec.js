@@ -80,7 +80,17 @@ const TEAM_ADMIN_DATA = {
       attachments: [],
     },
   ],
-  'teams/team-1/pendingChanges': [],
+  'teams/team-1/pendingChanges': [
+    {
+      id: 'pending-1',
+      type: 'edit',
+      taskId: 'task-team-1',
+      proposedBy: 'member-uid-456',
+      proposedByEmail: 'member@test.com',
+      data: { title: 'Tâche modifiée', priority: 'Haute', status: 'En cours', due: '', notes: '' },
+      status: 'pending',
+    },
+  ],
 };
 
 const TEAM_MEMBER_DATA = {
@@ -724,19 +734,17 @@ test.describe('Desktop — Page équipe (admin)', () => {
     await expect(page.locator('.row').filter({ hasText: 'Tâche équipe' })).toBeVisible();
   });
 
-  test('la cloche 🔔 admin est visible', async ({ page }) => {
+  test('le bouton ⏳ En attente est visible pour l\'admin', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    // La cloche admin est dans le header de la section tâches équipe
-    await expect(page.locator('button').filter({ hasText: '🔔' }).first()).toBeVisible();
+    await expect(page.locator('button').filter({ hasText: '⏳ En attente' }).first()).toBeVisible();
   });
 
-  test('la cloche admin ouvre le panneau MODIFICATIONS EN ATTENTE', async ({ page }) => {
+  test('le bouton ⏳ En attente ouvre le panneau MODIFICATIONS EN ATTENTE', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await page.locator('button').filter({ hasText: '🔔' }).first().click();
+    await page.locator('button').filter({ hasText: '⏳ En attente' }).first().click();
     await expect(page.getByText('MODIFICATIONS EN ATTENTE')).toBeVisible();
-    await expect(page.getByText('Aucune modification en attente.')).toBeVisible();
     // Fermer en cliquant en dehors
     await page.mouse.click(10, 10);
     await expect(page.getByText('MODIFICATIONS EN ATTENTE')).not.toBeVisible();
@@ -881,10 +889,10 @@ test.describe('Desktop — Page équipe (membre)', () => {
     ).toBeVisible();
   });
 
-  test('la cloche 🔔 membre ouvre le panneau MES PROPOSITIONS', async ({ page }) => {
+  test('le bouton 📋 Mes propositions ouvre le panneau MES PROPOSITIONS', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await page.locator('button').filter({ hasText: '🔔' }).first().click();
+    await page.locator('button').filter({ hasText: '📋 Mes propositions' }).first().click();
     await expect(page.getByText('MES PROPOSITIONS EN ATTENTE')).toBeVisible();
     await expect(page.getByText('Aucune proposition en attente.')).toBeVisible();
     await page.getByRole('button', { name: 'Fermer' }).click();
@@ -931,10 +939,10 @@ test.describe('Tablet — Page équipe', () => {
     await expect(page.locator('.row').filter({ hasText: 'Tâche équipe' })).toBeVisible();
   });
 
-  test('la cloche 🔔 admin est visible en tablet', async ({ page }) => {
+  test('le bouton ⏳ En attente est visible en tablet', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await expect(page.locator('button').filter({ hasText: '🔔' }).first()).toBeVisible();
+    await expect(page.locator('button').filter({ hasText: '⏳ En attente' }).first()).toBeVisible();
   });
 
   test('ouvre la modale de tâche équipe en tablet', async ({ page }) => {
@@ -991,10 +999,10 @@ test.describe('Mobile — Page équipe', () => {
     await expect(page.locator('button').filter({ hasText: '+ Ajouter' }).last()).toBeVisible();
   });
 
-  test('la cloche 🔔 est visible en mobile', async ({ page }) => {
+  test('le bouton ⏳ En attente est visible en mobile', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await expect(page.locator('button').filter({ hasText: '🔔' }).first()).toBeVisible();
+    await expect(page.locator('button').filter({ hasText: '⏳ En attente' }).first()).toBeVisible();
   });
 
   test('ouvre la modale de tâche équipe en mobile', async ({ page }) => {
