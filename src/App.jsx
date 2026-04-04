@@ -318,6 +318,7 @@ export default function App() {
   const [myPendingProposals, setMyPendingProposals] = useState([]);
   const [showMyPendingPanel, setShowMyPendingPanel] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [pendingFiles,         setPendingFiles]         = useState([]);
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
@@ -1409,7 +1410,7 @@ export default function App() {
   const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
 
-    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); };
+    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
 
     // ── Proposition membre équipe ──
     if (pendingMemberProposal && team) {
@@ -1445,6 +1446,11 @@ export default function App() {
       if (date===today) addToToday(id);
       else if (date===tomorrowStr) addToTomorrow(id);
       else setScheduledIds(p=>[...p,{id,dueDate:date}]);
+    }
+    // Upload pièces jointes sélectionnées pendant la création
+    if (pendingFiles.length > 0) {
+      for (const f of pendingFiles) await uploadAttachment(id, f, false);
+      setPendingFiles([]);
     }
     resetForm();
   };
@@ -2463,6 +2469,25 @@ export default function App() {
                   <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,marginBottom:4 }}>QUAND PLANIFIER ?</div>
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
+                  {/* Pièces jointes — espace perso uniquement */}
+                  {!teamSpace && (
+                    <div style={{ marginBottom:12 }}>
+                      {pendingFiles.length > 0 && (
+                        <div style={{ marginBottom:6 }}>
+                          {pendingFiles.map((f,i) => (
+                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
+                              <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {f.name}</span>
+                              <button onClick={()=>setPendingFiles(p=>p.filter((_,j)=>j!==i))} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
+                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ setPendingFiles(p=>[...p,...Array.from(e.target.files)]); e.target.value=""; }}/>
+                        📎 Ajouter des pièces jointes
+                      </label>
+                    </div>
+                  )}
                   <div style={{ display:"grid",gap:8 }}>
                     <button onClick={()=>applySchedule("today")} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:10,padding:"12px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12 }}>
                       <span style={{ fontSize:20 }}>☀️</span>

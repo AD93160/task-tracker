@@ -78,9 +78,9 @@ service cloud.firestore {
         allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
         // Admin ET co-admins peuvent créer/modifier/supprimer directement
         allow create, update, delete: if isAdminOrCoAdminOf(teamId);
-        // Membres : uniquement leur propre préférence de notification
+        // Membres : notification perso + pièces jointes (sans validation)
         allow update: if isMemberOf(teamId) &&
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notifyUsers']);
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notifyUsers', 'attachments']);
 
         // ── Commentaires ─────────────────────────────────────────────
         match /comments/{commentId} {
