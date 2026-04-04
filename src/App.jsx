@@ -2618,7 +2618,10 @@ export default function App() {
                         {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
-                          <span style={{ fontSize:9,color:theme.textMuted }}>💬 commentaires</span>
+                          <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
+                          {(task.attachments||[]).length>0 && (
+                            <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
+                          )}
                           <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
                         </div>
                       </div>
@@ -2739,6 +2742,7 @@ export default function App() {
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
+                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
                     <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                   </div>
                 </div>
