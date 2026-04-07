@@ -319,6 +319,7 @@ export default function App() {
   const [showMyPendingPanel, setShowMyPendingPanel] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [pendingFiles,         setPendingFiles]         = useState([]);
+  const [attachPopup,          setAttachPopup]          = useState(null); // task.id ou null
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
@@ -1391,7 +1392,7 @@ export default function App() {
     } else {
       const newNum = taskCounter + 1;
       setTaskCounter(c => c + 1);
-      const newTask = {...form, id:Date.now(), num:newNum};
+      const newTask = {...form, id:Date.now(), num:newNum, attachments:[]};
       setTasks(prev=>[...prev,newTask]);
       if (quickSchedule) {
         const id = newTask.id;
@@ -1677,6 +1678,35 @@ export default function App() {
               {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
             </label>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAttachPopup = () => {
+    if (!attachPopup) return null;
+    const task = getTask(attachPopup);
+    if (!task || !(task.attachments||[]).length) return null;
+    const fileIcon = (type) =>
+      type?.startsWith("image/") ? "🖼️" :
+      type === "application/pdf" ? "📄" :
+      type?.includes("word") ? "📝" :
+      (type?.includes("excel") || type?.includes("spreadsheet")) ? "📊" : "📎";
+    return (
+      <div onClick={() => setAttachPopup(null)} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:20,width:300,maxHeight:"60vh",overflowY:"auto",boxShadow:"0 0 30px #0000008a" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+            <div style={{ fontSize:10,color:theme.textMuted,letterSpacing:1,fontWeight:700 }}>📎 PIÈCES JOINTES ({task.attachments.length})</div>
+            <button onClick={() => setAttachPopup(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+          </div>
+          <div style={{ fontSize:11,color:theme.text,marginBottom:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          {task.attachments.map((att, i) => (
+            <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+              <span style={{ fontSize:13 }}>{fileIcon(att.type)}</span>
+              <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{att.name}</span>
+              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0,border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px" }}>Ouvrir</a>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -2742,7 +2772,7 @@ export default function App() {
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
-                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
+                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setAttachPopup(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
                     <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                   </div>
                 </div>
@@ -2767,6 +2797,9 @@ export default function App() {
 
       {/* Modal perso */}
       {renderModal()}
+
+      {/* Popup pièces jointes perso */}
+      {renderAttachPopup()}
 
       {/* Modal équipe + commentaires */}
       {renderTeamModal()}
