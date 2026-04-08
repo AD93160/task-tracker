@@ -1085,10 +1085,10 @@ export default function App() {
     if (!user || !file) return;
     const ALLOWED_TYPES = ["image/jpeg","image/png","image/gif","image/webp","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
     if (!ALLOWED_TYPES.some(t => file.type.startsWith("image/") || file.type === t)) {
-      setTeamError("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.");
+      toast("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.", true);
       return;
     }
-    if (file.size > 10 * 1024 * 1024) { setTeamError("Fichier trop volumineux (max 10 Mo)."); return; }
+    if (file.size > 10 * 1024 * 1024) { toast("Fichier trop volumineux (max 10 Mo).", true); return; }
     setUploadingAttachment(true);
     try {
       const path = isTeam
@@ -1103,7 +1103,7 @@ export default function App() {
       } else {
         setTasks(prev => prev.map(t => t.id === taskId ? {...t, attachments:[...(t.attachments||[]),attachment]} : t));
       }
-    } catch(e) { setTeamError(e.message); }
+    } catch(e) { toast(e.message || "Erreur lors de l'envoi du fichier.", true); }
     setUploadingAttachment(false);
   };
 
