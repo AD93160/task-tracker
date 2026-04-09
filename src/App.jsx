@@ -1082,7 +1082,8 @@ export default function App() {
   };
 
   const uploadAttachment = async (taskId, file, isTeam = false) => {
-    if (!user || !file) return;
+    if (!file) return;
+    if (!user) { toast("Connectez-vous pour ajouter des pièces jointes.", true); return; }
     const ALLOWED_TYPES = ["image/jpeg","image/png","image/gif","image/webp","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
     if (!ALLOWED_TYPES.some(t => file.type.startsWith("image/") || file.type === t)) {
       toast("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.", true);
