@@ -1013,6 +1013,13 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
+  const deleteComment = async (taskId, commentId) => {
+    if (!taskId || !team || !user) return;
+    try {
+      await deleteDoc(doc(db, "teams", team.id, "tasks", taskId, "comments", commentId));
+    } catch(e) { setTeamError(e.message); }
+  };
+
   const cycleTeamStatus = async (firestoreId, currentStatus) => {
     if (!team || !isAdminRole(teamRole)) return;
     const next = STATUSES[(STATUSES.indexOf(currentStatus) + 1) % STATUSES.length];
@@ -1727,9 +1734,12 @@ export default function App() {
             {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
             {teamComments.map(c => (
               <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
-                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                   <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
-                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                    <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    {c.authorUid === user?.uid && <button onClick={()=>deleteComment(commentPopup,c.id)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>}
+                  </div>
                 </div>
                 <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
               </div>
@@ -1779,9 +1789,12 @@ export default function App() {
             {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
             {teamComments.map(c => (
               <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
-                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                   <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
-                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                    <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    {c.authorUid === user?.uid && <button onClick={()=>deleteComment(teamModal,c.id)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>}
+                  </div>
                 </div>
                 <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
               </div>
