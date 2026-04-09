@@ -323,6 +323,7 @@ export default function App() {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
+  const [commentPopup,     setCommentPopup]     = useState(null); // firestoreId tâche (popup commentaires)
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
@@ -987,19 +988,21 @@ export default function App() {
   }, [team?.id, teamRole]);
 
   useEffect(() => {
-    if (!teamModal || !team) { setTeamComments([]); return; }
-    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", teamModal, "comments"), snap => {
+    const taskId = teamModal || commentPopup;
+    if (!taskId || !team) { setTeamComments([]); return; }
+    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", taskId, "comments"), snap => {
       const c = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       c.sort((a,b) => (a.createdAt||0)-(b.createdAt||0));
       setTeamComments(c);
     });
     return unsub;
-  }, [teamModal, team]);
+  }, [teamModal, commentPopup, team]);
 
   const addComment = async () => {
-    if (!commentInput.trim() || !teamModal || !team || !user) return;
+    const taskId = teamModal || commentPopup;
+    if (!commentInput.trim() || !taskId || !team || !user) return;
     try {
-      await addDoc(collection(db, "teams", team.id, "tasks", teamModal, "comments"), {
+      await addDoc(collection(db, "teams", team.id, "tasks", taskId, "comments"), {
         text: commentInput.trim(),
         authorUid: user.uid,
         authorEmail: user.email || "",
@@ -1703,6 +1706,41 @@ export default function App() {
               <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0,border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px" }}>Ouvrir</a>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCommentPopup = () => {
+    if (!commentPopup || !team) return null;
+    const task = teamTasks.find(t => t.id === commentPopup);
+    if (!task) return null;
+    return (
+      <div onClick={() => { setCommentPopup(null); setCommentInput(""); }} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:20,width:340,maxHeight:"70vh",overflowY:"auto",boxShadow:"0 0 30px #0000008a",display:"flex",flexDirection:"column",gap:0 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+            <div style={{ fontSize:10,color:theme.textMuted,letterSpacing:1,fontWeight:700 }}>💬 COMMENTAIRES ({teamComments.length})</div>
+            <button onClick={() => { setCommentPopup(null); setCommentInput(""); }} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+          </div>
+          <div style={{ fontSize:11,color:theme.text,marginBottom:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:12 }}>
+            {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
+            {teamComments.map(c => (
+              <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
+                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                  <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
+                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                </div>
+                <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
+              onKeyDown={e=>e.key==="Enter"&&addComment()}
+              style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
+            <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"8px 13px",color:"#fff",fontSize:14,cursor:"pointer" }}>↑</button>
+          </div>
         </div>
       </div>
     );
@@ -2658,7 +2696,7 @@ export default function App() {
                         {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
-                          <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
+                          <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
                           {(task.attachments||[]).length>0 && (
                             <span onClick={e=>{e.stopPropagation();setAttachPopup(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
                           )}
@@ -2808,10 +2846,13 @@ export default function App() {
       {/* Modal perso */}
       {renderModal()}
 
-      {/* Popup pièces jointes perso */}
+      {/* Popup pièces jointes */}
       {renderAttachPopup()}
 
-      {/* Modal équipe + commentaires */}
+      {/* Popup commentaires équipe */}
+      {renderCommentPopup()}
+
+      {/* Modal équipe */}
       {renderTeamModal()}
 
       {/* Stats */}
