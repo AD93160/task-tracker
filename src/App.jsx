@@ -2480,6 +2480,24 @@ export default function App() {
                         <span style={{ fontSize:10,color:form.notify?theme.text:theme.textMuted }}>🔔 Notifications</span>
                       </div>
                     </div>
+                    {editingId !== null && !teamSpace && (
+                      <div style={{ marginTop:4 }}>
+                        <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:1,marginBottom:6 }}>PIÈCES JOINTES ({(getTask(editingId)?.attachments||[]).length})</div>
+                        {(getTask(editingId)?.attachments||[]).map((att,i) => (
+                          <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+                            <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                              {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
+                            </span>
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                            <button onClick={e=>{e.preventDefault();deleteAttachment(editingId,att,false);}} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                          </div>
+                        ))}
+                        <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
+                          <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(editingId,f,false)); e.target.value=""; }}/>
+                          {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
+                        </label>
+                      </div>
+                    )}
                     <div style={{ display:"flex",gap:7,justifyContent:"flex-end" }}>
                       <button onClick={()=>{setShowForm(false);setEditingId(null);}}
                         style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
