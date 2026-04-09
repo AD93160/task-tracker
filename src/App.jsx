@@ -1379,7 +1379,7 @@ export default function App() {
       const becomingDone = form.status==="Terminé" && prevTask?.status !== "Terminé";
       setTasks(prev => prev.map(t => {
         if (t.id !== editingId) return t;
-        const updated = {...form, id:editingId, num:t.num, recurrence:form.recurrence||"none"};
+        const updated = {...form, id:editingId, num:t.num, recurrence:form.recurrence||"none", attachments:t.attachments||[]};
         if (becomingDone) updated.completion = buildCompletion({...t, ...form});
         else if (form.status !== "Terminé") updated.completion = null;
         return updated;
