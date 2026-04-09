@@ -320,6 +320,7 @@ export default function App() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [pendingFiles,         setPendingFiles]         = useState([]);
   const [attachPopup,          setAttachPopup]          = useState(null); // task.id ou null
+  const [filePopup,            setFilePopup]            = useState(null); // objet attachment
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
@@ -1675,7 +1676,7 @@ export default function App() {
                 <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                   {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
                 </span>
-                <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
                 <button onClick={()=>deleteAttachment(task.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
               </div>
             ))}
@@ -1684,6 +1685,34 @@ export default function App() {
               {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
             </label>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFilePopup = () => {
+    if (!filePopup) return null;
+    const isImage = filePopup.type?.startsWith("image/");
+    const isPdf   = filePopup.type === "application/pdf";
+    return (
+      <div onClick={() => setFilePopup(null)} style={{ position:"fixed",inset:0,background:"#000000cc",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:16,maxWidth:"92vw",maxHeight:"92vh",display:"flex",flexDirection:"column",gap:10,boxShadow:"0 0 40px #000000aa" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",gap:16 }}>
+            <span style={{ fontSize:11,color:theme.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1 }}>{filePopup.name}</span>
+            <div style={{ display:"flex",gap:8,flexShrink:0 }}>
+              <a href={filePopup.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px" }}>↗ Nouvel onglet</a>
+              <button onClick={() => setFilePopup(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",padding:0 }}>✕</button>
+            </div>
+          </div>
+          {isImage && <img src={filePopup.url} alt={filePopup.name} style={{ maxWidth:"85vw",maxHeight:"80vh",objectFit:"contain",borderRadius:8 }} />}
+          {isPdf   && <iframe src={filePopup.url} title={filePopup.name} style={{ width:"75vw",height:"75vh",border:"none",borderRadius:8 }} />}
+          {!isImage && !isPdf && (
+            <div style={{ fontSize:12,color:theme.textMuted,textAlign:"center",padding:"24px 0" }}>
+              <div style={{ fontSize:28,marginBottom:8 }}>📄</div>
+              <div style={{ marginBottom:12 }}>Prévisualisation non disponible pour ce type de fichier.</div>
+              <a href={filePopup.url} target="_blank" rel="noopener noreferrer" style={{ color:theme.accent,fontSize:12,border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 16px",textDecoration:"none" }}>Télécharger / Ouvrir</a>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1710,7 +1739,7 @@ export default function App() {
             <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
               <span style={{ fontSize:13 }}>{fileIcon(att.type)}</span>
               <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{att.name}</span>
-              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0,border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px" }}>Ouvrir</a>
+              <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
             </div>
           ))}
         </div>
@@ -1815,7 +1844,7 @@ export default function App() {
                 {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
               </span>
               <span style={{ fontSize:9,color:theme.textMuted,flexShrink:0 }}>{att.uploadedByEmail?.split("@")[0]}</span>
-              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+              <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
               <button onClick={()=>deleteAttachment(task.id,att,true)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
             </div>
           ))}
@@ -2539,7 +2568,7 @@ export default function App() {
                             <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                               {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
                             </span>
-                            <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                            <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
                             <button onClick={e=>{e.preventDefault();deleteAttachment(editingId,att,false);}} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
                           </div>
                         ))}
@@ -2858,6 +2887,9 @@ export default function App() {
 
       {/* Modal perso */}
       {renderModal()}
+
+      {/* Popup prévisualisation fichier */}
+      {renderFilePopup()}
 
       {/* Popup pièces jointes */}
       {renderAttachPopup()}
