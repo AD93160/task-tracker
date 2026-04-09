@@ -1449,11 +1449,6 @@ export default function App() {
       else if (date===tomorrowStr) addToTomorrow(id);
       else setScheduledIds(p=>[...p,{id,dueDate:date}]);
     }
-    // Upload pièces jointes sélectionnées pendant la création
-    if (pendingFiles.length > 0) {
-      for (const f of pendingFiles) await uploadAttachment(id, f, false);
-      setPendingFiles([]);
-    }
     resetForm();
   };
 
@@ -2501,21 +2496,17 @@ export default function App() {
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
                   {/* Pièces jointes — espace perso uniquement */}
-                  {!teamSpace && (
+                  {!teamSpace && pendingTask && (
                     <div style={{ marginBottom:12 }}>
-                      {pendingFiles.length > 0 && (
-                        <div style={{ marginBottom:6 }}>
-                          {pendingFiles.map((f,i) => (
-                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
-                              <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {f.name}</span>
-                              <button onClick={()=>setPendingFiles(p=>p.filter((_,j)=>j!==i))} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
-                            </div>
-                          ))}
+                      {(getTask(pendingTask.id)?.attachments||[]).map((att,i) => (
+                        <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
+                          <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {att.name}</span>
+                          <button onClick={()=>deleteAttachment(pendingTask.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
                         </div>
-                      )}
+                      ))}
                       <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ setPendingFiles(p=>[...p,...Array.from(e.target.files)]); e.target.value=""; }}/>
-                        📎 Ajouter des pièces jointes
+                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,false)); e.target.value=""; }}/>
+                        {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter des pièces jointes"}
                       </label>
                     </div>
                   )}
