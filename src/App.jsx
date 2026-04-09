@@ -1681,7 +1681,7 @@ export default function App() {
 
   const renderAttachPopup = () => {
     if (!attachPopup) return null;
-    const task = getTask(attachPopup);
+    const task = getTask(attachPopup) || teamTasks.find(t => t.id === attachPopup);
     if (!task || !(task.attachments||[]).length) return null;
     const fileIcon = (type) =>
       type?.startsWith("image/") ? "🖼️" :
@@ -2642,7 +2642,7 @@ export default function App() {
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
                           <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
                           {(task.attachments||[]).length>0 && (
-                            <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
+                            <span onClick={e=>{e.stopPropagation();setAttachPopup(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
                           )}
                           <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
                         </div>
