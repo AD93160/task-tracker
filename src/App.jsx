@@ -258,6 +258,7 @@ export default function App() {
   const [tomorrowIds,  setTomorrowIds]  = useState(() => load("tt_tomorrowIds", []));
   const [scheduledIds, setScheduledIds] = useState(() => load("tt_scheduledIds", []));
   const [highlighted,  setHighlighted]  = useState(() => load("tt_highlighted", []));
+  const [manuallyRemovedIds, setManuallyRemovedIds] = useState(() => load("tt_manuallyRemovedIds", []));
   const [modal,        setModal]        = useState(null);
   const [showForm,     setShowForm]     = useState(false);
   const [formStep,     setFormStep]     = useState(1);
@@ -487,8 +488,9 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_todayIds",     JSON.stringify(todayIds));     }, [todayIds]);
   useEffect(() => { localStorage.setItem("tt_todayDates",   JSON.stringify(todayDates));   }, [todayDates]);
   useEffect(() => { localStorage.setItem("tt_tomorrowIds",  JSON.stringify(tomorrowIds));  }, [tomorrowIds]);
-  useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
-  useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
+  useEffect(() => { localStorage.setItem("tt_scheduledIds",      JSON.stringify(scheduledIds));      }, [scheduledIds]);
+  useEffect(() => { localStorage.setItem("tt_highlighted",       JSON.stringify(highlighted));       }, [highlighted]);
+  useEffect(() => { localStorage.setItem("tt_manuallyRemovedIds",JSON.stringify(manuallyRemovedIds));}, [manuallyRemovedIds]);
   useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
   useEffect(() => { localStorage.setItem("tt_deleted",      JSON.stringify(deletedTasks));  }, [deletedTasks]);
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
@@ -598,7 +600,8 @@ export default function App() {
           // Réinitialiser les refs de sync pour ne pas sauvegarder des données vides
           firestoreLoaded.current = false;
           lastSavedSnapshot.current = null;
-          ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
+          ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter','tt_manuallyRemovedIds'].forEach(k => localStorage.removeItem(k));
+          setManuallyRemovedIds([]);
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
           setScheduledIds([]); setHighlighted([]); setTaskCounter(0);
@@ -1189,8 +1192,8 @@ export default function App() {
       return prev;
     });
     setScheduledIds(prev => {
-      const toToday    = prev.filter(e => e.dueDate <= today);
-      const toTomorrow = prev.filter(e => e.dueDate === tomorrowStr);
+      const toToday    = prev.filter(e => e.dueDate <= today    && !manuallyRemovedIds.includes(e.id));
+      const toTomorrow = prev.filter(e => e.dueDate === tomorrowStr && !manuallyRemovedIds.includes(e.id));
       const keep       = prev.filter(e => e.dueDate > tomorrowStr);
       if (toToday.length > 0) {
         setTodayIds(t => [...t, ...toToday.map(e=>e.id).filter(id=>!t.includes(id))]);
@@ -1202,11 +1205,11 @@ export default function App() {
       return keep;
     });
     tasks.forEach(t => {
-      if (t.due === tomorrowStr && !tomorrowIds.find(e=>e.id===t.id) && !todayIds.includes(t.id)) {
+      if (t.due === tomorrowStr && !tomorrowIds.find(e=>e.id===t.id) && !todayIds.includes(t.id) && !manuallyRemovedIds.includes(t.id)) {
         setTomorrowIds(p => p.find(e=>e.id===t.id) ? p : [...p, {id:t.id,addedDate:today}]);
       }
     });
-  }, [tasks]);
+  }, [tasks, manuallyRemovedIds]);
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1287,23 +1290,27 @@ export default function App() {
   };
 
   const addToToday = (id) => {
+    setManuallyRemovedIds(p => p.filter(i => i!==id));
     setTodayDates(d => ({...d, [id]:todayStr()}));
     setTodayIds(p => p.includes(id) ? p : [...p, id]);
     setHighlighted(p => p.includes(id) ? p : [...p, id]);
     setTasks(p => p.map(t => t.id===id&&t.status==="Terminé" ? {...t,status:"À faire"} : t));
   };
   const removeFromToday = (id) => {
+    setManuallyRemovedIds(p => p.includes(id) ? p : [...p, id]);
     setTodayDates(d => { const n={...d}; delete n[id]; return n; });
     setTodayIds(p => p.filter(i => i!==id));
     setModal(null);
   };
   const addToTomorrow = (id) => {
+    setManuallyRemovedIds(p => p.filter(i => i!==id));
     setTomorrowIds(p => p.find(e=>e.id===id) ? p : [...p, {id, addedDate:todayStr()}]);
     setHighlighted(p => p.includes(id) ? p : [...p, id]);
     setTasks(p => p.map(t => t.id===id&&t.status==="Terminé" ? {...t,status:"À faire"} : t));
     setTodayIds(p => p.filter(i => i!==id));
   };
   const removeFromTomorrow = (id) => {
+    setManuallyRemovedIds(p => p.includes(id) ? p : [...p, id]);
     setTomorrowIds(p => p.filter(e => e.id!==id));
     setScheduledIds(p => p.filter(e => e.id!==id));
     setModal(null);
@@ -1327,6 +1334,7 @@ export default function App() {
     setTomorrowIds(p=>p.filter(e=>e.id!==id));
     setScheduledIds(p=>p.filter(e=>e.id!==id));
     setHighlighted(p=>p.filter(i=>i!==id));
+    setManuallyRemovedIds(p=>p.filter(i=>i!==id));
   };
 
   const restoreTask = (task) => {
@@ -3166,7 +3174,8 @@ export default function App() {
 
             <button onClick={async()=>{
               if(!window.confirm("Effacer toutes tes tâches personnelles ? Tes données d'équipe ne seront pas affectées. Cette action est irréversible.")) return;
-              ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
+              ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter","tt_manuallyRemovedIds"].forEach(k=>localStorage.removeItem(k));
+              setManuallyRemovedIds([]);
               if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:true}); }catch(e){} }
               window.location.reload();
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
