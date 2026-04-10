@@ -509,6 +509,18 @@ test.describe('Desktop — Page perso', () => {
 
   // ── 17. Cycle complet ─────────────────────────────────────────────────
 
+  // ── 18. Pièces jointes dans le formulaire ────────────────────────────
+
+  test('le formulaire étape 2 propose d\'ajouter des pièces jointes', async ({ page }) => {
+    await waitForApp(page);
+    await openNewTaskForm(page, 'Tâche PJ');
+    await page.getByRole('button', { name: 'Suivant →' }).click();
+    await expect(page.getByText('QUAND PLANIFIER ?')).toBeVisible();
+    await expect(page.getByText(/📎 Ajouter des pièces jointes/)).toBeVisible();
+  });
+
+  // ── 19. Cycle complet ─────────────────────────────────────────────────
+
   test('cycle complet : créer → éditer → dupliquer → supprimer', async ({ page }) => {
     await waitForApp(page);
     await createTask(page, 'Lifecycle Task');
@@ -853,6 +865,51 @@ test.describe('Desktop — Page équipe (admin)', () => {
     await page.getByRole('button', { name: 'Perso' }).first().click();
     await expect(page.getByText('TÂCHES — TEST TEAM')).not.toBeVisible();
     await expect(page.getByRole('button', { name: '+ Ajouter' })).toBeVisible();
+  });
+
+  test('le span 💬 commentaires dans la ligne ouvre la modale', async ({ page }) => {
+    await waitForApp(page);
+    await switchToTeamSpace(page);
+    await page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: '💬 Commentaires' }).click();
+    await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible();
+  });
+
+  test('le span 📎 avec compteur est visible sur la tâche avec pièces jointes', async ({ page }) => {
+    // Injecter une tâche avec 1 pièce jointe
+    const dataWithAttach = {
+      ...TEAM_ADMIN_DATA,
+      'teams/team-1/tasks': [{
+        id: 'task-team-1', title: 'Tâche équipe', priority: 'Haute', status: 'À faire', num: 1,
+        createdBy: 'test-uid-123', createdByEmail: 'test@test.com',
+        scheduledFor: null, due: '', notes: '',
+        attachments: [{ name: 'rapport.pdf', url: 'https://storage.example.com/rapport.pdf', size: 4096 }],
+      }],
+    };
+    await page.addInitScript(d => { window.__testFirestoreData = d; }, dataWithAttach);
+    await waitForApp(page);
+    await switchToTeamSpace(page);
+    await expect(
+      page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: /📎/ })
+    ).toBeVisible();
+  });
+
+  test('le span 🔔 de notification est visible dans les lignes équipe', async ({ page }) => {
+    await waitForApp(page);
+    await switchToTeamSpace(page);
+    await expect(
+      page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: '🔔' })
+    ).toBeVisible();
+  });
+
+  test('le panneau En attente affiche le diff champ par champ', async ({ page }) => {
+    await waitForApp(page);
+    await switchToTeamSpace(page);
+    await page.locator('button').filter({ hasText: '⏳ En attente' }).first().click();
+    await expect(page.getByText('MODIFICATIONS EN ATTENTE')).toBeVisible();
+    // La modification propose title 'Tâche équipe' → 'Tâche modifiée' et status 'À faire' → 'En cours'
+    await expect(page.getByText('Tâche modifiée')).toBeVisible();
+    await expect(page.getByText('En cours')).toBeVisible();
+    await page.mouse.click(10, 10);
   });
 });
 

@@ -107,6 +107,18 @@ test.describe('Desktop — Corbeille perso', () => {
     await page.locator('button').filter({ hasText: '✕' }).last().click();
     await expect(page.getByText('Tâche définitive D')).not.toBeVisible({ timeout: 3000 });
   });
+
+  test('le bouton Vider supprime toutes les tâches de la corbeille', async ({ page }) => {
+    await waitForApp(page);
+    await createTask(page, 'Tâche vider D');
+    await taskRow(page, 'Tâche vider D').locator('button.delbtn').click();
+    await openStats(page);
+    await page.getByText(/Corbeille/).click();
+    await expect(page.getByText(/🗑️ CORBEILLE/)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Tâche vider D')).toBeVisible();
+    await page.getByRole('button', { name: 'Vider' }).click();
+    await expect(page.getByText('Tâche vider D')).not.toBeVisible({ timeout: 3000 });
+  });
 });
 
 // ── Mobile — Corbeille perso ──────────────────────────────────────────
@@ -148,6 +160,18 @@ test.describe('Mobile — Corbeille perso', () => {
     await page.getByText(/Corbeille/).click();
     await page.getByRole('button', { name: '↩ Restaurer' }).click();
     await expect(page.getByText('Tâche restaurer M')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('le bouton Vider supprime toutes les tâches de la corbeille', async ({ page }) => {
+    await waitForApp(page);
+    await createTask(page, 'Tâche vider M');
+    await taskRow(page, 'Tâche vider M').locator('button.delbtn').click();
+    await openStats(page);
+    await page.getByText(/Corbeille/).click();
+    await expect(page.getByText(/🗑️ CORBEILLE/)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Tâche vider M')).toBeVisible();
+    await page.getByRole('button', { name: 'Vider' }).click();
+    await expect(page.getByText('Tâche vider M')).not.toBeVisible({ timeout: 3000 });
   });
 });
 

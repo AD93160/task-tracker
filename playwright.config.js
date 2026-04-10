@@ -15,7 +15,7 @@ export default defineConfig({
     actionTimeout: 10000,
     // Use existing Chromium installation
     launchOptions: {
-      executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
+      executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     },
   },

@@ -258,6 +258,7 @@ export default function App() {
   const [tomorrowIds,  setTomorrowIds]  = useState(() => load("tt_tomorrowIds", []));
   const [scheduledIds, setScheduledIds] = useState(() => load("tt_scheduledIds", []));
   const [highlighted,  setHighlighted]  = useState(() => load("tt_highlighted", []));
+  const [manuallyRemovedIds, setManuallyRemovedIds] = useState(() => load("tt_manuallyRemovedIds", []));
   const [modal,        setModal]        = useState(null);
   const [showForm,     setShowForm]     = useState(false);
   const [formStep,     setFormStep]     = useState(1);
@@ -319,9 +320,12 @@ export default function App() {
   const [showMyPendingPanel, setShowMyPendingPanel] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [pendingFiles,         setPendingFiles]         = useState([]);
+  const [attachPopup,          setAttachPopup]          = useState(null); // task.id ou null
+  const [filePopup,            setFilePopup]            = useState(null); // objet attachment
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
+  const [commentPopup,     setCommentPopup]     = useState(null); // firestoreId tâche (popup commentaires)
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
@@ -484,8 +488,9 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_todayIds",     JSON.stringify(todayIds));     }, [todayIds]);
   useEffect(() => { localStorage.setItem("tt_todayDates",   JSON.stringify(todayDates));   }, [todayDates]);
   useEffect(() => { localStorage.setItem("tt_tomorrowIds",  JSON.stringify(tomorrowIds));  }, [tomorrowIds]);
-  useEffect(() => { localStorage.setItem("tt_scheduledIds", JSON.stringify(scheduledIds)); }, [scheduledIds]);
-  useEffect(() => { localStorage.setItem("tt_highlighted",  JSON.stringify(highlighted));  }, [highlighted]);
+  useEffect(() => { localStorage.setItem("tt_scheduledIds",      JSON.stringify(scheduledIds));      }, [scheduledIds]);
+  useEffect(() => { localStorage.setItem("tt_highlighted",       JSON.stringify(highlighted));       }, [highlighted]);
+  useEffect(() => { localStorage.setItem("tt_manuallyRemovedIds",JSON.stringify(manuallyRemovedIds));}, [manuallyRemovedIds]);
   useEffect(() => { localStorage.setItem("tt_counter",      JSON.stringify(taskCounter));   }, [taskCounter]);
   useEffect(() => { localStorage.setItem("tt_deleted",      JSON.stringify(deletedTasks));  }, [deletedTasks]);
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
@@ -595,7 +600,8 @@ export default function App() {
           // Réinitialiser les refs de sync pour ne pas sauvegarder des données vides
           firestoreLoaded.current = false;
           lastSavedSnapshot.current = null;
-          ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter'].forEach(k => localStorage.removeItem(k));
+          ['tt_tasks','tt_todayIds','tt_todayDates','tt_tomorrowIds','tt_scheduledIds','tt_highlighted','tt_counter','tt_manuallyRemovedIds'].forEach(k => localStorage.removeItem(k));
+          setManuallyRemovedIds([]);
           setTasks(INIT);
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
           setScheduledIds([]); setHighlighted([]); setTaskCounter(0);
@@ -986,19 +992,21 @@ export default function App() {
   }, [team?.id, teamRole]);
 
   useEffect(() => {
-    if (!teamModal || !team) { setTeamComments([]); return; }
-    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", teamModal, "comments"), snap => {
+    const taskId = teamModal || commentPopup;
+    if (!taskId || !team) { setTeamComments([]); return; }
+    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", taskId, "comments"), snap => {
       const c = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       c.sort((a,b) => (a.createdAt||0)-(b.createdAt||0));
       setTeamComments(c);
     });
     return unsub;
-  }, [teamModal, team]);
+  }, [teamModal, commentPopup, team]);
 
   const addComment = async () => {
-    if (!commentInput.trim() || !teamModal || !team || !user) return;
+    const taskId = teamModal || commentPopup;
+    if (!commentInput.trim() || !taskId || !team || !user) return;
     try {
-      await addDoc(collection(db, "teams", team.id, "tasks", teamModal, "comments"), {
+      await addDoc(collection(db, "teams", team.id, "tasks", taskId, "comments"), {
         text: commentInput.trim(),
         authorUid: user.uid,
         authorEmail: user.email || "",
@@ -1006,6 +1014,13 @@ export default function App() {
         createdAt: Date.now()
       });
       setCommentInput("");
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const deleteComment = async (taskId, commentId) => {
+    if (!taskId || !team || !user) return;
+    try {
+      await deleteDoc(doc(db, "teams", team.id, "tasks", taskId, "comments", commentId));
     } catch(e) { setTeamError(e.message); }
   };
 
@@ -1081,13 +1096,14 @@ export default function App() {
   };
 
   const uploadAttachment = async (taskId, file, isTeam = false) => {
-    if (!user || !file) return;
+    if (!file) return;
+    if (!user) { toast("Connectez-vous pour ajouter des pièces jointes.", true); return; }
     const ALLOWED_TYPES = ["image/jpeg","image/png","image/gif","image/webp","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
     if (!ALLOWED_TYPES.some(t => file.type.startsWith("image/") || file.type === t)) {
-      setTeamError("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.");
+      toast("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.", true);
       return;
     }
-    if (file.size > 10 * 1024 * 1024) { setTeamError("Fichier trop volumineux (max 10 Mo)."); return; }
+    if (file.size > 10 * 1024 * 1024) { toast("Fichier trop volumineux (max 10 Mo).", true); return; }
     setUploadingAttachment(true);
     try {
       const path = isTeam
@@ -1102,7 +1118,7 @@ export default function App() {
       } else {
         setTasks(prev => prev.map(t => t.id === taskId ? {...t, attachments:[...(t.attachments||[]),attachment]} : t));
       }
-    } catch(e) { setTeamError(e.message); }
+    } catch(e) { toast(e.message || "Erreur lors de l'envoi du fichier.", true); }
     setUploadingAttachment(false);
   };
 
@@ -1176,8 +1192,8 @@ export default function App() {
       return prev;
     });
     setScheduledIds(prev => {
-      const toToday    = prev.filter(e => e.dueDate <= today);
-      const toTomorrow = prev.filter(e => e.dueDate === tomorrowStr);
+      const toToday    = prev.filter(e => e.dueDate <= today    && !manuallyRemovedIds.includes(e.id));
+      const toTomorrow = prev.filter(e => e.dueDate === tomorrowStr && !manuallyRemovedIds.includes(e.id));
       const keep       = prev.filter(e => e.dueDate > tomorrowStr);
       if (toToday.length > 0) {
         setTodayIds(t => [...t, ...toToday.map(e=>e.id).filter(id=>!t.includes(id))]);
@@ -1189,11 +1205,11 @@ export default function App() {
       return keep;
     });
     tasks.forEach(t => {
-      if (t.due === tomorrowStr && !tomorrowIds.find(e=>e.id===t.id) && !todayIds.includes(t.id)) {
+      if (t.due === tomorrowStr && !tomorrowIds.find(e=>e.id===t.id) && !todayIds.includes(t.id) && !manuallyRemovedIds.includes(t.id)) {
         setTomorrowIds(p => p.find(e=>e.id===t.id) ? p : [...p, {id:t.id,addedDate:today}]);
       }
     });
-  }, [tasks]);
+  }, [tasks, manuallyRemovedIds]);
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1274,23 +1290,27 @@ export default function App() {
   };
 
   const addToToday = (id) => {
+    setManuallyRemovedIds(p => p.filter(i => i!==id));
     setTodayDates(d => ({...d, [id]:todayStr()}));
     setTodayIds(p => p.includes(id) ? p : [...p, id]);
     setHighlighted(p => p.includes(id) ? p : [...p, id]);
     setTasks(p => p.map(t => t.id===id&&t.status==="Terminé" ? {...t,status:"À faire"} : t));
   };
   const removeFromToday = (id) => {
+    setManuallyRemovedIds(p => p.includes(id) ? p : [...p, id]);
     setTodayDates(d => { const n={...d}; delete n[id]; return n; });
     setTodayIds(p => p.filter(i => i!==id));
     setModal(null);
   };
   const addToTomorrow = (id) => {
+    setManuallyRemovedIds(p => p.filter(i => i!==id));
     setTomorrowIds(p => p.find(e=>e.id===id) ? p : [...p, {id, addedDate:todayStr()}]);
     setHighlighted(p => p.includes(id) ? p : [...p, id]);
     setTasks(p => p.map(t => t.id===id&&t.status==="Terminé" ? {...t,status:"À faire"} : t));
     setTodayIds(p => p.filter(i => i!==id));
   };
   const removeFromTomorrow = (id) => {
+    setManuallyRemovedIds(p => p.includes(id) ? p : [...p, id]);
     setTomorrowIds(p => p.filter(e => e.id!==id));
     setScheduledIds(p => p.filter(e => e.id!==id));
     setModal(null);
@@ -1314,6 +1334,7 @@ export default function App() {
     setTomorrowIds(p=>p.filter(e=>e.id!==id));
     setScheduledIds(p=>p.filter(e=>e.id!==id));
     setHighlighted(p=>p.filter(i=>i!==id));
+    setManuallyRemovedIds(p=>p.filter(i=>i!==id));
   };
 
   const restoreTask = (task) => {
@@ -1377,7 +1398,7 @@ export default function App() {
       const becomingDone = form.status==="Terminé" && prevTask?.status !== "Terminé";
       setTasks(prev => prev.map(t => {
         if (t.id !== editingId) return t;
-        const updated = {...form, id:editingId, num:t.num, recurrence:form.recurrence||"none"};
+        const updated = {...form, id:editingId, num:t.num, recurrence:form.recurrence||"none", attachments:t.attachments||[]};
         if (becomingDone) updated.completion = buildCompletion({...t, ...form});
         else if (form.status !== "Terminé") updated.completion = null;
         return updated;
@@ -1391,7 +1412,7 @@ export default function App() {
     } else {
       const newNum = taskCounter + 1;
       setTaskCounter(c => c + 1);
-      const newTask = {...form, id:Date.now(), num:newNum};
+      const newTask = {...form, id:Date.now(), num:newNum, attachments:[]};
       setTasks(prev=>[...prev,newTask]);
       if (quickSchedule) {
         const id = newTask.id;
@@ -1446,11 +1467,6 @@ export default function App() {
       if (date===today) addToToday(id);
       else if (date===tomorrowStr) addToTomorrow(id);
       else setScheduledIds(p=>[...p,{id,dueDate:date}]);
-    }
-    // Upload pièces jointes sélectionnées pendant la création
-    if (pendingFiles.length > 0) {
-      for (const f of pendingFiles) await uploadAttachment(id, f, false);
-      setPendingFiles([]);
     }
     resetForm();
   };
@@ -1668,7 +1684,7 @@ export default function App() {
                 <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                   {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
                 </span>
-                <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
                 <button onClick={()=>deleteAttachment(task.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
               </div>
             ))}
@@ -1676,6 +1692,101 @@ export default function App() {
               <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(task.id,f,false)); e.target.value=""; }}/>
               {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
             </label>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFilePopup = () => {
+    if (!filePopup) return null;
+    const isImage = filePopup.type?.startsWith("image/");
+    const isPdf   = filePopup.type === "application/pdf";
+    return (
+      <div onClick={() => setFilePopup(null)} style={{ position:"fixed",inset:0,background:"#000000cc",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:16,maxWidth:"92vw",maxHeight:"92vh",display:"flex",flexDirection:"column",gap:10,boxShadow:"0 0 40px #000000aa" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",gap:16 }}>
+            <span style={{ fontSize:11,color:theme.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1 }}>{filePopup.name}</span>
+            <div style={{ display:"flex",gap:8,flexShrink:0 }}>
+              <a href={filePopup.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px" }}>↗ Nouvel onglet</a>
+              <button onClick={() => setFilePopup(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",padding:0 }}>✕</button>
+            </div>
+          </div>
+          {isImage && <img src={filePopup.url} alt={filePopup.name} style={{ maxWidth:"85vw",maxHeight:"80vh",objectFit:"contain",borderRadius:8 }} />}
+          {isPdf   && <iframe src={filePopup.url} title={filePopup.name} style={{ width:"75vw",height:"75vh",border:"none",borderRadius:8 }} />}
+          {!isImage && !isPdf && (
+            <div style={{ fontSize:12,color:theme.textMuted,textAlign:"center",padding:"24px 0" }}>
+              <div style={{ fontSize:28,marginBottom:8 }}>📄</div>
+              <div style={{ marginBottom:12 }}>Prévisualisation non disponible pour ce type de fichier.</div>
+              <a href={filePopup.url} target="_blank" rel="noopener noreferrer" style={{ color:theme.accent,fontSize:12,border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 16px",textDecoration:"none" }}>Télécharger / Ouvrir</a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAttachPopup = () => {
+    if (!attachPopup) return null;
+    const task = getTask(attachPopup) || teamTasks.find(t => t.id === attachPopup);
+    if (!task || !(task.attachments||[]).length) return null;
+    const fileIcon = (type) =>
+      type?.startsWith("image/") ? "🖼️" :
+      type === "application/pdf" ? "📄" :
+      type?.includes("word") ? "📝" :
+      (type?.includes("excel") || type?.includes("spreadsheet")) ? "📊" : "📎";
+    return (
+      <div onClick={() => setAttachPopup(null)} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:20,width:300,maxHeight:"60vh",overflowY:"auto",boxShadow:"0 0 30px #0000008a" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+            <div style={{ fontSize:10,color:theme.textMuted,letterSpacing:1,fontWeight:700 }}>📎 PIÈCES JOINTES ({task.attachments.length})</div>
+            <button onClick={() => setAttachPopup(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+          </div>
+          <div style={{ fontSize:11,color:theme.text,marginBottom:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          {task.attachments.map((att, i) => (
+            <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+              <span style={{ fontSize:13 }}>{fileIcon(att.type)}</span>
+              <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{att.name}</span>
+              <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCommentPopup = () => {
+    if (!commentPopup || !team) return null;
+    const task = teamTasks.find(t => t.id === commentPopup);
+    if (!task) return null;
+    return (
+      <div onClick={() => { setCommentPopup(null); setCommentInput(""); }} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:14,padding:20,width:340,maxHeight:"70vh",overflowY:"auto",boxShadow:"0 0 30px #0000008a",display:"flex",flexDirection:"column",gap:0 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+            <div style={{ fontSize:10,color:theme.textMuted,letterSpacing:1,fontWeight:700 }}>💬 COMMENTAIRES ({teamComments.length})</div>
+            <button onClick={() => { setCommentPopup(null); setCommentInput(""); }} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+          </div>
+          <div style={{ fontSize:11,color:theme.text,marginBottom:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:12 }}>
+            {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
+            {teamComments.map(c => (
+              <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
+                  <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                    <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    {c.authorUid === user?.uid && <button onClick={()=>deleteComment(commentPopup,c.id)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>}
+                  </div>
+                </div>
+                <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
+              onKeyDown={e=>e.key==="Enter"&&addComment()}
+              style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
+            <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"8px 13px",color:"#fff",fontSize:14,cursor:"pointer" }}>↑</button>
           </div>
         </div>
       </div>
@@ -1715,9 +1826,12 @@ export default function App() {
             {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
             {teamComments.map(c => (
               <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
-                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                   <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
-                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                    <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    {c.authorUid === user?.uid && <button onClick={()=>deleteComment(teamModal,c.id)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>}
+                  </div>
                 </div>
                 <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
               </div>
@@ -1738,7 +1852,7 @@ export default function App() {
                 {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
               </span>
               <span style={{ fontSize:9,color:theme.textMuted,flexShrink:0 }}>{att.uploadedByEmail?.split("@")[0]}</span>
-              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+              <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
               <button onClick={()=>deleteAttachment(task.id,att,true)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
             </div>
           ))}
@@ -2454,6 +2568,24 @@ export default function App() {
                         <span style={{ fontSize:10,color:form.notify?theme.text:theme.textMuted }}>🔔 Notifications</span>
                       </div>
                     </div>
+                    {editingId !== null && !teamSpace && (
+                      <div style={{ marginTop:4 }}>
+                        <div style={{ fontSize:9,color:theme.textMuted,letterSpacing:1,marginBottom:6 }}>PIÈCES JOINTES ({(getTask(editingId)?.attachments||[]).length})</div>
+                        {(getTask(editingId)?.attachments||[]).map((att,i) => (
+                          <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
+                            <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                              {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
+                            </span>
+                            <button onClick={()=>setFilePopup(att)} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"2px 6px",color:theme.accent,fontSize:10,cursor:"pointer",flexShrink:0 }}>Ouvrir</button>
+                            <button onClick={e=>{e.preventDefault();deleteAttachment(editingId,att,false);}} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                          </div>
+                        ))}
+                        <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
+                          <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(editingId,f,false)); e.target.value=""; }}/>
+                          {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
+                        </label>
+                      </div>
+                    )}
                     <div style={{ display:"flex",gap:7,justifyContent:"flex-end" }}>
                       <button onClick={()=>{setShowForm(false);setEditingId(null);}}
                         style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
@@ -2470,21 +2602,17 @@ export default function App() {
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
                   {/* Pièces jointes — espace perso uniquement */}
-                  {!teamSpace && (
+                  {!teamSpace && pendingTask && (
                     <div style={{ marginBottom:12 }}>
-                      {pendingFiles.length > 0 && (
-                        <div style={{ marginBottom:6 }}>
-                          {pendingFiles.map((f,i) => (
-                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
-                              <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {f.name}</span>
-                              <button onClick={()=>setPendingFiles(p=>p.filter((_,j)=>j!==i))} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
-                            </div>
-                          ))}
+                      {(getTask(pendingTask.id)?.attachments||[]).map((att,i) => (
+                        <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
+                          <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {att.name}</span>
+                          <button onClick={()=>deleteAttachment(pendingTask.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
                         </div>
-                      )}
+                      ))}
                       <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ setPendingFiles(p=>[...p,...Array.from(e.target.files)]); e.target.value=""; }}/>
-                        📎 Ajouter des pièces jointes
+                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,false)); e.target.value=""; }}/>
+                        {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter des pièces jointes"}
                       </label>
                     </div>
                   )}
@@ -2618,9 +2746,9 @@ export default function App() {
                         {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
                           <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
-                          <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
+                          <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
                           {(task.attachments||[]).length>0 && (
-                            <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
+                            <span onClick={e=>{e.stopPropagation();setAttachPopup(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
                           )}
                           <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
                         </div>
@@ -2742,7 +2870,7 @@ export default function App() {
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
-                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
+                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setAttachPopup(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
                     <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                   </div>
                 </div>
@@ -2768,7 +2896,16 @@ export default function App() {
       {/* Modal perso */}
       {renderModal()}
 
-      {/* Modal équipe + commentaires */}
+      {/* Popup prévisualisation fichier */}
+      {renderFilePopup()}
+
+      {/* Popup pièces jointes */}
+      {renderAttachPopup()}
+
+      {/* Popup commentaires équipe */}
+      {renderCommentPopup()}
+
+      {/* Modal équipe */}
       {renderTeamModal()}
 
       {/* Stats */}
@@ -3037,7 +3174,8 @@ export default function App() {
 
             <button onClick={async()=>{
               if(!window.confirm("Effacer toutes tes tâches personnelles ? Tes données d'équipe ne seront pas affectées. Cette action est irréversible.")) return;
-              ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter"].forEach(k=>localStorage.removeItem(k));
+              ["tt_tasks","tt_todayIds","tt_todayDates","tt_tomorrowIds","tt_scheduledIds","tt_highlighted","tt_numMode","tt_counter","tt_manuallyRemovedIds"].forEach(k=>localStorage.removeItem(k));
+              setManuallyRemovedIds([]);
               if(user){ try{ await setDoc(doc(db,"users",user.uid),{tasks:[],todayIds:[],todayDates:[],tomorrowIds:[],scheduledIds:[],highlighted:[],taskCounter:0},{merge:true}); }catch(e){} }
               window.location.reload();
             }} style={{ width:"100%",background:"transparent",border:"1px solid #5a1a1a",borderRadius:8,padding:"9px",color:"#aa3030",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
