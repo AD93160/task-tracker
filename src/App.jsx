@@ -367,12 +367,12 @@ export default function App() {
   ];
   const PRESETS = {
     dark: [
-      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#444466", border:"#1a1a3a" },
-      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#2a442a", border:"#1a3a1a" },
-      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#442a2a", border:"#3a1a1a" },
-      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#2a3a55", border:"#1a2a3a" },
-      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#444444", border:"#222222" },
-      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#3a2a55", border:"#2a1a3a" },
+      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#8888aa", border:"#1a1a3a" },
+      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#6a9a6a", border:"#1a3a1a" },
+      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#9a7878", border:"#3a1a1a" },
+      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#6a8aaa", border:"#1a2a3a" },
+      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#888888", border:"#222222" },
+      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
     ],
     light: [
       { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
