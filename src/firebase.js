@@ -2,7 +2,6 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,15 +17,3 @@ export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 export const storage = getStorage(app);
-
-// Firebase Messaging (push notifications en arrière-plan)
-// Initialisé de manière asynchrone car non disponible dans tous les contextes (Safari, etc.)
-export const getMessagingInstance = async () => {
-  try {
-    const supported = await isSupported();
-    if (!supported) return null;
-    return getMessaging(app);
-  } catch {
-    return null;
-  }
-};

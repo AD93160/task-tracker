@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo, Component } from "react";
-import { auth, provider, db, storage, getMessagingInstance } from "./firebase";
-import { getToken, onMessage } from "firebase/messaging";
+import { auth, provider, db, storage } from "./firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
@@ -368,12 +367,12 @@ export default function App() {
   ];
   const PRESETS = {
     dark: [
-      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#8888aa", border:"#1a1a3a" },
-      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#6a9a6a", border:"#1a3a1a" },
-      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#9a7878", border:"#3a1a1a" },
-      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#6a8aaa", border:"#1a2a3a" },
-      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#888888", border:"#222222" },
-      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
+      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#444466", border:"#1a1a3a" },
+      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#2a442a", border:"#1a3a1a" },
+      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#442a2a", border:"#3a1a1a" },
+      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#2a3a55", border:"#1a2a3a" },
+      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#444444", border:"#222222" },
+      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#3a2a55", border:"#2a1a3a" },
     ],
     light: [
       { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
@@ -527,64 +526,6 @@ export default function App() {
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
   }, []);
-
-  // ── Push notifications en arrière-plan (FCM) ──────────────────────
-  useEffect(() => {
-    if (!user) return;
-    let swReg = null;
-
-    const setupFCM = async () => {
-      try {
-        if (!("serviceWorker" in navigator)) return;
-        if (!import.meta.env.VITE_FIREBASE_VAPID_KEY) return;
-
-        // Enregistre le service worker FCM
-        swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
-
-        // Transmet la config Firebase au SW pour qu'il puisse s'initialiser
-        const config = {
-          apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-          authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-          projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-          storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-          appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-        };
-        const sw = swReg.installing || swReg.waiting || swReg.active;
-        if (sw) sw.postMessage({ type: "FIREBASE_CONFIG", config });
-
-        const messaging = await getMessagingInstance();
-        if (!messaging) return;
-
-        // Demande la permission et récupère le token FCM
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") return;
-
-        const fcmToken = await getToken(messaging, {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-          serviceWorkerRegistration: swReg,
-        });
-
-        if (fcmToken) {
-          // Sauvegarde le token FCM dans Firestore pour l'envoi côté serveur
-          await setDoc(doc(db, "users", user.uid), { fcmToken }, { merge: true });
-        }
-
-        // Notifications quand l'app est au premier plan
-        const unsubMsg = onMessage(messaging, (payload) => {
-          const { title, body } = payload.notification || {};
-          if (title) sendNotif(title, body || "", payload.data?.tag || "fcm");
-        });
-        return unsubMsg;
-      } catch (e) {
-        console.warn("FCM setup failed:", e);
-      }
-    };
-
-    const cleanup = setupFCM();
-    return () => { cleanup?.then?.(fn => fn?.()); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid]);
 
   // Mise à jour du callback quotidien à chaque render (évite les closures périmées)
   sendDailyNotifCb.current = () => {
@@ -1393,44 +1334,6 @@ export default function App() {
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
-  const duplicateTeamTask = async (task) => {
-    if (!team || !isAdminRole(teamRole)) return;
-    try {
-      const newNum = (team.taskCounter || 0) + 1;
-      await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
-      await addDoc(collection(db, "teams", team.id, "tasks"), {
-        title: task.title, priority: task.priority||"Moyenne", status:"À faire",
-        due: task.due||"", notes: task.notes||"", notify: task.notify!==false,
-        recurrence: task.recurrence||"none", completion: null,
-        id: Date.now(), num: newNum, createdBy: user.uid, createdAt: serverTimestamp(),
-        scheduledFor: null
-      });
-      toast("Tâche dupliquée !");
-    } catch(e) { setTeamError(e.message); }
-  };
-
-  const cancelStep2 = async () => {
-    // Perso : supprimer la tâche déjà créée
-    if (!teamSpace && pendingTask && !pendingMemberProposal) {
-      setTasks(p => p.filter(t => t.id !== pendingTask.id));
-      setTaskCounter(c => c - 1);
-      setTodayIds(p => p.filter(i => i !== pendingTask.id));
-      setTodayDates(d => { const n={...d}; delete n[pendingTask.id]; return n; });
-      setTomorrowIds(p => p.filter(e => e.id !== pendingTask.id));
-      setScheduledIds(p => p.filter(e => e.id !== pendingTask.id));
-    }
-    // Équipe admin : supprimer le doc Firestore déjà créé
-    if (teamSpace && pendingTeamTaskId && team) {
-      try { await deleteDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId)); } catch(e) {}
-    }
-    setPendingFiles([]);
-    setPendingMemberProposal(null);
-    setPendingTeamTaskId(null);
-    setPendingTask(null);
-    setFormStep(1);
-    setShowForm(false);
-  };
-
   const openEdit = (task) => {
     setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none"});
     setEditingId(task.id); setShowForm(true);
@@ -1525,9 +1428,6 @@ export default function App() {
     if (pendingTeamTaskId && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try { await updateDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId), { scheduledFor: scheduled }); } catch(e) {}
-      if (pendingFiles.length > 0) {
-        for (const f of pendingFiles) await uploadAttachment(pendingTeamTaskId, f, true);
-      }
       setPendingTeamTaskId(null);
       resetForm();
       return;
@@ -2569,8 +2469,8 @@ export default function App() {
                   <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,marginBottom:4 }}>QUAND PLANIFIER ?</div>
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
-                  {/* Pièces jointes — perso ou admin équipe */}
-                  {(!teamSpace || (teamSpace && pendingTeamTaskId && !pendingMemberProposal)) && (
+                  {/* Pièces jointes — espace perso uniquement */}
+                  {!teamSpace && (
                     <div style={{ marginBottom:12 }}>
                       {pendingFiles.length > 0 && (
                         <div style={{ marginBottom:6 }}>
@@ -2624,7 +2524,7 @@ export default function App() {
                     </button>
                   </div>
                   <div style={{ display:"flex",justifyContent:"flex-end",marginTop:10 }}>
-                    <button onClick={cancelStep2}
+                    <button onClick={()=>{setPendingMemberProposal(null);setPendingTeamTaskId(null);setPendingTask(null);setFormStep(1);setShowForm(false);}}
                       style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
                   </div>
                 </>
@@ -2653,31 +2553,10 @@ export default function App() {
                     </button>
                   )}
                   {isMobile && (
-                    <>
-                      <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                        style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",textAlign:"center" }}>
-                        {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
-                      </button>
-                      <div style={{ position:"relative" }}>
-                        <button onClick={listening?stopVoice:startVoice}
-                          style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"5px 10px",fontSize:14,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                          {listening?"⏹":"🎙️"}
-                          {listening && <span style={{ position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
-                        </button>
-                        {voiceError && (
-                          <div style={{ position:"absolute",top:36,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
-                            {voiceError}
-                            <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
-                          </div>
-                        )}
-                        {listening && (
-                          <div style={{ position:"absolute",top:36,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
-                            <span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
-                            En écoute…
-                          </div>
-                        )}
-                      </div>
-                    </>
+                    <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                      style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>
+                      {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
+                    </button>
                   )}
                 </div>
               </div>
@@ -2711,9 +2590,6 @@ export default function App() {
                   const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
                   const dot = STATUS_DOT[task.status]||"#888";
                   const isTeamGhost = ghost?.id===task.id;
-                  const toggleNotify = (e) => { e.stopPropagation(); const cur=(task.notifyUsers||{})[user.uid]!==false; const nv=!cur; updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv}); setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t)); };
-                  const hasPending = isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id);
-                  const notified = (task.notifyUsers||{})[user.uid]!==false;
                   return (
                     <div key={task.id} className="row"
                       draggable={isAdminRole(teamRole)}
@@ -2721,65 +2597,40 @@ export default function App() {
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>setTeamModal(task.id)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
-                      {/* Ligne principale */}
-                      <div style={{ display:"flex",alignItems:"center",gap:9 }}>
-                        <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right",flexShrink:0 }}>#{task.num}</div>
-                        <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
-                        <div style={{ flex:1,minWidth:0 }}>
-                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
-                            <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none",wordBreak:"break-word" }}>{task.title}</span>
-                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44`,flexShrink:0 }}>{(task.priority||"?").toUpperCase()}</span>
-                            {!isMobile && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>}
-                            {hasPending && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044" }}>⏳ attente</span>}
-                          </div>
-                          {!isMobile && (
-                            <>
-                              {(task.due || (task.scheduledFor && task.scheduledFor !== null)) && (
-                                <div style={{ display:"flex",gap:8,marginTop:2,flexWrap:"wrap" }}>
-                                  {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
-                                  {task.scheduledFor && task.scheduledFor !== null && <span style={{ fontSize:9,color:theme.accent }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</span>}
-                                </div>
-                              )}
-                              {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
-                              <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
-                                <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
-                                <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬</span>
-                                {(task.attachments||[]).length>0 && <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>}
-                                <span onClick={toggleNotify} style={{ fontSize:10,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</span>
-                                {isAdminRole(teamRole) && <span onClick={e=>{e.stopPropagation();duplicateTeamTask(task);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }} title="Dupliquer">📋</span>}
-                              </div>
-                            </>
+                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
+                      <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
+                      <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
+                          <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
+                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{(task.priority||"?").toUpperCase()}</span>
+                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
+                          {(isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id)) && (
+                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044" }}>⏳ en attente</span>
                           )}
                         </div>
-                        {/* Bouton supprimer (toujours visible) */}
-                        <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
-                          style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:10,cursor:"pointer",flexShrink:0 }}>✕</button>
-                        {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5,flexShrink:0 }}>proposer</span>}
-                      </div>
-                      {/* Ligne secondaire mobile uniquement */}
-                      {isMobile && (
-                        <div style={{ marginTop:6,paddingLeft:32 }}>
-                          <div style={{ display:"flex",gap:6,flexWrap:"wrap",marginBottom:4 }}>
-                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
-                            {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
-                            {task.scheduledFor && task.scheduledFor !== null && <span style={{ fontSize:9,color:theme.accent }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</span>}
+                        {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                        {task.scheduledFor && task.scheduledFor !== null && (
+                          <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>
+                            {task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}
                           </div>
-                          {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginBottom:4,lineHeight:1.4 }}>{task.notes}</div>}
-                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",borderTop:`1px solid ${theme.border}44`,paddingTop:5,marginTop:2 }}>
-                            <span style={{ fontSize:9,color:theme.textMuted+"88",flex:1 }}>par {task.createdByEmail?.split("@")[0]||team.adminEmail?.split("@")[0]}</span>
-                            <button onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 7px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>💬</button>
-                            {(task.attachments||[]).length>0 && <button onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 7px",color:theme.accent,fontSize:11,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
-                            <button onClick={toggleNotify} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 7px",fontSize:11,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</button>
-                            {isAdminRole(teamRole) && (
-                              <button onClick={e=>{e.stopPropagation();duplicateTeamTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 7px",color:theme.textMuted,fontSize:10,cursor:"pointer" }} title="Dupliquer">📋 Dupliquer</button>
-                            )}
-                            <button onClick={e=>{e.stopPropagation();isAdminRole(teamRole)?openEdit(task):setTeamModal(task.id);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:10,cursor:"pointer" }}>
-                              {isAdminRole(teamRole)?"✎ Modifier":"✏️ Proposer"}
-                            </button>
-                          </div>
+                        )}
+                        {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
+                        <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
+                          <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
+                          <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
+                          {(task.attachments||[]).length>0 && (
+                            <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
+                          )}
+                          <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
                         </div>
-                      )}
+                      </div>
+                      <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
+                        <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
+                          style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
+                        {!isAdminRole(teamRole) && isMobile && <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,padding:"2px 6px",border:`1px solid ${theme.accent}44`,borderRadius:5,cursor:"pointer",textAlign:"center" }}>✏️ proposer</span>}
+                      </div>
+                      {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5,flexShrink:0 }}>proposer</span>}
                     </div>
                   );
                 })}
