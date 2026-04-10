@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,3 +18,11 @@ export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 export const storage = getStorage(app);
+
+// Messaging : initialisé async car non disponible partout (Safari, etc.)
+export const getMessagingInstance = async () => {
+  try {
+    if (!await isSupported()) return null;
+    return getMessaging(app);
+  } catch { return null; }
+};
