@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, Component } from "react";
-import { auth, provider, db, storage } from "./firebase";
+import { auth, provider, db, storage, getMessagingInstance } from "./firebase";
+import { getToken, onMessage } from "firebase/messaging";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
@@ -321,7 +322,8 @@ export default function App() {
   const [pendingFiles,         setPendingFiles]         = useState([]);
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
+  const [commentPopup,     setCommentPopup]     = useState(null); // firestoreId tâche équipe (popup commentaires)
+  const [pjPopup,          setPjPopup]          = useState(null); // {id, isTeam} (popup PJ)
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
@@ -367,12 +369,12 @@ export default function App() {
   ];
   const PRESETS = {
     dark: [
-      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#444466", border:"#1a1a3a" },
-      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#2a442a", border:"#1a3a1a" },
-      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#442a2a", border:"#3a1a1a" },
-      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#2a3a55", border:"#1a2a3a" },
-      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#444444", border:"#222222" },
-      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#3a2a55", border:"#2a1a3a" },
+      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#8888aa", border:"#1a1a3a" },
+      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#6a9a6a", border:"#1a3a1a" },
+      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#9a7878", border:"#3a1a1a" },
+      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#6a8aaa", border:"#1a2a3a" },
+      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#888888", border:"#222222" },
+      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
     ],
     light: [
       { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
@@ -526,6 +528,41 @@ export default function App() {
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
   }, []);
+
+  // ── Push notifications en arrière-plan (FCM) ──
+  useEffect(() => {
+    if (!user || !import.meta.env.VITE_FIREBASE_VAPID_KEY) return;
+    let unsubMsg = null;
+    const setup = async () => {
+      try {
+        if (!("serviceWorker" in navigator)) return;
+        const swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope:"/" });
+        // Transmet la config au SW pour qu'il initialise Firebase côté worker
+        const config = {
+          apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+          storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+          appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        };
+        (swReg.installing || swReg.waiting || swReg.active)?.postMessage({ type:"FIREBASE_CONFIG", config });
+        const messaging = await getMessagingInstance();
+        if (!messaging) return;
+        if (Notification.permission !== "granted") return;
+        const fcmToken = await getToken(messaging, { vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY, serviceWorkerRegistration: swReg });
+        if (fcmToken) await setDoc(doc(db, "users", user.uid), { fcmToken }, { merge:true });
+        // Notif reçue quand l'app est au premier plan
+        unsubMsg = onMessage(messaging, payload => {
+          const { title, body } = payload.notification || {};
+          if (title) sendNotif(title, body||"", payload.data?.tag||"fcm");
+        });
+      } catch(e) { console.warn("FCM setup:", e); }
+    };
+    setup();
+    return () => { unsubMsg?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   // Mise à jour du callback quotidien à chaque render (évite les closures périmées)
   sendDailyNotifCb.current = () => {
@@ -985,20 +1022,24 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team?.id, teamRole]);
 
+  // commentTaskId = ID Firestore de la tâche dont on charge les commentaires
+  // Peut venir du popup commentaires OU du formulaire de modification d'une tâche équipe
+  const commentTaskId = commentPopup || (teamSpace && editingId && typeof editingId === "string" ? editingId : null);
+
   useEffect(() => {
-    if (!teamModal || !team) { setTeamComments([]); return; }
-    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", teamModal, "comments"), snap => {
+    if (!commentTaskId || !team) { setTeamComments([]); return; }
+    const unsub = onSnapshot(collection(db, "teams", team.id, "tasks", commentTaskId, "comments"), snap => {
       const c = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       c.sort((a,b) => (a.createdAt||0)-(b.createdAt||0));
       setTeamComments(c);
     });
     return unsub;
-  }, [teamModal, team]);
+  }, [commentTaskId, team]);
 
   const addComment = async () => {
-    if (!commentInput.trim() || !teamModal || !team || !user) return;
+    if (!commentInput.trim() || !commentTaskId || !team || !user) return;
     try {
-      await addDoc(collection(db, "teams", team.id, "tasks", teamModal, "comments"), {
+      await addDoc(collection(db, "teams", team.id, "tasks", commentTaskId, "comments"), {
         text: commentInput.trim(),
         authorUid: user.uid,
         authorEmail: user.email || "",
@@ -1007,6 +1048,13 @@ export default function App() {
       });
       setCommentInput("");
     } catch(e) { setTeamError(e.message); }
+  };
+
+  const deleteComment = async (commentId, authorUid) => {
+    if (!commentTaskId || !team || !user) return;
+    if (!isAdminRole(teamRole) && authorUid !== user.uid) return;
+    try { await deleteDoc(doc(db, "teams", team.id, "tasks", commentTaskId, "comments", commentId)); }
+    catch(e) { setTeamError(e.message); }
   };
 
   const cycleTeamStatus = async (firestoreId, currentStatus) => {
@@ -1053,13 +1101,21 @@ export default function App() {
         try { await deleteObject(storageRef(storage, change.data.attachment.storagePath)); } catch(e) {}
         await updateDoc(doc(db, "teams", team.id, "tasks", change.taskId), { attachments: arrayRemove(change.data.attachment) });
       }
+      if (change.type === "addAttachment" && change.data?.attachment) {
+        await updateDoc(doc(db, "teams", team.id, "tasks", change.taskId), { attachments: arrayUnion(change.data.attachment) });
+      }
       await deleteDoc(doc(db, "teams", team.id, "pendingChanges", change.id));
     } catch(e) { setTeamError(e.message); }
   };
 
-  const rejectChange = async (changeId) => {
+  const rejectChange = async (changeId, change) => {
     if (!isAdminRole(teamRole)) return;
-    try { await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId)); }
+    try {
+      if (change?.type === "addAttachment" && change?.data?.attachment?.storagePath) {
+        try { await deleteObject(storageRef(storage, change.data.attachment.storagePath)); } catch(e) {}
+      }
+      await deleteDoc(doc(db, "teams", team.id, "pendingChanges", changeId));
+    }
     catch(e) { setTeamError(e.message); }
   };
 
@@ -1098,7 +1154,16 @@ export default function App() {
       const url = await getDownloadURL(sRef);
       const attachment = { name:file.name, url, type:file.type, size:file.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:path };
       if (isTeam) {
-        await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { attachments: arrayUnion(attachment) });
+        if (isAdminRole(teamRole)) {
+          await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { attachments: arrayUnion(attachment) });
+        } else {
+          // Membre : l'ajout de PJ doit être validé par l'admin
+          await addDoc(collection(db, "teams", team.id, "pendingChanges"), {
+            type: "addAttachment", taskId, proposedBy: user.uid, proposedByEmail: user.email||"",
+            data: { attachment }, createdAt: serverTimestamp(), status: "pending"
+          });
+          setTeamInfo("Pièce jointe soumise à validation de l'admin.");
+        }
       } else {
         setTasks(prev => prev.map(t => t.id === taskId ? {...t, attachments:[...(t.attachments||[]),attachment]} : t));
       }
@@ -1334,6 +1399,44 @@ export default function App() {
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
+  const duplicateTeamTask = async (task) => {
+    if (!team || !isAdminRole(teamRole)) return;
+    try {
+      const newNum = (team.taskCounter || 0) + 1;
+      await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
+      await addDoc(collection(db, "teams", team.id, "tasks"), {
+        title: task.title, priority: task.priority||"Moyenne", status:"À faire",
+        due: task.due||"", notes: task.notes||"", notify: task.notify!==false,
+        recurrence: task.recurrence||"none", completion: null,
+        id: Date.now(), num: newNum, createdBy: user.uid,
+        createdAt: serverTimestamp(), scheduledFor: null,
+      });
+      toast("Tâche dupliquée !");
+    } catch(e) { setTeamError(e.message); }
+  };
+
+  const cancelStep2 = async () => {
+    // Perso : la tâche a déjà été ajoutée à tasks → la retirer
+    if (!teamSpace && pendingTask && !pendingMemberProposal) {
+      setTasks(p => p.filter(t => t.id !== pendingTask.id));
+      setTaskCounter(c => c - 1);
+      setTodayIds(p => p.filter(i => i !== pendingTask.id));
+      setTodayDates(d => { const n={...d}; delete n[pendingTask.id]; return n; });
+      setTomorrowIds(p => p.filter(e => e.id !== pendingTask.id));
+      setScheduledIds(p => p.filter(e => e.id !== pendingTask.id));
+    }
+    // Équipe admin : le doc Firestore a déjà été créé → le supprimer
+    if (teamSpace && pendingTeamTaskId && team) {
+      try { await deleteDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId)); } catch(e) {}
+    }
+    setPendingFiles([]);
+    setPendingMemberProposal(null);
+    setPendingTeamTaskId(null);
+    setPendingTask(null);
+    setFormStep(1);
+    setShowForm(false);
+  };
+
   const openEdit = (task) => {
     setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none"});
     setEditingId(task.id); setShowForm(true);
@@ -1428,6 +1531,9 @@ export default function App() {
     if (pendingTeamTaskId && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try { await updateDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId), { scheduledFor: scheduled }); } catch(e) {}
+      if (pendingFiles.length > 0) {
+        for (const f of pendingFiles) await uploadAttachment(pendingTeamTaskId, f, true);
+      }
       setPendingTeamTaskId(null);
       resetForm();
       return;
@@ -1659,93 +1765,99 @@ export default function App() {
             <button onClick={()=>{openEdit(task);setModal(null);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
               ✎ Modifier
             </button>
-          </div>
-          {/* Pièces jointes — tâche perso */}
-          <div style={{ marginTop:14 }}>
-            <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:8 }}>PIÈCES JOINTES ({(task.attachments||[]).length})</div>
-            {(task.attachments||[]).map((att,i) => (
-              <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
-                <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                  {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
-                </span>
-                <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
-                <button onClick={()=>deleteAttachment(task.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
-              </div>
-            ))}
-            <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-              <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(task.id,f,false)); e.target.value=""; }}/>
-              {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
-            </label>
+            {(task.attachments||[]).length>0 && (
+              <button onClick={()=>{setModal(null);setPjPopup({id:task.id,isTeam:false});}} style={{ background:theme.accent+"11",border:`1px solid ${theme.accent}33`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
+                📎 Pièces jointes ({task.attachments.length})
+              </button>
+            )}
           </div>
         </div>
       </div>
     );
   };
 
-  const renderTeamModal = () => {
-    if (!teamModal || !team) return null;
-    const task = teamTasks.find(t => t.id === teamModal);
+  // Helper: icône selon type MIME
+  const attIcon = (type) => type?.startsWith("image/")?"🖼️":type==="application/pdf"?"📄":type?.includes("word")?"📝":type?.includes("excel")||type?.includes("spreadsheet")?"📊":"📎";
+
+  // ── Popup PJ (perso et équipe) ────────────────────────────────────────────
+  const renderPJPopup = () => {
+    if (!pjPopup) return null;
+    const { id: taskId, isTeam } = pjPopup;
+    const task = isTeam ? teamTasks.find(t => t.id === taskId) : getTask(taskId);
     if (!task) return null;
-    const tc  = taskColor(task);
-    const dot = STATUS_DOT[task.status] || "#888";
-    const closeModal = () => { setTeamModal(null); setCommentInput(""); };
+    const canDeleteAny = !isTeam || isAdminRole(teamRole);
     return (
-      <div onClick={closeModal} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
-        <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:340,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099",display:"flex",flexDirection:"column",gap:0 }}>
-          {/* En-tête */}
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14 }}>
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontSize:13,fontWeight:700,color:theme.text,marginBottom:6 }}>{task.title}</div>
-              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
-                <span style={{ fontSize:9,padding:"2px 7px",borderRadius:4,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{task.priority||"?"}</span>
-                <span style={{ fontSize:9,padding:"2px 7px",borderRadius:4,background:dot+"22",color:dot }}>{task.status}</span>
-                {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
-              </div>
-            </div>
-            <button onClick={closeModal} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer",marginLeft:8 }}>✕</button>
+      <div onClick={()=>setPjPopup(null)} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400 }}>
+        <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:22,width:320,maxHeight:"75vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14 }}>
+            <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,fontWeight:700 }}>PIÈCES JOINTES ({(task.attachments||[]).length})</div>
+            <button onClick={()=>setPjPopup(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
           </div>
-          {task.notes && <div style={{ fontSize:11,color:theme.textMuted,marginBottom:14,padding:"8px 10px",background:theme.bg,borderRadius:8 }}>{task.notes}</div>}
-          <button onClick={()=>{ openEdit(task); closeModal(); }}
-            style={{ width:"100%",background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.accent,fontSize:11,cursor:"pointer",marginBottom:18 }}>
-            {isAdminRole(teamRole) ? "✎ Modifier" : "✎ Proposer une modification"}
-          </button>
-          {/* Commentaires */}
-          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:10 }}>COMMENTAIRES ({teamComments.length})</div>
-          <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:12 }}>
-            {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"10px 0" }}>Pas encore de commentaire.</div>}
+          <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          {(task.attachments||[]).length===0 && (
+            <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"12px 0" }}>Aucune pièce jointe.</div>
+          )}
+          {(task.attachments||[]).map((att,i) => (
+            <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"7px 9px",marginBottom:5 }}>
+              <span style={{ fontSize:14,flexShrink:0 }}>{attIcon(att.type)}</span>
+              <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{att.name}</span>
+              {isTeam && <span style={{ fontSize:9,color:theme.textMuted,flexShrink:0 }}>{att.uploadedByEmail?.split("@")[0]}</span>}
+              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+              {(canDeleteAny || att.uploadedBy===user?.uid) && (
+                <button onClick={()=>deleteAttachment(taskId,att,isTeam)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+              )}
+            </div>
+          ))}
+          <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"7px 10px",cursor:"pointer",fontSize:11,color:theme.accent,marginTop:8 }}>
+            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }}
+              onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(taskId,f,isTeam)); e.target.value=""; }}/>
+            {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
+          </label>
+          {isTeam && !isAdminRole(teamRole) && (
+            <div style={{ fontSize:9,color:theme.textMuted,marginTop:6,textAlign:"center" }}>Les ajouts sont soumis à validation de l'admin.</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Popup Commentaires (équipe uniquement) ────────────────────────────────
+  const renderCommentPopup = () => {
+    if (!commentPopup || !team) return null;
+    const task = teamTasks.find(t => t.id === commentPopup);
+    if (!task) return null;
+    const close = () => { setCommentPopup(null); setCommentInput(""); };
+    return (
+      <div onClick={close} style={{ position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400 }}>
+        <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:22,width:330,maxHeight:"78vh",overflowY:"auto",boxShadow:"0 8px 40px #00000099",display:"flex",flexDirection:"column" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+            <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,fontWeight:700 }}>COMMENTAIRES ({teamComments.length})</div>
+            <button onClick={close} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:16,cursor:"pointer" }}>✕</button>
+          </div>
+          <div style={{ fontSize:11,color:theme.textMuted,marginBottom:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{task.title}</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:12,flex:1 }}>
+            {teamComments.length===0 && <div style={{ fontSize:11,color:theme.textMuted,textAlign:"center",padding:"12px 0" }}>Pas encore de commentaire.</div>}
             {teamComments.map(c => (
               <div key={c.id} style={{ background:theme.bg,borderRadius:8,padding:"8px 10px" }}>
-                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3 }}>
                   <span style={{ fontSize:10,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
-                  <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                    <span style={{ fontSize:9,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    {(isAdminRole(teamRole) || c.authorUid===user?.uid) && (
+                      <button onClick={()=>deleteComment(c.id,c.authorUid)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:10,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ fontSize:11,color:theme.text,lineHeight:1.5 }}>{c.text}</div>
               </div>
             ))}
           </div>
-          {/* Saisie commentaire */}
-          <div style={{ display:"flex",gap:8,marginBottom:18 }}>
+          <div style={{ display:"flex",gap:8 }}>
             <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
               onKeyDown={e=>e.key==="Enter"&&addComment()}
               style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px 10px",color:theme.text,fontSize:11,outline:"none" }}/>
             <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:8,padding:"8px 13px",color:"#fff",fontSize:14,cursor:"pointer" }}>↑</button>
           </div>
-          {/* Pièces jointes — tâche équipe */}
-          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:8 }}>PIÈCES JOINTES ({(task.attachments||[]).length})</div>
-          {(task.attachments||[]).map((att,i) => (
-            <div key={i} style={{ display:"flex",alignItems:"center",gap:8,background:theme.bg,borderRadius:7,padding:"6px 8px",marginBottom:5 }}>
-              <span style={{ fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                {att.type?.startsWith("image/")?"🖼️":att.type==="application/pdf"?"📄":att.type?.includes("word")?"📝":att.type?.includes("excel")||att.type?.includes("spreadsheet")?"📊":"📎"} {att.name}
-              </span>
-              <span style={{ fontSize:9,color:theme.textMuted,flexShrink:0 }}>{att.uploadedByEmail?.split("@")[0]}</span>
-              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
-              <button onClick={()=>deleteAttachment(task.id,att,true)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
-            </div>
-          ))}
-          <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(task.id,f,true)); e.target.value=""; }}/>
-            {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une pièce jointe"}
-          </label>
         </div>
       </div>
     );
@@ -2142,7 +2254,7 @@ export default function App() {
                         onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-today"):undefined}
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-today"):undefined}
-                        onClick={()=>setTeamModal(task.id)}
+                        onClick={()=>setCommentPopup(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}cc,${bCol})`,boxShadow:`0 0 16px ${bCol}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#fff",cursor:"pointer",touchAction:"none",opacity:ghost?.id===task.id?0.2:1 }}>
                         {task.num}
                       </div>
@@ -2176,7 +2288,7 @@ export default function App() {
                         onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-tomorrow"):undefined}
                         onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                         onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-tomorrow"):undefined}
-                        onClick={()=>setTeamModal(task.id)}
+                        onClick={()=>setCommentPopup(task.id)}
                         style={{ width:54,height:54,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${bCol}55,${bCol}77)`,boxShadow:`0 0 10px ${bCol}33`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:`'${theme.titleFont}',sans-serif`,fontWeight:800,fontSize:16,color:"#ffffff99",opacity:ghost?.id===task.id?0.2:0.7,border:`2px dashed ${bCol}66`,cursor:"pointer",touchAction:"none" }}>
                         {task.num}
                       </div>
@@ -2454,6 +2566,62 @@ export default function App() {
                         <span style={{ fontSize:10,color:form.notify?theme.text:theme.textMuted }}>🔔 Notifications</span>
                       </div>
                     </div>
+                    {/* ── PJ dans le formulaire de modification ── */}
+                    {editingId !== null && (() => {
+                      const editTask = teamSpace ? teamTasks.find(t=>t.id===editingId) : getTask(editingId);
+                      if (!editTask) return null;
+                      return (
+                        <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:10,marginTop:4 }}>
+                          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:6 }}>PIÈCES JOINTES ({(editTask.attachments||[]).length})</div>
+                          {(editTask.attachments||[]).map((att,i) => (
+                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,background:theme.bg,borderRadius:6,padding:"5px 8px",marginBottom:4 }}>
+                              <span style={{ fontSize:12,flexShrink:0 }}>{attIcon(att.type)}</span>
+                              <span style={{ fontSize:10,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{att.name}</span>
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:9,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Ouvrir</a>
+                              {((!teamSpace)||isAdminRole(teamRole)||att.uploadedBy===user?.uid) && (
+                                <button onClick={()=>deleteAttachment(editingId,att,teamSpace)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:10,cursor:"pointer",flexShrink:0,padding:0 }}>✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <label style={{ display:"flex",alignItems:"center",gap:5,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:6,padding:"5px 9px",cursor:"pointer",fontSize:10,color:theme.accent }}>
+                            <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }}
+                              onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(editingId,f,teamSpace)); e.target.value=""; }}/>
+                            {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter une PJ"}
+                          </label>
+                        </div>
+                      );
+                    })()}
+                    {/* ── Commentaires dans le formulaire de modification (équipe uniquement) ── */}
+                    {editingId !== null && teamSpace && (() => {
+                      return (
+                        <div style={{ borderTop:`1px solid ${theme.border}44`,paddingTop:10,marginTop:4 }}>
+                          <div style={{ fontSize:9,color:"#444466",letterSpacing:1,marginBottom:6 }}>COMMENTAIRES ({teamComments.length})</div>
+                          <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:8,maxHeight:140,overflowY:"auto" }}>
+                            {teamComments.length===0 && <div style={{ fontSize:10,color:theme.textMuted,textAlign:"center",padding:"6px 0" }}>Pas encore de commentaire.</div>}
+                            {teamComments.map(c => (
+                              <div key={c.id} style={{ background:theme.bg,borderRadius:7,padding:"6px 8px" }}>
+                                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2 }}>
+                                  <span style={{ fontSize:9,color:theme.accent,fontWeight:600 }}>{c.authorName}</span>
+                                  <div style={{ display:"flex",gap:5,alignItems:"center" }}>
+                                    <span style={{ fontSize:8,color:theme.textMuted }}>{new Date(c.createdAt).toLocaleString(locale,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                                    {(isAdminRole(teamRole)||c.authorUid===user?.uid) && (
+                                      <button onClick={()=>deleteComment(c.id,c.authorUid)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:9,cursor:"pointer",padding:0,lineHeight:1 }}>✕</button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div style={{ fontSize:10,color:theme.text,lineHeight:1.4 }}>{c.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ display:"flex",gap:6 }}>
+                            <input value={commentInput} onChange={e=>setCommentInput(e.target.value)} placeholder="Ajouter un commentaire…"
+                              onKeyDown={e=>e.key==="Enter"&&addComment()}
+                              style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"6px 8px",color:theme.text,fontSize:10,outline:"none" }}/>
+                            <button onClick={addComment} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"6px 10px",color:"#fff",fontSize:12,cursor:"pointer" }}>↑</button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div style={{ display:"flex",gap:7,justifyContent:"flex-end" }}>
                       <button onClick={()=>{setShowForm(false);setEditingId(null);}}
                         style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
@@ -2469,8 +2637,8 @@ export default function App() {
                   <div style={{ fontSize:10,color:theme.accent,letterSpacing:2,marginBottom:4 }}>QUAND PLANIFIER ?</div>
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
-                  {/* Pièces jointes — espace perso uniquement */}
-                  {!teamSpace && (
+                  {/* Pièces jointes — perso ou admin équipe (pas les membres qui proposent) */}
+                  {(!teamSpace || pendingTeamTaskId) && (
                     <div style={{ marginBottom:12 }}>
                       {pendingFiles.length > 0 && (
                         <div style={{ marginBottom:6 }}>
@@ -2524,7 +2692,7 @@ export default function App() {
                     </button>
                   </div>
                   <div style={{ display:"flex",justifyContent:"flex-end",marginTop:10 }}>
-                    <button onClick={()=>{setPendingMemberProposal(null);setPendingTeamTaskId(null);setPendingTask(null);setFormStep(1);setShowForm(false);}}
+                    <button onClick={cancelStep2}
                       style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:7,padding:"5px 13px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>Annuler</button>
                   </div>
                 </>
@@ -2553,10 +2721,21 @@ export default function App() {
                     </button>
                   )}
                   {isMobile && (
-                    <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                      style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",minWidth:teamRole==="member"?120:undefined,textAlign:"center" }}>
-                      {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
-                    </button>
+                    <>
+                      <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+                        style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",textAlign:"center" }}>
+                        {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
+                      </button>
+                      <div style={{ position:"relative" }}>
+                        <button onClick={listening?stopVoice:startVoice}
+                          style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"5px 10px",fontSize:14,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
+                          {listening?"⏹":"🎙️"}
+                          {listening && <span style={{ position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
+                        </button>
+                        {voiceError && <div style={{ position:"absolute",top:36,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:180,whiteSpace:"normal" }}>{voiceError}<button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer" }}>✕</button></div>}
+                        {listening && <div style={{ position:"absolute",top:36,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -2590,47 +2769,66 @@ export default function App() {
                   const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
                   const dot = STATUS_DOT[task.status]||"#888";
                   const isTeamGhost = ghost?.id===task.id;
+                  const hasPending = isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id);
+                  const notified   = (task.notifyUsers||{})[user.uid] !== false;
+                  const toggleNotify = e => { e.stopPropagation(); const nv=!notified; updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv}); setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t)); };
                   return (
                     <div key={task.id} className="row"
                       draggable={isAdminRole(teamRole)}
                       onDragStart={isAdminRole(teamRole)?e=>onDragStartTeam(e,task.id,"team-list"):undefined}
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
-                      onClick={()=>setTeamModal(task.id)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
-                      <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{task.num}</div>
-                      <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
-                      <div style={{ flex:1,minWidth:0 }}>
-                        <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
-                          <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
-                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44` }}>{(task.priority||"?").toUpperCase()}</span>
-                          <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
-                          {(isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id)) && (
-                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044" }}>⏳ en attente</span>
-                          )}
-                        </div>
-                        {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
-                        {task.scheduledFor && task.scheduledFor !== null && (
-                          <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>
-                            {task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}
+                      onClick={()=>openEdit(task)}
+                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
+
+                      {/* ── Ligne principale (commune desktop + mobile) ── */}
+                      <div style={{ display:"flex",alignItems:"center",gap:9 }}>
+                        <div style={{ fontSize:10,color:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right",flexShrink:0 }}>#{task.num}</div>
+                        <button onClick={e=>{e.stopPropagation();if(isAdminRole(teamRole))cycleTeamStatus(task.id,task.status);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:isAdminRole(teamRole)?"pointer":"default",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} title={isAdminRole(teamRole)?"Changer statut":task.status}/>
+                        <div style={{ flex:1,minWidth:0 }}>
+                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+                            <span style={{ fontSize:12,color:task.status==="Terminé"?theme.textMuted:theme.text,textDecoration:task.status==="Terminé"?"line-through":"none" }}>{task.title}</span>
+                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44`,flexShrink:0 }}>{(task.priority||"?").toUpperCase()}</span>
+                            {!isMobile && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>}
+                            {hasPending && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044",flexShrink:0 }}>⏳</span>}
                           </div>
-                        )}
-                        {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
-                        <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2 }}>
-                          <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
-                          <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬 Commentaires</span>
-                          {(task.attachments||[]).length>0 && (
-                            <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>
-                          )}
-                          <span onClick={e=>{e.stopPropagation();const cur=(task.notifyUsers||{})[user.uid]!==false;const nv=!cur;updateDoc(doc(db,"teams",team.id,"tasks",task.id),{[`notifyUsers.${user.uid}`]:nv});setTeamTasks(p=>p.map(t=>t.id===task.id?{...t,notifyUsers:{...(t.notifyUsers||{}), [user.uid]:nv}}:t));}} style={{ fontSize:10,cursor:"pointer",opacity:((task.notifyUsers||{})[user.uid]!==false)?1:0.4 }}>{(task.notifyUsers||{})[user.uid]!==false?"🔔":"🔕"}</span>
+                          {!isMobile && <>
+                            {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
+                            {task.scheduledFor && <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</div>}
+                            {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
+                            <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap" }}>
+                              <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
+                              <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬</span>
+                              {(task.attachments||[]).length>0 && <span onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>}
+                              <span onClick={toggleNotify} style={{ fontSize:10,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</span>
+                            </div>
+                          </>}
+                        </div>
+                        <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
+                          {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();duplicateTeamTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 6px",color:theme.textMuted,fontSize:10,cursor:"pointer" }} title="Dupliquer">📋</button>}
+                          <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>✕</button>
+                          {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
                         </div>
                       </div>
-                      <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
-                        <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}}
-                          style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
-                        {!isAdminRole(teamRole) && isMobile && <span onClick={e=>{e.stopPropagation();setTeamModal(task.id);}} style={{ fontSize:9,color:theme.accent,padding:"2px 6px",border:`1px solid ${theme.accent}44`,borderRadius:5,cursor:"pointer",textAlign:"center" }}>✏️ proposer</span>}
-                      </div>
-                      {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5,flexShrink:0 }}>proposer</span>}
+
+                      {/* ── Ligne secondaire mobile uniquement ── */}
+                      {isMobile && (
+                        <div style={{ paddingLeft:40,marginTop:6 }}>
+                          <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:3 }}>
+                            <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
+                            {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
+                            {task.scheduledFor && <span style={{ fontSize:9,color:theme.accent }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</span>}
+                          </div>
+                          {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginBottom:4,lineHeight:1.4 }}>{task.notes}</div>}
+                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",borderTop:`1px solid ${theme.border}44`,paddingTop:5 }}>
+                            <span style={{ fontSize:9,color:theme.textMuted+"88",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>par {task.createdByEmail?.split("@")[0]||team.adminEmail?.split("@")[0]}</span>
+                            <button onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:12,cursor:"pointer" }}>💬</button>
+                            {(task.attachments||[]).length>0 && <button onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:12,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
+                            <button onClick={toggleNotify} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",fontSize:12,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</button>
+                            {!isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();openEdit(task);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:10,cursor:"pointer" }}>✏️ Proposer</button>}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2742,7 +2940,7 @@ export default function App() {
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
-                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setModal(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
+                    {(task.attachments||[]).length>0 && <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:false});}} style={{ background:"transparent",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer" }}>📎 {task.attachments.length}</button>}
                     <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#aa3030",fontSize:isMobile?14:10,cursor:"pointer" }}>✕</button>
                   </div>
                 </div>
@@ -2768,8 +2966,11 @@ export default function App() {
       {/* Modal perso */}
       {renderModal()}
 
-      {/* Modal équipe + commentaires */}
-      {renderTeamModal()}
+      {/* Popup PJ (perso + équipe) */}
+      {renderPJPopup()}
+
+      {/* Popup Commentaires (équipe) */}
+      {renderCommentPopup()}
 
       {/* Stats */}
       {showStats && (
@@ -3103,8 +3304,26 @@ export default function App() {
               return (
                 <div key={change.id} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
                   <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
-                    {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
+                    {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":change.type==="addAttachment"?"📎 Ajout PJ":change.type==="deleteAttachment"?"🗑️ Suppression PJ":"🗑️ Suppression"} · <strong style={{ color:theme.text }}>{change.proposedByEmail}</strong>
                   </div>
+                  {/* addAttachment */}
+                  {change.type==="addAttachment" && change.data?.attachment && (
+                    <div style={{ fontSize:11,marginBottom:8 }}>
+                      <div style={{ color:theme.textMuted,marginBottom:2 }}>Tâche : <strong style={{ color:theme.text }}>{task?.title||"#"+change.taskId}</strong></div>
+                      <div style={{ display:"flex",alignItems:"center",gap:6,background:theme.bg,borderRadius:6,padding:"5px 8px" }}>
+                        <span style={{ fontSize:12 }}>{attIcon(change.data.attachment.type)}</span>
+                        <span style={{ fontSize:10,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:theme.text }}>{change.data.attachment.name}</span>
+                        <a href={change.data.attachment.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:9,color:theme.accent,textDecoration:"none",flexShrink:0 }}>Voir</a>
+                      </div>
+                    </div>
+                  )}
+                  {/* deleteAttachment */}
+                  {change.type==="deleteAttachment" && change.data?.attachment && (
+                    <div style={{ fontSize:11,marginBottom:8 }}>
+                      <div style={{ color:theme.textMuted,marginBottom:2 }}>Tâche : <strong style={{ color:theme.text }}>{task?.title||"#"+change.taskId}</strong></div>
+                      <div style={{ fontSize:10,color:"#cc6060" }}>Supprimer : {change.data.attachment.name}</div>
+                    </div>
+                  )}
                   {/* delete */}
                   {change.type==="delete" && (
                     <div style={{ fontSize:11,color:theme.text,marginBottom:8 }}>Supprimer : <strong>{task?.title||"#"+change.taskId}</strong></div>
@@ -3134,7 +3353,7 @@ export default function App() {
                   )}
                   <div style={{ display:"flex",gap:8 }}>
                     <button onClick={()=>approveChange(change)} style={{ flex:1,background:"#2a7a2a",border:"none",borderRadius:7,padding:"7px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700 }}>✓ Approuver</button>
-                    <button onClick={()=>rejectChange(change.id)} style={{ flex:1,background:"transparent",border:"1px solid #5a1a1a",borderRadius:7,padding:"7px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>✕ Refuser</button>
+                    <button onClick={()=>rejectChange(change.id, change)} style={{ flex:1,background:"transparent",border:"1px solid #5a1a1a",borderRadius:7,padding:"7px",color:"#cc3030",fontSize:11,cursor:"pointer" }}>✕ Refuser</button>
                   </div>
                 </div>
               );
@@ -3153,7 +3372,7 @@ export default function App() {
             {myPendingProposals.map(change => (
               <div key={change.id} style={{ background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:10,padding:14,marginBottom:10 }}>
                 <div style={{ fontSize:10,color:theme.textMuted,marginBottom:6 }}>
-                  {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":"🗑️ Suppression"} · <span style={{ color:"#f0c040" }}>En attente de validation</span>
+                  {change.type==="add"?"➕ Nouvelle tâche":change.type==="edit"?"✏️ Modification":change.type==="addAttachment"?"📎 Ajout PJ":change.type==="deleteAttachment"?"🗑️ Suppression PJ":"🗑️ Suppression"} · <span style={{ color:"#f0c040" }}>En attente de validation</span>
                 </div>
                 <div style={{ fontSize:11,color:theme.text }}><strong>{change.data?.title||"—"}</strong></div>
               </div>
