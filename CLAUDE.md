@@ -79,10 +79,59 @@ user           // Firebase user
 
 ## Branche de travail
 - Production : `main` → Vercel déploie automatiquement
-- Features : `claude/add-e2e-tests-playwright-S5Li3` (branche active)
+- Features : `claude/continue-e2e-tests-90NL4` (branche active)
+
+## Nomenclature des tickets
+
+Format : `[SUPPORT][MODE][RÔLE] SECTION — description`
+
+**Support**
+- `M` = Mobile uniquement (390px, layout colonne)
+- `D` = Desktop + Tablet (820px+, layout 2 panneaux)
+- `A` = Tous les supports
+
+**Mode**
+- `P` = Page perso
+- `E` = Page équipe
+- `T` = Tous les modes
+
+**Rôle**
+- `AD` = Admin
+- `CO` = Co-admin
+- `MB` = Membre
+- `TR` = Tous les rôles
+
+**Sections — Page perso**
+- `AUJOURD'HUI` — Zone bulles du jour (panneau gauche)
+- `DEMAIN` — Zone bulles du lendemain (panneau gauche)
+- `LISTE` — Liste principale des tâches (panneau droit)
+- `FORMULAIRE` — Formulaire de création / édition
+- `STATS-PERSO` — Panneau statistiques personnelles
+- `THÈME` — Panneau apparence / réglages
+
+**Sections — Page équipe**
+- `LISTE-ÉQUIPE` — Liste des tâches d'équipe
+- `MODAL-ÉQUIPE` — Modale détail d'une tâche (commentaires, PJ)
+- `EN-ATTENTE` — Panneau modifications en attente (admin)
+- `MES-PROPS` — Panneau mes propositions (membre)
+- `STATS-ÉQUIPE` — Panneau statistiques équipe
+- `PANNEAU-ÉQUIPE` — Panneau gestion équipe (membres, invitations)
+
+**Sections — Global**
+- `HEADER` — Barre de navigation
+- `INVITATION` — Bannière invitation en attente
+
+**Exemples**
+```
+[D][P][TR] LISTE          Liste perso desktop, tous rôles
+[M][E][MB] LISTE-ÉQUIPE   Liste équipe mobile, membre
+[A][E][AD] EN-ATTENTE     Panneau en attente, tous supports, admin
+[M][T][TR] HEADER         Header mobile, tous modes et rôles
+[D][E][CO] PANNEAU-ÉQUIPE Panneau équipe desktop, co-admin
+```
 
 ## Tests E2E (Playwright)
-- Fichier : `tests/e2e/app.spec.js` — 94 tests au total
+- Fichiers : `tests/e2e/app.spec.js` + `tests/e2e/bin.spec.js` — 114 tests au total
 - Mocks Firebase : `src/mocks/firebase-auth.js` et `src/mocks/firebase-firestore.js`
 - Injection de données de test via `window.__testFirestoreData` (clés = chemins Firestore)
 - Viewports testés : Desktop (1280×720), Tablet (820×1180), Mobile (390×844)
