@@ -9,6 +9,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [ -n \"$f\" ] && git add \"$f\" && (git diff --cached --quiet || (git commit -m \"auto: update $(basename \"$f\")\" && git push -u origin main)); } 2>/dev/null || true",
+            "statusMessage": "Commit & push…"
+          }
+        ]
+      }
     ]
   }
 }
