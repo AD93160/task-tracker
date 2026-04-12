@@ -29,6 +29,11 @@ export default defineConfig({
         find: 'firebase/storage',
         replacement: path.resolve(__dirname, 'src/mocks/firebase-storage.js'),
       },
+      // Replace firebase/messaging with our mock
+      {
+        find: 'firebase/messaging',
+        replacement: path.resolve(__dirname, 'src/mocks/firebase-messaging.js'),
+      },
     ],
   },
 });
