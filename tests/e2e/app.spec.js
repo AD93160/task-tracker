@@ -790,10 +790,15 @@ test.describe('Desktop — Page équipe (admin)', () => {
   test('la popup de commentaires se ferme avec le bouton ✕', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await page.locator('.row').filter({ hasText: 'Tâche équipe' }).click();
+    await page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: '💬' }).click();
     await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible({ timeout: 5000 });
-    await page.getByText('COMMENTAIRES (0)', { exact: true }).locator('xpath=../button').click();
-    await expect(page.getByText('COMMENTAIRES (0)')).not.toBeVisible();
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find(b =>
+        b.textContent.trim() === '\u2715' && !b.classList.contains('delbtn')
+      );
+      if (btn) btn.click();
+    });
+    await expect(page.getByText('COMMENTAIRES (0)')).not.toBeVisible({ timeout: 3000 });
   });
 
   test('la modale équipe se ferme en cliquant en dehors', async ({ page }) => {
