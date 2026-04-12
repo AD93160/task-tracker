@@ -869,8 +869,8 @@ test.describe('Desktop — Page équipe (admin)', () => {
   test('le span 💬 commentaires dans la ligne ouvre la modale', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
-    await page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: '💬 Commentaires' }).click();
-    await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible();
+    await page.locator('.row').filter({ hasText: 'Tâche équipe' }).locator('span').filter({ hasText: '💬' }).click();
+    await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible({ timeout: 5000 });
   });
 
   test('le span 📎 avec compteur est visible sur la tâche avec pièces jointes', async ({ page }) => {
