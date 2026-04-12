@@ -1531,9 +1531,21 @@ export default function App() {
     if (pendingMemberProposal && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try {
-        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:{...pendingMemberProposal, scheduledFor:scheduled}, createdAt:serverTimestamp(), status:"pending" });
+        let attachments = [];
+        if (pendingFiles.length > 0) {
+          setUploadingAttachment(true);
+          const basePath = `teams/${team.id}/proposals/${Date.now()}`;
+          for (const f of pendingFiles) {
+            const sRef = storageRef(storage, `${basePath}/${Date.now()}_${f.name}`);
+            await uploadBytes(sRef, f);
+            const url = await getDownloadURL(sRef);
+            attachments.push({ name:f.name, url, type:f.type, size:f.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:`${basePath}/${f.name}` });
+          }
+          setUploadingAttachment(false);
+        }
+        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:{...pendingMemberProposal, scheduledFor:scheduled, ...(attachments.length>0?{attachments}:{})}, createdAt:serverTimestamp(), status:"pending" });
         setTeamInfo("Tâche proposée à l'admin pour validation.");
-      } catch(e) { setTeamError(e.message); }
+      } catch(e) { setUploadingAttachment(false); setTeamError(e.message); }
       setPendingMemberProposal(null);
       resetForm();
       return;
@@ -2674,16 +2686,29 @@ export default function App() {
                   <div style={{ fontSize:11,color:theme.textMuted,marginBottom:4 }}>"{pendingTask?.title}"</div>
                   {pendingMemberProposal && <div style={{ fontSize:10,color:theme.textMuted,marginBottom:12,fontStyle:"italic" }}>Cette proposition sera envoyée à l'admin après la planification.</div>}
                   {/* Pièces jointes — perso ou admin équipe (pas les membres qui proposent) */}
-                  {(!teamSpace || pendingTeamTaskId) && (
+                  {(!teamSpace || pendingTeamTaskId || pendingMemberProposal) && (
                     <div style={{ marginBottom:12 }}>
-                      {((teamSpace ? teamTasks.find(t=>t.id===pendingTask.id) : getTask(pendingTask.id))?.attachments||[]).map((att,i) => (
-                        <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
-                          <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {att.name}</span>
-                          <button onClick={()=>deleteAttachment(pendingTask.id,att,teamSpace)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
-                        </div>
-                      ))}
+                      {pendingMemberProposal
+                        ? pendingFiles.map((f,i) => (
+                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
+                              <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {f.name}</span>
+                              <button onClick={()=>setPendingFiles(p=>p.filter((_,j)=>j!==i))} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                            </div>
+                          ))
+                        : ((teamSpace ? teamTasks.find(t=>t.id===pendingTask.id) : getTask(pendingTask.id))?.attachments||[]).map((att,i) => (
+                            <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
+                              <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {att.name}</span>
+                              <button onClick={()=>deleteAttachment(pendingTask.id,att,teamSpace)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                            </div>
+                          ))
+                      }
                       <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,teamSpace)); e.target.value=""; }}/>
+                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }}
+                          onChange={e=>{
+                            if (pendingMemberProposal) { setPendingFiles(p=>[...p,...Array.from(e.target.files)]); }
+                            else { Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,teamSpace)); }
+                            e.target.value="";
+                          }}/>
                         {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter des pièces jointes"}
                       </label>
                     </div>
