@@ -792,7 +792,7 @@ test.describe('Desktop — Page équipe (admin)', () => {
     await switchToTeamSpace(page);
     await page.locator('.row').filter({ hasText: 'Tâche équipe' }).click();
     await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible({ timeout: 5000 });
-    await page.locator('button').filter({ hasText: '✕' }).last().click();
+    await page.locator('button').filter({ hasText: '✕' }).first().click();
     await expect(page.getByText('COMMENTAIRES (0)')).not.toBeVisible();
   });
 
