@@ -2676,14 +2676,14 @@ export default function App() {
                   {/* Pièces jointes — perso ou admin équipe (pas les membres qui proposent) */}
                   {(!teamSpace || pendingTeamTaskId) && (
                     <div style={{ marginBottom:12 }}>
-                      {(getTask(pendingTask.id)?.attachments||[]).map((att,i) => (
+                      {((teamSpace ? teamTasks.find(t=>t.id===pendingTask.id) : getTask(pendingTask.id))?.attachments||[]).map((att,i) => (
                         <div key={i} style={{ display:"flex",alignItems:"center",gap:6,fontSize:10,color:theme.textMuted,marginBottom:3 }}>
                           <span style={{ flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📎 {att.name}</span>
-                          <button onClick={()=>deleteAttachment(pendingTask.id,att,false)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
+                          <button onClick={()=>deleteAttachment(pendingTask.id,att,teamSpace)} style={{ background:"transparent",border:"none",color:"#aa3030",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>
                         </div>
                       ))}
                       <label style={{ display:"flex",alignItems:"center",gap:6,background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:11,color:theme.accent }}>
-                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,false)); e.target.value=""; }}/>
+                        <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.eml,.msg" style={{ display:"none" }} onChange={e=>{ Array.from(e.target.files).forEach(f=>uploadAttachment(pendingTask.id,f,teamSpace)); e.target.value=""; }}/>
                         {uploadingAttachment?"⏳ Envoi…":"📎 Ajouter des pièces jointes"}
                       </label>
                     </div>
