@@ -3,3 +3,4 @@ export const auth = { currentUser: null };
 export const provider = {};
 export const db = {};
 export const storage = {};
+export const getMessagingInstance = async () => null;
