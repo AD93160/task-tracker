@@ -780,21 +780,20 @@ test.describe('Desktop — Page équipe (admin)', () => {
     await expect(page.getByRole('button', { name: /N° ↓/ })).toBeVisible();
   });
 
-  test('cliquer sur une tâche équipe ouvre le formulaire d\'édition', async ({ page }) => {
+  test('cliquer sur une tâche équipe ouvre la popup de commentaires', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
     await page.locator('.row').filter({ hasText: 'Tâche équipe' }).click();
-    await expect(page.getByText('MODIFIER')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('button', { name: 'Modifier' })).toBeVisible();
+    await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible({ timeout: 5000 });
   });
 
-  test('le formulaire d\'édition se ferme avec le bouton Annuler', async ({ page }) => {
+  test('la popup de commentaires se ferme avec le bouton ✕', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
     await page.locator('.row').filter({ hasText: 'Tâche équipe' }).click();
-    await expect(page.getByText('MODIFIER')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Annuler' }).click();
-    await expect(page.getByText('MODIFIER')).not.toBeVisible();
+    await expect(page.getByText('COMMENTAIRES (0)')).toBeVisible({ timeout: 5000 });
+    await page.getByText('COMMENTAIRES (0)').locator('xpath=../button').click();
+    await expect(page.getByText('COMMENTAIRES (0)')).not.toBeVisible();
   });
 
   test('la modale équipe se ferme en cliquant en dehors', async ({ page }) => {
