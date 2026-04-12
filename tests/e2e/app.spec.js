@@ -963,11 +963,12 @@ test.describe('Desktop — Page équipe (membre)', () => {
     await page.getByRole('button', { name: 'Annuler' }).click();
   });
 
-  test('cliquer sur une tâche équipe ouvre la modale avec "Proposer une modification"', async ({ page }) => {
+  test('cliquer sur une tâche équipe ouvre le formulaire d\'édition pour le membre', async ({ page }) => {
     await waitForApp(page);
     await switchToTeamSpace(page);
     await page.locator('.row').filter({ hasText: 'Tâche équipe' }).click();
-    await expect(page.getByRole('button', { name: /✎ Proposer une modification/ })).toBeVisible();
+    await expect(page.getByText('MODIFIER')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Modifier' })).toBeVisible();
   });
 });
 
