@@ -1534,12 +1534,13 @@ export default function App() {
         let attachments = [];
         if (pendingFiles.length > 0) {
           setUploadingAttachment(true);
-          const basePath = `teams/${team.id}/proposals/${Date.now()}`;
+          const proposalFolder = `teams/${team.id}/attachments/proposal-${Date.now()}`;
           for (const f of pendingFiles) {
-            const sRef = storageRef(storage, `${basePath}/${Date.now()}_${f.name}`);
+            const fileName = `${Date.now()}_${f.name}`;
+            const sRef = storageRef(storage, `${proposalFolder}/${fileName}`);
             await uploadBytes(sRef, f);
             const url = await getDownloadURL(sRef);
-            attachments.push({ name:f.name, url, type:f.type, size:f.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:`${basePath}/${f.name}` });
+            attachments.push({ name:f.name, url, type:f.type, size:f.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:`${proposalFolder}/${fileName}` });
           }
           setUploadingAttachment(false);
         }
