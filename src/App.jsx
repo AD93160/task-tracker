@@ -2757,21 +2757,15 @@ export default function App() {
                     </button>
                   )}
                   {isMobile && (
-                    <>
-                      <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                        style={{ background:theme.accent,border:"none",borderRadius:8,padding:"5px 14px",color:"#fff",fontSize:11,cursor:"pointer",textAlign:"center" }}>
-                        {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
+                    <div style={{ position:"relative" }}>
+                      <button onClick={listening?stopVoice:startVoice}
+                        style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"5px 10px",fontSize:14,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
+                        {listening?"⏹":"🎙️"}
+                        {listening && <span style={{ position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
                       </button>
-                      <div style={{ position:"relative" }}>
-                        <button onClick={listening?stopVoice:startVoice}
-                          style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"5px 10px",fontSize:14,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                          {listening?"⏹":"🎙️"}
-                          {listening && <span style={{ position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
-                        </button>
-                        {voiceError && <div style={{ position:"absolute",top:36,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:180,whiteSpace:"normal" }}>{voiceError}<button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer" }}>✕</button></div>}
-                        {listening && <div style={{ position:"absolute",top:36,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
-                      </div>
-                    </>
+                      {voiceError && <div style={{ position:"absolute",top:36,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:180,whiteSpace:"normal" }}>{voiceError}<button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer" }}>✕</button></div>}
+                      {listening && <div style={{ position:"absolute",top:36,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
+                    </div>
                   )}
                 </div>
               </div>
