@@ -2412,34 +2412,91 @@ export default function App() {
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
-          style={{ flex:1, minWidth:0, padding: isMobile ? "12px 14px" : "20px 16px", paddingBottom: isMobile ? 180 : undefined, overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
-          {/* Top bar (desktop uniquement) */}
-          {!isMobile && <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
-            {!isMobile && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
-              style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-              {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
-            </button>}
-            {!isMobile && <div style={{ position:"relative" }}>
-              <button onClick={listening?stopVoice:startVoice}
-                style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"6px 10px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                {listening?"⏹":"🎙️"}
-                {listening && <span style={{ position:"absolute",top:-3,right:-3,width:8,height:8,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
-              </button>
-              {voiceError && (
-                <div style={{ position:"absolute",top:42,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
-                  {voiceError}
-                  <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
+          {/* ── Contrôles fixes (desktop/tablet uniquement) ── */}
+          {!isMobile && (
+            <div style={{ flexShrink:0, background:theme.bg, padding:"20px 16px 0", zIndex:10 }}>
+
+              {/* Top bar */}
+              <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
+                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+                  {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
+                </button>
+                <div style={{ position:"relative" }}>
+                  <button onClick={listening?stopVoice:startVoice}
+                    style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"6px 10px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
+                    {listening?"⏹":"🎙️"}
+                    {listening && <span style={{ position:"absolute",top:-3,right:-3,width:8,height:8,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
+                  </button>
+                  {voiceError && (
+                    <div style={{ position:"absolute",top:42,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
+                      {voiceError}
+                      <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
+                    </div>
+                  )}
+                  {listening && (
+                    <div style={{ position:"absolute",top:42,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
+                      <span style={{ width:8,height:8,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
+                      En écoute…
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sort bar perso */}
+              {!teamSpace && (
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
+                  {[{v:"added",l:"Ajout"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"delay",l:"Retard"},{v:"status",l:"Statut"}].map(({v,l})=>(
+                    <button key={v} onClick={()=>{ if(sortBy===v){setSortDir(d=>d==="asc"?"desc":"asc");}else{setSortBy(v);setSortDir("asc");} }}
+                      style={{ background:sortBy===v?theme.accent+"33":"transparent",border:`1px solid ${sortBy===v?theme.accent:theme.border}`,borderRadius:5,padding:"3px 8px",color:sortBy===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                      {l}{sortBy===v?(sortDir==="asc"?" ↑":" ↓"):""}
+                    </button>
+                  ))}
+                  {sortBy && <button onClick={()=>setSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
                 </div>
               )}
-              {listening && (
-                <div style={{ position:"absolute",top:42,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
-                  <span style={{ width:8,height:8,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
-                  En écoute…
-                </div>
+
+              {/* Header + Sort bar équipe */}
+              {teamSpace && team && (
+                <>
+                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
+                    <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
+                    <div style={{ display:"flex",gap:8 }}>
+                      {isAdminRole(teamRole) && teamPending.length>0 && (
+                        <button onClick={()=>setShowPendingPanel(true)}
+                          style={{ background:"#f0c04022",border:"1px solid #f0c04066",borderRadius:8,padding:"5px 12px",color:"#f0c040",fontSize:11,cursor:"pointer",fontWeight:700 }}>
+                          ⏳ En attente ({teamPending.length})
+                        </button>
+                      )}
+                      {teamRole==="member" && (
+                        <button onClick={()=>setShowMyPendingPanel(true)}
+                          style={{ background:"#4a4a8a22",border:"1px solid #4a4a8a66",borderRadius:8,padding:"5px 12px",color:"#8888cc",fontSize:11,cursor:"pointer",fontWeight:700 }}>
+                          📋 Mes propositions{myPendingProposals.length>0?` (${myPendingProposals.length})`:""}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
+                    <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
+                    {[{v:"num",l:"N°"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"status",l:"Statut"}].map(({v,l})=>(
+                      <button key={v} onClick={()=>{ if(teamSortBy===v){setTeamSortDir(d=>d==="asc"?"desc":"asc");}else{setTeamSortBy(v);setTeamSortDir("asc");} }}
+                        style={{ background:teamSortBy===v?theme.accent+"33":"transparent",border:`1px solid ${teamSortBy===v?theme.accent:theme.border}`,borderRadius:5,padding:"3px 8px",color:teamSortBy===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>
+                        {l}{teamSortBy===v?(teamSortDir==="asc"?" ↑":" ↓"):""}
+                      </button>
+                    ))}
+                    {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
+                  </div>
+                </>
               )}
-            </div>}
-          </div>}
+
+            </div>
+          )}
+
+          {/* ── Zone scrollable (tâches uniquement) ── */}
+          <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding: isMobile ? "12px 14px 180px" : "8px 16px 20px", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Form */}
           {showForm && (
