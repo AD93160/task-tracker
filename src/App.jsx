@@ -398,6 +398,7 @@ export default function App() {
   const firestoreLoaded  = useRef(false);
   const lastSavedSnapshot = useRef(null);
   const longPressTimer   = useRef(null);
+  const onTouchEndRef    = useRef(null);
   const tasksRef         = useRef(tasks);
   const todayIdsRef         = useRef(todayIds);
   const teamTasksRef        = useRef([]);
