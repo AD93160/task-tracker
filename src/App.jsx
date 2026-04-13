@@ -1531,22 +1531,9 @@ export default function App() {
     if (pendingMemberProposal && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try {
-        let attachments = [];
-        if (pendingFiles.length > 0) {
-          setUploadingAttachment(true);
-          const proposalFolder = `teams/${team.id}/attachments/proposal-${Date.now()}`;
-          for (const f of pendingFiles) {
-            const fileName = `${Date.now()}_${f.name}`;
-            const sRef = storageRef(storage, `${proposalFolder}/${fileName}`);
-            await uploadBytes(sRef, f);
-            const url = await getDownloadURL(sRef);
-            attachments.push({ name:f.name, url, type:f.type, size:f.size, uploadedBy:user.uid, uploadedByEmail:user.email||"", uploadedAt:Date.now(), storagePath:`${proposalFolder}/${fileName}` });
-          }
-          setUploadingAttachment(false);
-        }
-        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:{...pendingMemberProposal, scheduledFor:scheduled, ...(attachments.length>0?{attachments}:{})}, createdAt:serverTimestamp(), status:"pending" });
+        await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"add", proposedBy:user.uid, proposedByEmail:user.email||"", data:{...pendingMemberProposal, scheduledFor:scheduled}, createdAt:serverTimestamp(), status:"pending" });
         setTeamInfo("Tâche proposée à l'admin pour validation.");
-      } catch(e) { setUploadingAttachment(false); setTeamError(e.message); }
+      } catch(e) { setTeamError(e.message); }
       setPendingMemberProposal(null);
       resetForm();
       return;
