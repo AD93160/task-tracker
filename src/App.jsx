@@ -2412,8 +2412,8 @@ export default function App() {
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
           style={{ flex:1, minWidth:0, padding: isMobile ? "12px 14px" : "20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
-          {/* Top bar (desktop only — on mobile the button is in the left panel) */}
-          <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
+          {/* Top bar (desktop uniquement) */}
+          {!isMobile && <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
             {!isMobile && <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
               style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
               {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
