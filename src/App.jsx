@@ -2410,7 +2410,7 @@ export default function App() {
 
         {/* ── RIGHT ── */}
         <div onDragOver={e=>{e.preventDefault();setDropZone("list");}}
-          style={{ flex:1, minWidth:0, padding: isMobile ? "12px 14px" : "20px 16px", overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          style={{ flex:1, minWidth:0, padding: isMobile ? "12px 14px" : "20px 16px", paddingBottom: isMobile ? 180 : undefined, overflowY:"auto", overflowX:"hidden", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Top bar (desktop uniquement) */}
           {!isMobile && <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8, position:"sticky", top:0, zIndex:10, background:theme.bg, paddingTop:4, paddingBottom:8, width:"100%" }}>
