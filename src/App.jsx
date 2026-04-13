@@ -2773,6 +2773,7 @@ export default function App() {
           {/* ── ESPACE ÉQUIPE ── */}
           {teamSpace && team && (
             <div style={{ marginBottom:16 }}>
+              {isMobile && (
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8 }}>
                 <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700 }}>TÂCHES — {team.name.toUpperCase()}</div>
                 <div style={{ display:"flex",gap:8,flex:isMobile&&teamRole==="member"?1:undefined,justifyContent:isMobile&&teamRole==="member"?"center":undefined }}>
@@ -2790,11 +2791,12 @@ export default function App() {
                   )}
                 </div>
               </div>
+              )}
               {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
               {teamInfo  && <div style={{ fontSize:10,color:"#3aaa3a",background:"#3aaa3a22",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamInfo}</span><button onClick={()=>setTeamInfo(null)} style={{ background:"transparent",border:"none",color:"#3aaa3a",cursor:"pointer" }}>✕</button></div>}
               {teamTasks.filter(t=>t.status!=="Terminé").length === 0 && teamTasks.length === 0 && <div style={{ color:theme.textMuted,fontSize:12,textAlign:"center",padding:30 }}>{isAdminRole(teamRole)?"Aucune tâche — créez la première ci-dessus.":"Aucune tâche pour l'instant."}</div>}
               {/* Sort bar équipe */}
-              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
+              {isMobile && <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap" }}>
                 <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
                 {[{v:"num",l:"N°"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"status",l:"Statut"}].map(({v,l})=>(
                   <button key={v} onClick={()=>{ if(teamSortBy===v){setTeamSortDir(d=>d==="asc"?"desc":"asc");}else{setTeamSortBy(v);setTeamSortDir("asc");} }}
