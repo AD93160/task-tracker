@@ -2892,7 +2892,7 @@ export default function App() {
 
           {/* Sort bar + Task rows — espace perso uniquement */}
           {!teamSpace && (<>
-          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+          {isMobile && <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10, flexWrap:"wrap" }}>
             <span style={{ fontSize:9,color:theme.textMuted,letterSpacing:1 }}>TRIER :</span>
             {[{v:"added",l:"Ajout"},{v:"priority",l:"Priorité"},{v:"due",l:"Échéance"},{v:"delay",l:"Retard"},{v:"status",l:"Statut"}].map(({v,l})=>(
               <button key={v} onClick={()=>{ if(sortBy===v){setSortDir(d=>d==="asc"?"desc":"asc");}else{setSortBy(v);setSortDir("asc");} }}
@@ -2901,7 +2901,7 @@ export default function App() {
               </button>
             ))}
             {sortBy && <button onClick={()=>setSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
-          </div>
+          </div>}
 
           <div style={{ display:"grid", gap:5 }}>
             {(() => {
