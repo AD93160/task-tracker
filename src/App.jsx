@@ -2835,7 +2835,7 @@ export default function App() {
                             <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap" }}>
                               <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
                               <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬</span>
-                              {(task.attachments||[]).length>0 && <span onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ fontSize:9,color:theme.accent,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.accent}44`,borderRadius:4 }}>📎 {task.attachments.length}</span>}
+                              <span onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ fontSize:9,color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:4 }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</span>
                               <span onClick={toggleNotify} style={{ fontSize:10,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</span>
                             </div>
                           </>}
