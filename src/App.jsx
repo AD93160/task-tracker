@@ -2756,17 +2756,6 @@ export default function App() {
                       📋 Mes propositions{myPendingProposals.length>0?` (${myPendingProposals.length})`:""}
                     </button>
                   )}
-                  {isMobile && (
-                    <div style={{ position:"relative" }}>
-                      <button onClick={listening?stopVoice:startVoice}
-                        style={{ background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"5px 10px",fontSize:14,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                        {listening?"⏹":"🎙️"}
-                        {listening && <span style={{ position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
-                      </button>
-                      {voiceError && <div style={{ position:"absolute",top:36,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:180,whiteSpace:"normal" }}>{voiceError}<button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer" }}>✕</button></div>}
-                      {listening && <div style={{ position:"absolute",top:36,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
-                    </div>
-                  )}
                 </div>
               </div>
               {teamError && <div style={{ fontSize:10,color:"#cc3030",background:"#cc303022",borderRadius:8,padding:"6px 10px",marginBottom:10,display:"flex",justifyContent:"space-between" }}><span>{teamError}</span><button onClick={()=>setTeamError(null)} style={{ background:"transparent",border:"none",color:"#cc3030",cursor:"pointer" }}>✕</button></div>}
