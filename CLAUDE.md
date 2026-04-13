@@ -1,5 +1,8 @@
 # Task Tracker Pro — Contexte projet
 
+## Règles de travail
+- Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
+
 ## Stack
 - React 18 + Vite
 - Firebase Auth + Firestore (sync temps réel)
