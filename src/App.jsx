@@ -3472,6 +3472,15 @@ export default function App() {
       {/* Spacer pour le bandeau pub */}
       <div style={{ height:56 }} />
 
+      {/* FAB fixe — mobile équipe */}
+      {teamSpace && isMobile && team && !showForm && (
+        <button
+          onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+          style={{ position:"fixed",bottom:24,right:16,zIndex:150,background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+          {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
+        </button>
+      )}
+
       {/* Toast notifications */}
       {toastMsg && (
         <div style={{ position:"fixed", bottom:72, left:"50%", transform:"translateX(-50%)", background:toastMsg.isError?"#2a0a0a":"#0a2a0a", border:`1px solid ${toastMsg.isError?"#cc3030":"#3aaa3a"}`, borderRadius:10, padding:"10px 18px", color:toastMsg.isError?"#ff8080":"#6bcb77", fontSize:12, zIndex:1000, boxShadow:"0 4px 20px #00000088", maxWidth:"90vw", textAlign:"center" }}>
