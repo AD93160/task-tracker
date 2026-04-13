@@ -3012,6 +3012,7 @@ export default function App() {
             </div>
           </>)}
 
+          </div>{/* end scroller */}
         </div>{/* end RIGHT */}
 
       </div>{/* end split */}
