@@ -2805,7 +2805,7 @@ export default function App() {
                   </button>
                 ))}
                 {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
-              </div>
+              </div>}
               <div style={{ display:"grid",gap:5 }}>
                 {[...teamTasks].filter(t=>t.status!=="Terminé").sort((a,b)=>{
                   if (!teamSortBy) return (a.num||0)-(b.num||0);
