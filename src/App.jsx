@@ -3434,6 +3434,26 @@ export default function App() {
       {/* Spacer pour le bandeau pub */}
       <div style={{ height:56 }} />
 
+      {/* FAB fixe — mobile page perso (au-dessus du bandeau pub) */}
+      {!teamSpace && isMobile && !showForm && (
+        <div style={{ position:"fixed",bottom:64,right:16,zIndex:150,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8 }}>
+          <div style={{ position:"relative" }}>
+            <button onClick={listening?stopVoice:startVoice}
+              style={{ background:listening?"#cc3030":theme.bgCard,border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:50,width:44,height:44,fontSize:16,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"0 2px 12px #00000066",transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center" }}>
+              {listening?"⏹":"🎙️"}
+              {listening && <span style={{ position:"absolute",top:-2,right:-2,width:7,height:7,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
+            </button>
+            {voiceError && <div style={{ position:"absolute",bottom:50,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:180,whiteSpace:"normal" }}>{voiceError}<button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer" }}>✕</button></div>}
+            {listening && <div style={{ position:"absolute",bottom:50,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
+          </div>
+          <button
+            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+            style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            + Ajouter
+          </button>
+        </div>
+      )}
+
       {/* FAB fixe — mobile équipe (au-dessus du bandeau pub) */}
       {teamSpace && isMobile && team && !showForm && (
         <div style={{ position:"fixed",bottom:64,right:16,zIndex:150,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8 }}>
