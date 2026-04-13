@@ -1699,14 +1699,15 @@ export default function App() {
     if (src==="team-list"&&zone==="today")         { moveTeamTask(id,"today"); return; }
     if (src==="team-list"&&zone==="tomorrow")      { moveTeamTask(id,"tomorrow"); return; }
   };
+  onTouchEndRef.current = onTouchEnd;
   useEffect(() => {
     const h = (e) => { if (dragRef.current?.id) onTouchMove(e); };
     document.addEventListener("touchmove",h,{passive:false}); return () => document.removeEventListener("touchmove",h);
   }, []);
   useEffect(() => {
-    const h = (e) => { if (dragRef.current?.id) onTouchEnd(e); };
+    const h = (e) => { if (dragRef.current?.id) onTouchEndRef.current(e); };
     document.addEventListener("touchend",h); return () => document.removeEventListener("touchend",h);
-  }, [todayIds, highlighted]);
+  }, []);
 
   const isOverBubble = (id) => dropZone===id;
   const isOverToday  = dropZone==="today";
