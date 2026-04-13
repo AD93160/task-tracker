@@ -2404,33 +2404,6 @@ export default function App() {
               )}
             </div>
 
-            {isMobile && (
-              <div style={{ padding:"10px 16px 14px", display:"flex", gap:8 }}>
-                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
-                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
-                  + Ajouter
-                </button>
-                <div style={{ position:"relative" }}>
-                  <button onClick={listening?stopVoice:startVoice}
-                    style={{ height:"100%",background:listening?"#cc3030":"transparent",border:`1px solid ${listening?"#cc3030":theme.accent+"66"}`,borderRadius:8,padding:"10px 14px",fontSize:15,cursor:"pointer",position:"relative",boxShadow:listening?"0 0 12px #cc303088":"none",transition:"all .2s" }}>
-                    {listening?"⏹":"🎙️"}
-                    {listening && <span style={{ position:"absolute",top:-3,right:-3,width:8,height:8,borderRadius:"50%",background:"#ff4444",animation:"pulse 1s infinite" }}/>}
-                  </button>
-                  {voiceError && (
-                    <div style={{ position:"absolute",bottom:52,right:0,background:"#2a0a0a",border:"1px solid #aa3030",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,minWidth:200,whiteSpace:"normal" }}>
-                      {voiceError}
-                      <button onClick={()=>setVoiceError(null)} style={{ marginLeft:8,background:"transparent",border:"none",color:"#ff8080",cursor:"pointer",fontSize:11 }}>✕</button>
-                    </div>
-                  )}
-                  {listening && (
-                    <div style={{ position:"absolute",bottom:52,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 14px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}>
-                      <span style={{ width:8,height:8,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>
-                      En écoute…
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </>)}
 
         </div>{/* end LEFT */}
