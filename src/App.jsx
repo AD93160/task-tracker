@@ -124,7 +124,12 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
                       {t.id===activeTeamId && <span style={{ marginLeft:6,color:theme.accent,fontSize:9 }}>● actif</span>}
                     </div>
                   </div>
-                  <span style={{ color:theme.textMuted,fontSize:18 }}>›</span>
+                  <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                    {(t.myRole==="admin"||t.myRole==="co-admin") && t.id===activeTeamId && teamPending.length > 0 && (
+                      <span style={{ background:"#cc3030",color:"#fff",borderRadius:"50%",minWidth:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px" }}>{teamPending.length}</span>
+                    )}
+                    <span style={{ color:theme.textMuted,fontSize:18 }}>›</span>
+                  </div>
                 </div>
               ))
             )}
