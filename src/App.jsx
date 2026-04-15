@@ -1779,11 +1779,9 @@ export default function App() {
             <button onClick={()=>{openEdit(task);setModal(null);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
               ✎ Modifier
             </button>
-            {(task.attachments||[]).length>0 && (
-              <button onClick={()=>{setModal(null);setPjPopup({id:task.id,isTeam:false});}} style={{ background:theme.accent+"11",border:`1px solid ${theme.accent}33`,borderRadius:8,padding:"8px",color:theme.accent,fontSize:11,cursor:"pointer" }}>
-                📎 Pièces jointes ({task.attachments.length})
-              </button>
-            )}
+            <button onClick={()=>{setModal(null);setPjPopup({id:task.id,isTeam:false});}} style={{ background:(task.attachments||[]).length>0?theme.accent+"11":"transparent",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"33":theme.border}`,borderRadius:8,padding:"8px",color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,fontSize:11,cursor:"pointer" }}>
+              📎 {(task.attachments||[]).length>0?`Pièces jointes (${task.attachments.length})`:"Ajouter une pièce jointe"}
+            </button>
           </div>
         </div>
       </div>
