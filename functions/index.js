@@ -104,16 +104,22 @@ exports.onNewTeamTask = onDocumentCreated(
     if (!teamSnap.exists) return;
     const team = teamSnap.data();
 
-    const members = team.members || [];
-    if (!members.length) return;
+    // Réunit admins, co-admins et membres sans doublons
+    const memberUids = (team.members || []).map(m => m.uid);
+    const adminUids  = [
+      team.adminUid,
+      ...(team.coAdminUids || []),
+    ].filter(Boolean);
+    const allUids = [...new Set([...adminUids, ...memberUids])];
 
-    // Collecte les FCM tokens des membres (respecte notifyUsers si défini)
+    if (!allUids.length) return;
+
+    // Collecte les FCM tokens (respecte notifyUsers si défini)
     const tokens = (
       await Promise.all(
-        members.map(async m => {
-          // Si l'utilisateur a explicitement désactivé les notifs pour cette tâche
-          if (task.notifyUsers && task.notifyUsers[m.uid] === false) return null;
-          return getFcmToken(db, m.uid);
+        allUids.map(async uid => {
+          if (task.notifyUsers && task.notifyUsers[uid] === false) return null;
+          return getFcmToken(db, uid);
         })
       )
     ).filter(Boolean);
