@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Papier Vivant — Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Caveat:wght@500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1280px; height:720px; overflow:hidden;
+    background:#faf7f2;
+    font-family:'DM Sans', sans-serif;
+    color:#1c1917;
+    position:relative;
+  }
+
+  /* Paper texture via SVG filter */
+  body::before {
+    content:''; position:absolute; inset:0; z-index:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity:0.5;
+  }
+
+  .app { position:relative; z-index:1; display:flex; flex-direction:column; height:100%; }
+
+  /* Header */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; height:56px;
+    background:#faf7f2;
+    border-bottom:1px solid #e5ddd0;
+    position:relative;
+  }
+  header::after {
+    content:''; position:absolute; bottom:-3px; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, transparent, #c2410c22, transparent);
+  }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-mark {
+    font-family:'Caveat', cursive; font-size:28px; font-weight:600;
+    color:#c2410c; line-height:1;
+  }
+  .logo-text {
+    font-family:'Lora', serif; font-size:15px; font-weight:600;
+    color:#1c1917; letter-spacing:0.02em;
+  }
+  .logo-sub { font-size:10px; color:#a8917a; letter-spacing:0.04em; font-style:italic; }
+  .header-right { display:flex; align-items:center; gap:10px; }
+  .header-btn {
+    width:34px; height:34px; border-radius:50%;
+    background:#f0ece4; border:1px solid #e5ddd0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; cursor:pointer;
+  }
+  .avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:linear-gradient(135deg, #c2410c, #92400e);
+    border:2px solid #e5ddd0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:#fff;
+  }
+  .sync { font-size:10px; color:#a8917a; font-style:italic; }
+
+  /* Main */
+  .main { display:flex; flex:1; overflow:hidden; }
+
+  /* Left panel — "torn paper" edge */
+  .left {
+    width:38%;
+    background:#f0ece4;
+    border-right:none;
+    position:relative;
+    display:flex; flex-direction:column;
+  }
+  /* Torn edge */
+  .left::after {
+    content:'';
+    position:absolute; right:-8px; top:0; bottom:0; width:16px;
+    background:url("data:image/svg+xml,%3Csvg width='16' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 0 Q12 10 16 20 Q10 30 16 40 Q13 50 16 60 Q11 70 16 80 Q14 90 16 100 L0 100 L0 0Z' fill='%23f0ece4'/%3E%3C/svg%3E") repeat-y right center;
+    z-index:2;
+  }
+  .panel-section { flex:1; padding:22px 24px 18px; display:flex; flex-direction:column; }
+  .panel-section + .panel-section { border-top:1px dashed #d4c8b8; }
+  .section-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; }
+  .section-title {
+    font-family:'Lora', serif; font-size:12px; font-weight:700;
+    color:#78716c; letter-spacing:0.1em; text-transform:uppercase;
+  }
+  .section-date { font-family:'Caveat', cursive; font-size:15px; color:#c2410c; font-weight:600; }
+  .bubbles { display:flex; flex-wrap:wrap; gap:12px; }
+
+  .bubble {
+    width:62px; height:62px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Lora', serif;
+    font-size:18px; font-weight:700;
+    cursor:pointer;
+    position:relative;
+    transform:rotate(0deg);
+    transition:transform .2s;
+  }
+  .bubble:hover { transform:rotate(-3deg) scale(1.05); }
+
+  /* Post-it like shadows */
+  .b-red {
+    background:#fef2f2;
+    border:2px solid #fca5a5;
+    color:#dc2626;
+    box-shadow:3px 4px 0 #fca5a5, 3px 4px 12px rgba(220,38,38,0.15);
+  }
+  .b-amber {
+    background:#fffbeb;
+    border:2px solid #fcd34d;
+    color:#d97706;
+    box-shadow:3px 4px 0 #fcd34d, 3px 4px 12px rgba(217,119,6,0.15);
+  }
+  .b-emerald {
+    background:#f0fdf4;
+    border:2px solid #86efac;
+    color:#16a34a;
+    box-shadow:3px 4px 0 #86efac, 3px 4px 12px rgba(22,163,74,0.15);
+  }
+  .b-sky {
+    background:#f0f9ff;
+    border:2px solid #7dd3fc;
+    color:#0284c7;
+    box-shadow:3px 4px 0 #7dd3fc, 3px 4px 12px rgba(2,132,199,0.15);
+  }
+  .b-dim {
+    background:#f5f0e8;
+    border:2px dashed #c4b8a8;
+    color:#a8917a;
+    box-shadow:2px 3px 0 #d4c8b8;
+    opacity:0.7;
+  }
+  .add-btn {
+    width:62px; height:62px; border-radius:50%;
+    border:2px dashed #c2410c44;
+    display:flex; align-items:center; justify-content:center;
+    color:#c2410c66; font-size:24px; cursor:pointer;
+    background:rgba(194,65,12,0.03);
+  }
+
+  /* Ink progress bar */
+  .ink-bar-wrap { margin-top:auto; padding-top:16px; }
+  .ink-label { font-family:'Caveat', cursive; font-size:14px; color:#a8917a; margin-bottom:6px; }
+  .ink-track {
+    width:100%; height:6px; border-radius:3px;
+    background:#e5ddd0; overflow:hidden;
+    position:relative;
+  }
+  .ink-fill {
+    height:100%; border-radius:3px;
+    background:linear-gradient(90deg, #c2410c, #ea580c);
+    width:62%;
+    position:relative;
+  }
+  .ink-fill::after {
+    content:''; position:absolute; right:-1px; top:-1px; bottom:-1px; width:3px;
+    background:#fff; border-radius:0 2px 2px 0; opacity:0.6;
+  }
+
+  /* Right panel */
+  .right { flex:1; background:#faf7f2; display:flex; flex-direction:column; padding-left:12px; }
+  .toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 24px 12px;
+    border-bottom:1px solid #e5ddd0;
+  }
+  .toolbar-left { display:flex; align-items:center; gap:8px; }
+  .sort-btn {
+    font-size:11px; color:#a8917a; padding:4px 12px;
+    border-radius:20px; border:1px solid #e5ddd0;
+    background:transparent; font-family:'DM Sans', sans-serif;
+    cursor:pointer;
+  }
+  .sort-btn.active {
+    color:#c2410c; border-color:#fca5a5; background:#fef2f2;
+  }
+  .new-task-btn {
+    font-size:12px; font-weight:600; padding:7px 16px;
+    border-radius:20px;
+    background:#c2410c; color:#fff;
+    cursor:pointer; border:none;
+    font-family:'DM Sans', sans-serif;
+    box-shadow:0 2px 8px rgba(194,65,12,0.25), 0 1px 0 #92400e;
+  }
+  .task-list { flex:1; overflow-y:auto; padding:6px 0; }
+  .task-row {
+    display:flex; align-items:center; gap:14px;
+    padding:11px 24px;
+    border-bottom:1px solid #f0ece4;
+    cursor:pointer; transition:background .15s;
+  }
+  .task-row:hover { background:#f5f0e8; }
+
+  /* Stamp status */
+  .stamp {
+    width:26px; height:26px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; flex-shrink:0;
+    border:1.5px solid;
+  }
+  .stamp-todo { border-color:#c4b8a8; color:#a8917a; background:#f5f0e8; }
+  .stamp-doing { border-color:#86efac; color:#16a34a; background:#f0fdf4; }
+  .stamp-done {
+    border-color:#fca5a5; color:#dc2626; background:#fef2f2;
+    position:relative; overflow:hidden;
+  }
+  .stamp-done::after {
+    content:'✕'; position:absolute; font-size:20px; opacity:0.15;
+    color:#dc2626;
+  }
+
+  .task-num {
+    font-family:'Caveat', cursive; font-size:16px; color:#c4b8a8;
+    width:22px; flex-shrink:0; font-weight:600;
+  }
+  .task-info { flex:1; }
+  .task-title { font-size:13px; font-weight:500; color:#1c1917; margin-bottom:3px; }
+  .task-title.done { text-decoration:line-through; color:#a8917a; }
+  .task-meta { display:flex; align-items:center; gap:8px; }
+  .prio-dot { width:7px; height:7px; border-radius:50%; }
+  .p-high { background:#dc2626; }
+  .p-med  { background:#d97706; }
+  .p-low  { background:#16a34a; }
+  .task-date { font-size:10px; color:#a8917a; font-style:italic; }
+  .task-actions { opacity:0; display:flex; gap:6px; }
+  .task-row:hover .task-actions { opacity:1; }
+  .act { font-size:13px; color:#a8917a; cursor:pointer; }
+  .task-bell { font-size:12px; color:#c4b8a8; }
+  .task-bell.on { color:#c2410c; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">✍</div>
+      <div>
+        <div class="logo-text">Task Tracker Pro</div>
+        <div class="logo-sub">espace personnel</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="sync">encre fraîche ✓</span>
+      <div class="header-btn">📊</div>
+      <div class="header-btn">👥</div>
+      <div class="header-btn">⚙️</div>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="left">
+      <!-- Aujourd'hui -->
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">Aujourd'hui</div>
+          <div class="section-date">Mer. 16 avr.</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-red">3</div>
+          <div class="bubble b-amber" style="transform:rotate(2deg);">7</div>
+          <div class="bubble b-emerald" style="transform:rotate(-1deg);">12</div>
+          <div class="bubble b-sky" style="transform:rotate(1.5deg);">15</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="ink-bar-wrap">
+          <div class="ink-label">62% de la journée tracée</div>
+          <div class="ink-track"><div class="ink-fill"></div></div>
+        </div>
+      </div>
+      <!-- Demain -->
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">Demain</div>
+          <div class="section-date">Jeu. 17 avr.</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-dim" style="transform:rotate(-1deg);">2</div>
+          <div class="bubble b-dim" style="transform:rotate(2deg);">9</div>
+          <div class="add-btn">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="right">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="sort-btn active">N° ↑</div>
+          <div class="sort-btn">Priorité</div>
+          <div class="sort-btn">Statut</div>
+          <div class="sort-btn">Échéance</div>
+        </div>
+        <button class="new-task-btn">+ Ajouter une tâche</button>
+      </div>
+      <div class="task-list">
+        <div class="task-row">
+          <div class="stamp stamp-doing">→</div>
+          <div class="task-num">3</div>
+          <div class="task-info">
+            <div class="task-title">Refonte interface utilisateur</div>
+            <div class="task-meta">
+              <div class="prio-dot p-high"></div>
+              <span class="task-date">aujourd'hui</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-todo">○</div>
+          <div class="task-num">7</div>
+          <div class="task-info">
+            <div class="task-title">Implémenter auth Firebase + sessions</div>
+            <div class="task-meta">
+              <div class="prio-dot p-high"></div>
+              <span class="task-date">aujourd'hui</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-doing">→</div>
+          <div class="task-num">9</div>
+          <div class="task-info">
+            <div class="task-title">Sync Firestore temps réel</div>
+            <div class="task-meta">
+              <div class="prio-dot p-med"></div>
+              <span class="task-date">17 avril</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-todo">○</div>
+          <div class="task-num">11</div>
+          <div class="task-info">
+            <div class="task-title">Rédiger documentation API</div>
+            <div class="task-meta">
+              <div class="prio-dot p-med"></div>
+              <span class="task-date">20 avril</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-done">✓</div>
+          <div class="task-num" style="color:#c4b8a8;">12</div>
+          <div class="task-info">
+            <div class="task-title done">Setup environnement de test</div>
+            <div class="task-meta">
+              <div class="prio-dot p-low"></div>
+              <span class="task-date" style="color:#16a34a;">terminé +2 min tôt</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-todo">○</div>
+          <div class="task-num">15</div>
+          <div class="task-info">
+            <div class="task-title">Optimiser performances bundle</div>
+            <div class="task-meta">
+              <div class="prio-dot p-low"></div>
+              <span class="task-date">aujourd'hui</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="stamp stamp-todo">○</div>
+          <div class="task-num">18</div>
+          <div class="task-info">
+            <div class="task-title">Tests E2E Playwright complets</div>
+            <div class="task-meta">
+              <div class="prio-dot p-low"></div>
+              <span class="task-date">25 avril</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
