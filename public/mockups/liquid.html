@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Liquid Glass — Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1280px; height:720px; overflow:hidden;
+    font-family:'Inter', sans-serif;
+    color:#f0f4ff;
+    position:relative;
+  }
+
+  /* Animated gradient background */
+  .bg {
+    position:absolute; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 120% 80% at 20% 50%, #1e3a8a 0%, transparent 50%),
+      radial-gradient(ellipse 80% 100% at 80% 20%, #4c1d95 0%, transparent 50%),
+      radial-gradient(ellipse 60% 60% at 60% 80%, #0c4a6e 0%, transparent 50%),
+      #0f172a;
+    animation:bgShift 20s ease-in-out infinite alternate;
+  }
+  @keyframes bgShift {
+    0%   { filter:hue-rotate(0deg); }
+    50%  { filter:hue-rotate(15deg) brightness(1.05); }
+    100% { filter:hue-rotate(-10deg); }
+  }
+
+  /* Glass mixin via pseudo */
+  .glass {
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(24px) saturate(160%);
+    border:1px solid rgba(255,255,255,0.15);
+  }
+
+  .app { position:relative; z-index:1; display:flex; flex-direction:column; height:100%; }
+
+  /* Header */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; height:54px;
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(30px) saturate(180%);
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    box-shadow:0 1px 0 rgba(255,255,255,0.05);
+  }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-gem {
+    width:30px; height:30px;
+    background:linear-gradient(135deg, rgba(240,171,252,0.9), rgba(167,139,250,0.9));
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px;
+    box-shadow:0 0 16px rgba(240,171,252,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+    border:1px solid rgba(255,255,255,0.3);
+  }
+  .logo-text { font-size:13px; font-weight:600; letter-spacing:0.12em; color:#f0f4ff; }
+  .logo-sub { font-size:9px; color:rgba(240,244,255,0.4); letter-spacing:0.1em; margin-top:1px; }
+  .header-right { display:flex; align-items:center; gap:10px; }
+  .header-btn {
+    width:34px; height:34px; border-radius:10px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+    backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; cursor:pointer;
+  }
+  .avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:linear-gradient(135deg, #f0abfc, #818cf8);
+    border:2px solid rgba(255,255,255,0.25);
+    box-shadow:0 0 12px rgba(240,171,252,0.4);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:#fff;
+  }
+  .sync { font-size:10px; color:rgba(240,244,255,0.35); font-family:'Space Mono', monospace; }
+
+  .main { display:flex; flex:1; overflow:hidden; }
+
+  /* Left panel */
+  .left {
+    width:38%;
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(24px) saturate(160%);
+    border-right:1px solid rgba(255,255,255,0.1);
+    display:flex; flex-direction:column;
+  }
+  .panel-section { flex:1; padding:22px 22px 18px; display:flex; flex-direction:column; }
+  .panel-section + .panel-section {
+    border-top:1px solid rgba(255,255,255,0.07);
+  }
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .section-title {
+    font-size:9px; font-weight:600; letter-spacing:0.22em;
+    color:rgba(240,244,255,0.4); text-transform:uppercase;
+  }
+  .section-pill {
+    font-size:9px; font-family:'Space Mono', monospace;
+    color:rgba(240,171,252,0.9);
+    background:rgba(240,171,252,0.12);
+    border:1px solid rgba(240,171,252,0.2);
+    padding:2px 8px; border-radius:20px;
+  }
+  .bubbles { display:flex; flex-wrap:wrap; gap:12px; }
+
+  /* 3D sphere bubbles */
+  .bubble {
+    width:64px; height:64px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono', monospace;
+    font-size:15px; font-weight:700;
+    cursor:pointer; position:relative;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .bubble:hover { transform:scale(1.1) translateY(-2px); }
+
+  .b-violet {
+    background:radial-gradient(circle at 38% 32%, #c4b5fd, #6d28d9 60%, #3b0764);
+    box-shadow:0 8px 24px rgba(109,40,217,0.5), 0 2px 8px rgba(0,0,0,0.4),
+               inset 0 1px 0 rgba(255,255,255,0.35), inset -2px -3px 6px rgba(0,0,0,0.3);
+    color:#fff;
+  }
+  .b-pink {
+    background:radial-gradient(circle at 38% 32%, #fbcfe8, #db2777 60%, #831843);
+    box-shadow:0 8px 24px rgba(219,39,119,0.5), 0 2px 8px rgba(0,0,0,0.4),
+               inset 0 1px 0 rgba(255,255,255,0.35), inset -2px -3px 6px rgba(0,0,0,0.3);
+    color:#fff;
+  }
+  .b-cyan {
+    background:radial-gradient(circle at 38% 32%, #a5f3fc, #0891b2 60%, #164e63);
+    box-shadow:0 8px 24px rgba(8,145,178,0.5), 0 2px 8px rgba(0,0,0,0.4),
+               inset 0 1px 0 rgba(255,255,255,0.35), inset -2px -3px 6px rgba(0,0,0,0.3);
+    color:#fff;
+  }
+  .b-lime {
+    background:radial-gradient(circle at 38% 32%, #d9f99d, #65a30d 60%, #1a2e05);
+    box-shadow:0 8px 24px rgba(101,163,13,0.5), 0 2px 8px rgba(0,0,0,0.4),
+               inset 0 1px 0 rgba(255,255,255,0.35), inset -2px -3px 6px rgba(0,0,0,0.3);
+    color:#fff;
+  }
+  .b-dim {
+    background:radial-gradient(circle at 38% 32%, rgba(255,255,255,0.18), rgba(255,255,255,0.04) 60%);
+    border:1.5px dashed rgba(255,255,255,0.15);
+    box-shadow:0 4px 16px rgba(0,0,0,0.3),
+               inset 0 1px 0 rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.3);
+  }
+
+  /* Focus ring on urgent task bubble */
+  .bubble.urgent::before {
+    content:''; position:absolute; inset:-5px; border-radius:50%;
+    border:2px solid rgba(240,171,252,0.6);
+    animation:pulse-ring 2s ease-in-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%,100% { opacity:0.6; transform:scale(1); }
+    50% { opacity:0.15; transform:scale(1.12); }
+  }
+
+  .add-btn {
+    width:64px; height:64px; border-radius:50%;
+    border:1.5px dashed rgba(240,171,252,0.25);
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(240,171,252,0.35); font-size:24px;
+    background:rgba(255,255,255,0.03);
+  }
+
+  /* Progress arc hint */
+  .progress-hint { margin-top:auto; padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .progress-track {
+    flex:1; height:3px; border-radius:2px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+  .progress-fill {
+    height:100%; border-radius:2px; width:62%;
+    background:linear-gradient(90deg, #818cf8, #f0abfc);
+    box-shadow:0 0 8px rgba(240,171,252,0.5);
+  }
+  .progress-txt { font-size:9px; color:rgba(240,244,255,0.3); font-family:'Space Mono',monospace; white-space:nowrap; }
+
+  /* Right panel */
+  .right { flex:1; display:flex; flex-direction:column; background:transparent; }
+  .toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 24px;
+    background:rgba(255,255,255,0.04);
+    border-bottom:1px solid rgba(255,255,255,0.07);
+    backdrop-filter:blur(10px);
+  }
+  .toolbar-left { display:flex; align-items:center; gap:6px; }
+  .sort-btn {
+    font-size:10px; color:rgba(240,244,255,0.4); padding:4px 12px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:transparent;
+    font-family:'Inter', sans-serif; cursor:pointer;
+  }
+  .sort-btn.active {
+    color:rgba(240,171,252,0.9); border-color:rgba(240,171,252,0.3);
+    background:rgba(240,171,252,0.08);
+  }
+  .new-task-btn {
+    font-size:11px; font-weight:600; padding:7px 16px;
+    border-radius:20px;
+    background:linear-gradient(135deg, rgba(240,171,252,0.85), rgba(129,140,248,0.85));
+    color:#fff; cursor:pointer; border:none;
+    box-shadow:0 4px 16px rgba(240,171,252,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
+    backdrop-filter:blur(10px);
+    font-family:'Inter', sans-serif;
+  }
+  .task-list { flex:1; overflow-y:auto; padding:6px 0; }
+  .task-row {
+    display:flex; align-items:center; gap:14px;
+    padding:10px 24px;
+    margin:3px 12px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.06);
+    backdrop-filter:blur(10px);
+    cursor:pointer; transition:background .15s, border-color .15s;
+  }
+  .task-row:hover {
+    background:rgba(255,255,255,0.07);
+    border-color:rgba(255,255,255,0.1);
+  }
+  /* Focus ring on hovered row */
+  .task-row.focused {
+    border-color:rgba(240,171,252,0.3);
+    background:rgba(240,171,252,0.06);
+    box-shadow:0 0 0 3px rgba(240,171,252,0.08);
+  }
+
+  .prio-bar { width:3px; height:28px; border-radius:2px; flex-shrink:0; }
+  .prio-high { background:#f87171; box-shadow:0 0 6px #f8717166; }
+  .prio-med  { background:#fbbf24; box-shadow:0 0 6px #fbbf2466; }
+  .prio-low  { background:#34d399; box-shadow:0 0 6px #34d39966; }
+
+  .task-num { font-family:'Space Mono',monospace; font-size:10px; color:rgba(240,244,255,0.2); width:20px; flex-shrink:0; }
+  .task-info { flex:1; }
+  .task-title { font-size:12px; font-weight:500; color:rgba(240,244,255,0.9); margin-bottom:3px; }
+  .task-title.done { text-decoration:line-through; color:rgba(240,244,255,0.25); }
+  .task-meta { display:flex; align-items:center; gap:8px; }
+  .tag {
+    font-size:9px; padding:2px 7px; border-radius:10px; font-weight:500;
+    backdrop-filter:blur(6px);
+  }
+  .tag-todo    { background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.2); }
+  .tag-doing   { background:rgba(52,211,153,0.15); color:#6ee7b7; border:1px solid rgba(52,211,153,0.2); }
+  .tag-done    { background:rgba(240,171,252,0.15); color:#f0abfc; border:1px solid rgba(240,171,252,0.2); }
+  .task-date   { font-size:9px; color:rgba(240,244,255,0.25); font-family:'Space Mono',monospace; }
+  .task-bell   { font-size:12px; opacity:.25; }
+  .task-bell.on { opacity:1; filter:drop-shadow(0 0 4px rgba(240,171,252,0.8)); }
+  .task-actions { opacity:0; display:flex; gap:6px; }
+  .task-row:hover .task-actions { opacity:1; }
+  .act { font-size:12px; color:rgba(240,244,255,0.4); cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-gem">◈</div>
+      <div>
+        <div class="logo-text">TASK TRACKER PRO</div>
+        <div class="logo-sub">WORKSPACE PERSONNEL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="sync">synced ●</span>
+      <div class="header-btn">📊</div>
+      <div class="header-btn">👥</div>
+      <div class="header-btn">⚙️</div>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="left">
+      <!-- Aujourd'hui -->
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">Aujourd'hui</div>
+          <div class="section-pill">4</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-pink urgent">3</div>
+          <div class="bubble b-violet">7</div>
+          <div class="bubble b-lime">12</div>
+          <div class="bubble b-cyan">15</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="progress-hint">
+          <div class="progress-track"><div class="progress-fill"></div></div>
+          <div class="progress-txt">62%</div>
+        </div>
+      </div>
+      <!-- Demain -->
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">Demain</div>
+          <div class="section-pill" style="color:rgba(165,243,252,0.7); background:rgba(165,243,252,0.08); border-color:rgba(165,243,252,0.15);">2</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-dim">2</div>
+          <div class="bubble b-dim">9</div>
+          <div class="add-btn" style="border-color:rgba(165,243,252,0.15); color:rgba(165,243,252,0.25);">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="right">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="sort-btn active">N° ↑</div>
+          <div class="sort-btn">Priorité</div>
+          <div class="sort-btn">Statut</div>
+          <div class="sort-btn">Échéance</div>
+        </div>
+        <button class="new-task-btn">+ Nouvelle tâche</button>
+      </div>
+      <div class="task-list">
+        <div class="task-row focused">
+          <div class="prio-bar prio-high"></div>
+          <div class="task-num">03</div>
+          <div class="task-info">
+            <div class="task-title">Refonte interface utilisateur</div>
+            <div class="task-meta">
+              <span class="tag tag-doing">En cours</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-high"></div>
+          <div class="task-num">07</div>
+          <div class="task-info">
+            <div class="task-title">Implémenter auth Firebase + sessions</div>
+            <div class="task-meta">
+              <span class="tag tag-todo">À faire</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-med"></div>
+          <div class="task-num">09</div>
+          <div class="task-info">
+            <div class="task-title">Sync Firestore temps réel</div>
+            <div class="task-meta">
+              <span class="tag tag-doing">En cours</span>
+              <span class="task-date">17 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-med"></div>
+          <div class="task-num">11</div>
+          <div class="task-info">
+            <div class="task-title">Rédiger documentation API</div>
+            <div class="task-meta">
+              <span class="tag tag-todo">À faire</span>
+              <span class="task-date">20 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-low"></div>
+          <div class="task-num">12</div>
+          <div class="task-info">
+            <div class="task-title done">Setup environnement de test</div>
+            <div class="task-meta">
+              <span class="tag tag-done">Terminé</span>
+              <span class="task-date" style="color:#34d399;">+2 min tôt</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-low"></div>
+          <div class="task-num">15</div>
+          <div class="task-info">
+            <div class="task-title">Optimiser performances bundle</div>
+            <div class="task-meta">
+              <span class="tag tag-todo">À faire</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio-bar prio-low"></div>
+          <div class="task-num">18</div>
+          <div class="task-info">
+            <div class="task-title">Tests E2E Playwright complets</div>
+            <div class="task-meta">
+              <span class="tag tag-todo">À faire</span>
+              <span class="task-date">25 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
