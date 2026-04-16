@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Aurora Glass — Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1280px; height:720px; overflow:hidden;
+    background:#060610;
+    font-family:'Space Grotesk', sans-serif;
+    color:#e8e8f4;
+    position:relative;
+  }
+
+  /* Aurora background — dark comme dir.1, animé comme dir.3 */
+  .bg {
+    position:absolute; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 70% 55% at 8% 85%,  #3b1f8c28 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 92% 15%,  #0e6ea018 0%, transparent 55%),
+      radial-gradient(ellipse 40% 35% at 45% 95%,  #0d6b4414 0%, transparent 50%),
+      radial-gradient(ellipse 30% 40% at 75% 60%,  #4f1d9614 0%, transparent 45%),
+      #060610;
+    animation: auroraDrift 25s ease-in-out infinite alternate;
+  }
+  @keyframes auroraDrift {
+    0%   { filter: hue-rotate(0deg)   brightness(1);    }
+    50%  { filter: hue-rotate(12deg)  brightness(1.06); }
+    100% { filter: hue-rotate(-8deg)  brightness(0.97); }
+  }
+
+  .app { position:relative; z-index:1; display:flex; flex-direction:column; height:100%; }
+
+  /* ── Header ── */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; height:52px;
+    background: rgba(255,255,255,0.045);
+    backdrop-filter: blur(28px) saturate(160%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .logo { display:flex; align-items:center; gap:11px; }
+  .logo-gem {
+    width:30px; height:30px; border-radius:9px;
+    background: linear-gradient(145deg, #a78bfa 0%, #6d28d9 55%, #2e1065 100%);
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 0 18px rgba(167,139,250,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; color:#fff;
+  }
+  .logo-text {
+    font-size:13px; font-weight:700; letter-spacing:0.13em; color:#e8e8f4;
+  }
+  .logo-sub { font-size:9px; color:rgba(232,232,244,0.3); letter-spacing:0.09em; margin-top:1px; }
+  .header-right { display:flex; align-items:center; gap:10px; }
+  .header-btn {
+    width:32px; height:32px; border-radius:9px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09);
+    backdrop-filter:blur(12px);
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+  }
+  .avatar {
+    width:32px; height:32px; border-radius:50%;
+    background: linear-gradient(135deg, #a78bfa, #0ea5e9);
+    border: 2px solid rgba(255,255,255,0.18);
+    box-shadow: 0 0 14px rgba(167,139,250,0.4);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700; color:#fff;
+  }
+  .sync {
+    font-size:10px; color:rgba(232,232,244,0.25);
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  /* ── Layout ── */
+  .main { display:flex; flex:1; overflow:hidden; }
+
+  /* ── Left panel — vrai glassmorphism (dir.3) sur fond aurora (dir.1) ── */
+  .left {
+    width:38%;
+    background: rgba(255,255,255,0.055);
+    backdrop-filter: blur(32px) saturate(170%);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    display:flex; flex-direction:column;
+  }
+  .panel-section { flex:1; padding:20px 22px 16px; display:flex; flex-direction:column; }
+  .panel-section + .panel-section { border-top: 1px solid rgba(255,255,255,0.055); }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .section-title {
+    display:flex; align-items:center; gap:8px;
+    font-size:9px; font-weight:700; letter-spacing:0.2em;
+    color:rgba(232,232,244,0.35); text-transform:uppercase;
+  }
+  .s-dot { width:5px; height:5px; border-radius:50%; }
+  .section-count {
+    font-size:9px; font-family:'JetBrains Mono', monospace;
+    padding:2px 8px; border-radius:20px;
+  }
+  .count-today { color:#a78bfa; background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.18); }
+  .count-tmrw  { color:#38bdf8; background:rgba(56,189,248,0.10); border:1px solid rgba(56,189,248,0.15); }
+
+  /* ── Sphères 3D (dir.3) avec glow aurora (dir.1) ── */
+  .bubbles { display:flex; flex-wrap:wrap; gap:12px; }
+  .bubble {
+    width:62px; height:62px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace; font-size:15px; font-weight:700;
+    cursor:pointer; color:#fff; position:relative;
+    transition:transform .18s, box-shadow .18s;
+  }
+  .bubble:hover { transform:scale(1.1) translateY(-3px); }
+
+  .b-violet {
+    background: radial-gradient(circle at 36% 30%, #c4b5fd 0%, #7c3aed 55%, #2e1065 100%);
+    box-shadow: 0 8px 28px rgba(124,58,237,0.55), 0 2px 8px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.38), inset -2px -3px 8px rgba(0,0,0,0.3);
+  }
+  .b-cyan {
+    background: radial-gradient(circle at 36% 30%, #a5f3fc 0%, #0891b2 55%, #0c4a6e 100%);
+    box-shadow: 0 8px 28px rgba(8,145,178,0.5), 0 2px 8px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.38), inset -2px -3px 8px rgba(0,0,0,0.3);
+  }
+  .b-emerald {
+    background: radial-gradient(circle at 36% 30%, #6ee7b7 0%, #059669 55%, #064e3b 100%);
+    box-shadow: 0 8px 28px rgba(5,150,105,0.5), 0 2px 8px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.38), inset -2px -3px 8px rgba(0,0,0,0.3);
+  }
+  .b-rose {
+    background: radial-gradient(circle at 36% 30%, #fda4af 0%, #e11d48 55%, #4c0519 100%);
+    box-shadow: 0 8px 28px rgba(225,29,72,0.5), 0 2px 8px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.38), inset -2px -3px 8px rgba(0,0,0,0.3);
+  }
+  .b-dim {
+    background: radial-gradient(circle at 36% 30%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 100%);
+    border: 1.5px dashed rgba(255,255,255,0.12);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    color:rgba(255,255,255,0.25);
+  }
+  /* Focus ring aurora sur bulle urgente */
+  .bubble.urgent::before {
+    content:''; position:absolute; inset:-6px; border-radius:50%;
+    border:2px solid rgba(167,139,250,0.5);
+    animation:urgentRing 2.2s ease-in-out infinite;
+  }
+  @keyframes urgentRing {
+    0%,100% { opacity:.55; transform:scale(1); }
+    50%      { opacity:.1;  transform:scale(1.14); }
+  }
+  .add-btn {
+    width:62px; height:62px; border-radius:50%;
+    border:1.5px dashed rgba(167,139,250,0.22);
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(167,139,250,0.3); font-size:22px;
+    background:rgba(255,255,255,0.02);
+    transition:border-color .15s, color .15s;
+  }
+  .add-btn:hover { border-color:rgba(167,139,250,0.45); color:rgba(167,139,250,0.6); }
+
+  /* Progress bar — style dir.1 */
+  .progress-wrap { margin-top:auto; padding-top:14px; }
+  .progress-track {
+    width:100%; height:2px; border-radius:1px;
+    background:rgba(255,255,255,0.07);
+    overflow:hidden;
+  }
+  .progress-fill {
+    height:100%; border-radius:1px; width:62%;
+    background:linear-gradient(90deg, #7c3aed, #0ea5e9);
+    box-shadow:0 0 8px rgba(124,58,237,0.6);
+  }
+  .progress-meta {
+    display:flex; justify-content:space-between; margin-top:5px;
+  }
+  .progress-label { font-size:9px; color:rgba(232,232,244,0.25); letter-spacing:0.06em; }
+  .progress-pct {
+    font-size:9px; font-family:'JetBrains Mono', monospace;
+    color:#7c3aed;
+  }
+
+  /* ── Right panel ── */
+  .right { flex:1; display:flex; flex-direction:column; }
+
+  .toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 24px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(16px);
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .toolbar-left { display:flex; align-items:center; gap:6px; }
+  .sort-btn {
+    font-size:10px; color:rgba(232,232,244,0.35); padding:4px 11px;
+    border-radius:20px; border:1px solid rgba(255,255,255,0.07);
+    background:transparent; font-family:'Space Grotesk', sans-serif; cursor:pointer;
+  }
+  .sort-btn.active { color:#a78bfa; border-color:rgba(167,139,250,0.28); background:rgba(167,139,250,0.08); }
+  .new-btn {
+    font-size:11px; font-weight:600; padding:6px 16px; border-radius:20px;
+    background:linear-gradient(135deg, #7c3aed, #0ea5e9);
+    color:#fff; border:none; cursor:pointer;
+    box-shadow:0 4px 16px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    font-family:'Space Grotesk', sans-serif;
+  }
+
+  /* ── Task list — lignes fines (dir.1) avec glass hover (dir.3) ── */
+  .task-list { flex:1; overflow-y:auto; padding:6px 0; }
+  .task-row {
+    display:flex; align-items:center; gap:13px;
+    padding:9px 22px;
+    border-bottom:1px solid rgba(255,255,255,0.038);
+    cursor:pointer; transition:all .14s;
+    position:relative;
+  }
+  .task-row::before {
+    content:''; position:absolute; inset:2px 8px;
+    border-radius:10px; opacity:0;
+    background:rgba(255,255,255,0.042);
+    backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.07);
+    transition:opacity .14s;
+  }
+  .task-row:hover::before { opacity:1; }
+  .task-row:hover { border-bottom-color:transparent; }
+
+  /* Barre priorité (dir.1) */
+  .prio { width:3px; height:30px; border-radius:2px; flex-shrink:0; z-index:1; }
+  .p-h { background:#f87171; box-shadow:0 0 7px #f8717160; }
+  .p-m { background:#fbbf24; box-shadow:0 0 7px #fbbf2460; }
+  .p-l { background:#34d399; box-shadow:0 0 7px #34d39960; }
+
+  /* Dot statut (dir.1) */
+  .s-dot2 { width:7px; height:7px; border-radius:50%; flex-shrink:0; z-index:1; }
+  .s-todo  { background:#4a4a8a; }
+  .s-doing { background:#22c55e; box-shadow:0 0 6px #22c55e99; }
+  .s-done  { background:#a78bfa; box-shadow:0 0 6px #a78bfa99; }
+
+  .task-num {
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:rgba(232,232,244,0.2); width:20px; flex-shrink:0; z-index:1;
+  }
+  .task-info { flex:1; z-index:1; }
+  .task-title { font-size:12px; font-weight:500; color:rgba(232,232,244,0.88); margin-bottom:3px; }
+  .task-title.done { text-decoration:line-through; color:rgba(232,232,244,0.25); }
+  .task-meta { display:flex; align-items:center; gap:7px; }
+  .tag { font-size:9px; padding:2px 7px; border-radius:10px; font-weight:500; }
+  .t-todo { background:rgba(74,74,138,0.22); color:#8888cc; }
+  .t-doing { background:rgba(34,197,94,0.15); color:#4ade80; }
+  .t-done  { background:rgba(167,139,250,0.15); color:#c4b5fd; }
+  .task-date { font-size:9px; color:rgba(232,232,244,0.22); font-family:'JetBrains Mono', monospace; }
+  .task-bell { font-size:12px; opacity:.22; z-index:1; }
+  .task-bell.on { opacity:1; filter:drop-shadow(0 0 4px rgba(167,139,250,0.7)); }
+  .task-actions { opacity:0; display:flex; gap:5px; z-index:1; }
+  .task-row:hover .task-actions { opacity:1; }
+  .act { font-size:12px; color:rgba(232,232,244,0.35); cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-gem">◈</div>
+      <div>
+        <div class="logo-text">TASK TRACKER PRO</div>
+        <div class="logo-sub">WORKSPACE PERSONNEL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="sync">● synced</span>
+      <div class="header-btn">📊</div>
+      <div class="header-btn">👥</div>
+      <div class="header-btn">⚙️</div>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Left -->
+    <div class="left">
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="s-dot" style="background:#a78bfa;width:5px;height:5px;border-radius:50%;"></div>
+            AUJOURD'HUI
+          </div>
+          <div class="section-count count-today">4</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-rose urgent">3</div>
+          <div class="bubble b-violet">7</div>
+          <div class="bubble b-emerald">12</div>
+          <div class="bubble b-cyan">15</div>
+          <div class="add-btn">+</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-track"><div class="progress-fill"></div></div>
+          <div class="progress-meta">
+            <span class="progress-label">PROGRESSION DU JOUR</span>
+            <span class="progress-pct">62%</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="section-title">
+            <div style="width:5px;height:5px;border-radius:50%;background:#38bdf8;opacity:.5;"></div>
+            DEMAIN
+          </div>
+          <div class="section-count count-tmrw">2</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble b-dim">2</div>
+          <div class="bubble b-dim">9</div>
+          <div class="add-btn" style="border-color:rgba(56,189,248,0.18);color:rgba(56,189,248,0.25);">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="right">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="sort-btn active">N° ↑</div>
+          <div class="sort-btn">Priorité</div>
+          <div class="sort-btn">Statut</div>
+          <div class="sort-btn">Échéance</div>
+        </div>
+        <button class="new-btn">+ Nouvelle tâche</button>
+      </div>
+      <div class="task-list">
+        <div class="task-row">
+          <div class="prio p-h"></div>
+          <div class="s-dot2 s-doing"></div>
+          <div class="task-num">03</div>
+          <div class="task-info">
+            <div class="task-title">Refonte interface utilisateur</div>
+            <div class="task-meta">
+              <span class="tag t-doing">En cours</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-h"></div>
+          <div class="s-dot2 s-todo"></div>
+          <div class="task-num">07</div>
+          <div class="task-info">
+            <div class="task-title">Implémenter auth Firebase + sessions</div>
+            <div class="task-meta">
+              <span class="tag t-todo">À faire</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-m"></div>
+          <div class="s-dot2 s-doing"></div>
+          <div class="task-num">09</div>
+          <div class="task-info">
+            <div class="task-title">Sync Firestore temps réel</div>
+            <div class="task-meta">
+              <span class="tag t-doing">En cours</span>
+              <span class="task-date">17 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-m"></div>
+          <div class="s-dot2 s-todo"></div>
+          <div class="task-num">11</div>
+          <div class="task-info">
+            <div class="task-title">Rédiger documentation API</div>
+            <div class="task-meta">
+              <span class="tag t-todo">À faire</span>
+              <span class="task-date">20 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-l"></div>
+          <div class="s-dot2 s-done"></div>
+          <div class="task-num">12</div>
+          <div class="task-info">
+            <div class="task-title done">Setup environnement de test</div>
+            <div class="task-meta">
+              <span class="tag t-done">Terminé</span>
+              <span class="task-date" style="color:#34d399;">+2 min tôt</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-l"></div>
+          <div class="s-dot2 s-todo"></div>
+          <div class="task-num">15</div>
+          <div class="task-info">
+            <div class="task-title">Optimiser performances bundle</div>
+            <div class="task-meta">
+              <span class="tag t-todo">À faire</span>
+              <span class="task-date">auj.</span>
+            </div>
+          </div>
+          <div class="task-bell on">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+        <div class="task-row">
+          <div class="prio p-l"></div>
+          <div class="s-dot2 s-todo"></div>
+          <div class="task-num">18</div>
+          <div class="task-info">
+            <div class="task-title">Tests E2E Playwright complets</div>
+            <div class="task-meta">
+              <span class="tag t-todo">À faire</span>
+              <span class="task-date">25 avr.</span>
+            </div>
+          </div>
+          <div class="task-bell">🔔</div>
+          <div class="task-actions"><span class="act">✏️</span><span class="act">⧉</span><span class="act">🗑</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
