@@ -2829,7 +2829,7 @@ export default function App() {
                 {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
               </div>}
               <div style={{ display:"grid",gap:5 }}>
-                {[...teamTasks].filter(t=>t.status!=="Terminé").sort((a,b)=>{
+                {[...teamTasks].filter(t=>t.status!=="Terminé" && (isAdminRole(teamRole) || t.memberVisible!==false)).sort((a,b)=>{
                   if (!teamSortBy) return (a.num||0)-(b.num||0);
                   const dir = teamSortDir==="asc"?1:-1;
                   if (teamSortBy==="num")      return ((a.num||0)-(b.num||0))*dir;
