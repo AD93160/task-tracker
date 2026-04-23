@@ -1456,7 +1456,7 @@ export default function App() {
   };
 
   const openEdit = (task) => {
-    setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none"});
+    setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none",memberVisible:task.memberVisible!==false});
     setEditingId(task.id); setShowForm(true);
   };
 
