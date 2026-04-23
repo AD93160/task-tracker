@@ -1428,6 +1428,7 @@ export default function App() {
         recurrence: task.recurrence||"none", completion: null,
         id: Date.now(), num: newNum, createdBy: user.uid,
         createdAt: serverTimestamp(), scheduledFor: null,
+        memberVisible: task.memberVisible !== false,
       });
       toast("Tâche dupliquée !");
     } catch(e) { setTeamError(e.message); }
