@@ -291,6 +291,7 @@ export default function App() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
+  const [showPassword, setShowPassword] = useState(false);
   const [authError,    setAuthError]    = useState(null);
   const [authInfo,     setAuthInfo]     = useState(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState(null);
