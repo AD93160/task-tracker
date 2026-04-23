@@ -2330,7 +2330,7 @@ export default function App() {
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", flex:1, padding:"6px 4px 6px 4px" }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").map(task => {
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
