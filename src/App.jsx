@@ -2290,7 +2290,7 @@ export default function App() {
                   {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length} tâche${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length>1?"s":""}`}
                 </div>
               </div>
-              {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length===0 ? (
+              {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
