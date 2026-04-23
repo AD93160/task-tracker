@@ -1476,7 +1476,7 @@ export default function App() {
             await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"edit", taskId:editingId, proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
             setTeamInfo("Modification proposée à l'admin.");
           }
-          setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+          setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (!isAdminRole(teamRole)) {
           setPendingMemberProposal(cleanForm);
           setPendingTask({ id: Date.now(), title: form.title });
@@ -1508,7 +1508,7 @@ export default function App() {
         setTomorrowIds(p=>p.filter(e=>e.id!==editingId));
         setTodayIds(p=>p.filter(i=>i!==editingId));
       }
-      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
     } else {
       const newNum = taskCounter + 1;
       setTaskCounter(c => c + 1);
@@ -1521,7 +1521,7 @@ export default function App() {
         if (quickSchedule === "tomorrow") setTomorrowIds(p => p.find(e=>e.id===id) ? p : [...p, {id, addedDate:today}]);
         setQuickSchedule(null);
         setPendingTask(null); setFormStep(1);
-        setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+        setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
       } else {
         setPendingTask(newTask); setFormStep(2); setCustomDate("");
       }
@@ -1531,7 +1531,7 @@ export default function App() {
   const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
 
-    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
+    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
 
     // ── Proposition membre équipe ──
     if (pendingMemberProposal && team) {
@@ -2423,7 +2423,7 @@ export default function App() {
 
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
-                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
                   style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
@@ -3512,7 +3512,7 @@ export default function App() {
             {listening && <div style={{ position:"absolute",bottom:50,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
           </div>
           <button
-            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
             style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             + Ajouter
           </button>
@@ -3532,7 +3532,7 @@ export default function App() {
             {listening && <div style={{ position:"absolute",bottom:50,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
           </div>
           <button
-            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
             style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
