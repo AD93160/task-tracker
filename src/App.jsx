@@ -723,6 +723,15 @@ export default function App() {
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
     catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
   };
+  const sendPasswordReset = async () => {
+    if (!emailForm.email) { setAuthError("Entrez votre email pour réinitialiser votre mot de passe."); return; }
+    try {
+      await sendPasswordResetEmail(auth, emailForm.email);
+      setAuthInfo("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.");
+      setAuthError(null);
+    } catch(e) { setAuthError(e.code === "auth/user-not-found" ? "Aucun compte associé à cet email." : e.message); }
+  };
+
   const loginEmail = async () => {
     if (!emailForm.email||!emailForm.password) return;
     try {
