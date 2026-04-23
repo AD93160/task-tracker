@@ -1417,6 +1417,15 @@ export default function App() {
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
+  const toggleMemberVisible = async (taskId, currentValue) => {
+    if (!team || !isAdminRole(teamRole)) return;
+    const newValue = currentValue !== false ? false : true;
+    try {
+      await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { memberVisible: newValue });
+      setTeamTasks(p => p.map(t => t.id === taskId ? {...t, memberVisible: newValue} : t));
+    } catch(e) { setTeamError(e.message); }
+  };
+
   const duplicateTeamTask = async (task) => {
     if (!team || !isAdminRole(teamRole)) return;
     try {
