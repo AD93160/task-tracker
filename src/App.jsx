@@ -273,7 +273,7 @@ export default function App() {
   const [recurDay,     setRecurDay]     = useState(""); // jour fixe du mois (1-31)
   const [recurMonthDay,setRecurMonthDay]= useState(""); // date fixe année "MM-DD"
   const [editingId,    setEditingId]    = useState(null);
-  const [form,         setForm]         = useState({ title:"", priority:"Moyenne", status:"À faire", due:"", notes:"", notify:true, recurrence:"none" });
+  const [form,         setForm]         = useState({ title:"", priority:"Moyenne", status:"À faire", due:"", notes:"", notify:true, recurrence:"none", memberVisible:true });
   const [showTheme,    setShowTheme]    = useState(false);
   const [showStats,    setShowStats]    = useState(false);
   const [ghost,        setGhost]        = useState(null);
@@ -1417,6 +1417,15 @@ export default function App() {
     setTasks(p => [...p, {...task, id:Date.now(), status:"À faire", completion:null, num:newNum}]);
   };
 
+  const toggleMemberVisible = async (taskId, currentValue) => {
+    if (!team || !isAdminRole(teamRole)) return;
+    const newValue = currentValue !== false ? false : true;
+    try {
+      await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { memberVisible: newValue });
+      setTeamTasks(p => p.map(t => t.id === taskId ? {...t, memberVisible: newValue} : t));
+    } catch(e) { setTeamError(e.message); }
+  };
+
   const duplicateTeamTask = async (task) => {
     if (!team || !isAdminRole(teamRole)) return;
     try {
@@ -1428,6 +1437,7 @@ export default function App() {
         recurrence: task.recurrence||"none", completion: null,
         id: Date.now(), num: newNum, createdBy: user.uid,
         createdAt: serverTimestamp(), scheduledFor: null,
+        memberVisible: task.memberVisible !== false,
       });
       toast("Tâche dupliquée !");
     } catch(e) { setTeamError(e.message); }
@@ -1456,7 +1466,7 @@ export default function App() {
   };
 
   const openEdit = (task) => {
-    setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none"});
+    setForm({title:task.title,priority:task.priority,status:task.status,due:task.due||"",notes:task.notes||"",notify:task.notify!==false,recurrence:task.recurrence||"none",memberVisible:task.memberVisible!==false});
     setEditingId(task.id); setShowForm(true);
   };
 
@@ -1476,7 +1486,7 @@ export default function App() {
             await addDoc(collection(db, "teams", team.id, "pendingChanges"), { type:"edit", taskId:editingId, proposedBy:user.uid, proposedByEmail:user.email||"", data:cleanForm, createdAt:serverTimestamp(), status:"pending" });
             setTeamInfo("Modification proposée à l'admin.");
           }
-          setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+          setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
         } else if (!isAdminRole(teamRole)) {
           setPendingMemberProposal(cleanForm);
           setPendingTask({ id: Date.now(), title: form.title });
@@ -1484,7 +1494,7 @@ export default function App() {
         } else {
           const newNum = (team.taskCounter || 0) + 1;
           await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
-          const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp() });
+          const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp(), memberVisible: form.memberVisible !== false });
           setPendingTask({ id: docRef.id, title: form.title });
           setPendingTeamTaskId(docRef.id);
           setFormStep(2);
@@ -1508,7 +1518,7 @@ export default function App() {
         setTomorrowIds(p=>p.filter(e=>e.id!==editingId));
         setTodayIds(p=>p.filter(i=>i!==editingId));
       }
-      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+      setEditingId(null); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
     } else {
       const newNum = taskCounter + 1;
       setTaskCounter(c => c + 1);
@@ -1521,7 +1531,7 @@ export default function App() {
         if (quickSchedule === "tomorrow") setTomorrowIds(p => p.find(e=>e.id===id) ? p : [...p, {id, addedDate:today}]);
         setQuickSchedule(null);
         setPendingTask(null); setFormStep(1);
-        setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
+        setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false);
       } else {
         setPendingTask(newTask); setFormStep(2); setCustomDate("");
       }
@@ -1531,7 +1541,7 @@ export default function App() {
   const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
 
-    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
+    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
 
     // ── Proposition membre équipe ──
     if (pendingMemberProposal && team) {
@@ -2277,16 +2287,16 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length} tâche${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length} tâche${teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length>1?"s":""}`}
                 </div>
               </div>
-              {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").length===0 ? (
+              {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", flex:1, padding:"6px 4px 6px 4px" }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé").map(task => {
+                  {teamTasks.filter(t=>t.scheduledFor==="today"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
@@ -2311,16 +2321,16 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length>1?"s":""}`}
                 </div>
               </div>
-              {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (
+              {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (
                 <div style={{ flex:1, border:`2px dashed ${theme.border}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:5, color:theme.textMuted, fontSize:11 }}>
                   {isAdminRole(teamRole) && <><div style={{ fontSize:20 }}>←</div><div>glisse ici</div></>}
                 </div>
               ) : (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:12, alignContent:"flex-start", flex:1, padding:"6px 4px 6px 4px" }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").map(task => {
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).map(task => {
                     const tc = teamTaskColor(task);
                     const bCol = task.status==="Terminé"&&task.completion ? task.completion.color : (tc?tc.light:STATUS_DOT[task.status]||"#888");
                     return (
@@ -2423,7 +2433,7 @@ export default function App() {
 
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
-                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"}); setRecurDay(""); setRecurMonthDay("");}}
+                <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
                   style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
@@ -2637,6 +2647,15 @@ export default function App() {
                         <span style={{ fontSize:10,color:form.notify?theme.text:theme.textMuted }}>🔔 Notifications</span>
                       </div>
                     </div>
+                    {teamSpace && isAdminRole(teamRole) && (
+                      <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                        <div onClick={()=>setForm(f=>({...f,memberVisible:f.memberVisible===false?true:false}))}
+                          style={{ width:32,height:18,borderRadius:9,background:form.memberVisible!==false?theme.accent:theme.border,position:"relative",transition:"background .2s",cursor:"pointer" }}>
+                          <div style={{ position:"absolute",top:2,left:form.memberVisible!==false?16:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px #0006" }}/>
+                        </div>
+                        <span style={{ fontSize:10,color:form.memberVisible!==false?theme.text:theme.textMuted }}>👁️ Visible par les membres</span>
+                      </div>
+                    )}
                     {/* ── PJ dans le formulaire de modification ── */}
                     {editingId !== null && (() => {
                       const editTask = teamSpace ? teamTasks.find(t=>t.id===editingId) : getTask(editingId);
@@ -2810,7 +2829,7 @@ export default function App() {
                 {teamSortBy && <button onClick={()=>setTeamSortBy(null)} style={{ background:"transparent",border:"none",color:theme.textMuted,fontSize:10,cursor:"pointer" }}>✕</button>}
               </div>}
               <div style={{ display:"grid",gap:5 }}>
-                {[...teamTasks].filter(t=>t.status!=="Terminé").sort((a,b)=>{
+                {[...teamTasks].filter(t=>t.status!=="Terminé" && (isAdminRole(teamRole) || t.memberVisible!==false)).sort((a,b)=>{
                   if (!teamSortBy) return (a.num||0)-(b.num||0);
                   const dir = teamSortDir==="asc"?1:-1;
                   if (teamSortBy==="num")      return ((a.num||0)-(b.num||0))*dir;
@@ -2862,6 +2881,7 @@ export default function App() {
                         </div>
                         <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
                           {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();duplicateTeamTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 6px",color:theme.textMuted,fontSize:10,cursor:"pointer" }} title="Dupliquer">📋</button>}
+                          {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();toggleMemberVisible(task.id,task.memberVisible);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 6px",color:task.memberVisible!==false?theme.textMuted:"#cc9900",fontSize:10,cursor:"pointer" }} title={task.memberVisible!==false?"Masquer aux membres":"Rendre visible aux membres"}>{task.memberVisible!==false?"👁️":"🚫"}</button>}
                           <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>✕</button>
                           {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
                         </div>
@@ -2881,6 +2901,7 @@ export default function App() {
                             <button onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",color:theme.textMuted,fontSize:12,cursor:"pointer" }}>💬</button>
                             <button onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ background:"transparent",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:5,padding:"3px 8px",color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,fontSize:12,cursor:"pointer" }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</button>
                             <button onClick={toggleNotify} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"3px 8px",fontSize:12,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</button>
+                            {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();toggleMemberVisible(task.id,task.memberVisible);}} style={{ background:"transparent",border:`1px solid ${task.memberVisible!==false?theme.border:"#cc990044"}`,borderRadius:5,padding:"3px 8px",color:task.memberVisible!==false?theme.textMuted:"#cc9900",fontSize:12,cursor:"pointer" }} title={task.memberVisible!==false?"Masquer aux membres":"Rendre visible aux membres"}>{task.memberVisible!==false?"👁️":"🚫"}</button>}
                             {!isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();openEdit(task);}} style={{ background:theme.accent+"22",border:`1px solid ${theme.accent}44`,borderRadius:5,padding:"3px 8px",color:theme.accent,fontSize:10,cursor:"pointer" }}>✏️ Proposer</button>}
                           </div>
                         </div>
@@ -3512,7 +3533,7 @@ export default function App() {
             {listening && <div style={{ position:"absolute",bottom:50,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
           </div>
           <button
-            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
             style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             + Ajouter
           </button>
@@ -3532,7 +3553,7 @@ export default function App() {
             {listening && <div style={{ position:"absolute",bottom:50,right:0,background:theme.bgCard,border:"1px solid #cc303066",borderRadius:10,padding:"8px 12px",fontSize:11,color:"#ff8080",zIndex:50,display:"flex",alignItems:"center",gap:8,whiteSpace:"nowrap" }}><span style={{ width:7,height:7,borderRadius:"50%",background:"#ff4444",display:"inline-block",animation:"pulse 1s infinite" }}/>En écoute…</div>}
           </div>
           <button
-            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none"});setRecurDay("");setRecurMonthDay("");}}
+            onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
             style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
