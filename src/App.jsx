@@ -3609,6 +3609,9 @@ export default function App() {
         </div>
       )}
 
+      {/* Messagerie équipe */}
+      {teamSpace && team && user && <TeamChat team={team} user={user} theme={theme} isMobile={isMobile} />}
+
       {/* Toast notifications */}
       {toastMsg && (
         <div style={{ position:"fixed", bottom:72, left:"50%", transform:"translateX(-50%)", background:toastMsg.isError?"#2a0a0a":"#0a2a0a", border:`1px solid ${toastMsg.isError?"#cc3030":"#3aaa3a"}`, borderRadius:10, padding:"10px 18px", color:toastMsg.isError?"#ff8080":"#6bcb77", fontSize:12, zIndex:1000, boxShadow:"0 4px 20px #00000088", maxWidth:"90vw", textAlign:"center" }}>
