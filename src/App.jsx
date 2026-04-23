@@ -2647,6 +2647,15 @@ export default function App() {
                         <span style={{ fontSize:10,color:form.notify?theme.text:theme.textMuted }}>🔔 Notifications</span>
                       </div>
                     </div>
+                    {teamSpace && isAdminRole(teamRole) && (
+                      <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                        <div onClick={()=>setForm(f=>({...f,memberVisible:f.memberVisible===false?true:false}))}
+                          style={{ width:32,height:18,borderRadius:9,background:form.memberVisible!==false?theme.accent:theme.border,position:"relative",transition:"background .2s",cursor:"pointer" }}>
+                          <div style={{ position:"absolute",top:2,left:form.memberVisible!==false?16:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px #0006" }}/>
+                        </div>
+                        <span style={{ fontSize:10,color:form.memberVisible!==false?theme.text:theme.textMuted }}>👁️ Visible par les membres</span>
+                      </div>
+                    )}
                     {/* ── PJ dans le formulaire de modification ── */}
                     {editingId !== null && (() => {
                       const editTask = teamSpace ? teamTasks.find(t=>t.id===editingId) : getTask(editingId);
