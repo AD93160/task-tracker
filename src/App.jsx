@@ -273,7 +273,7 @@ export default function App() {
   const [recurDay,     setRecurDay]     = useState(""); // jour fixe du mois (1-31)
   const [recurMonthDay,setRecurMonthDay]= useState(""); // date fixe année "MM-DD"
   const [editingId,    setEditingId]    = useState(null);
-  const [form,         setForm]         = useState({ title:"", priority:"Moyenne", status:"À faire", due:"", notes:"", notify:true, recurrence:"none" });
+  const [form,         setForm]         = useState({ title:"", priority:"Moyenne", status:"À faire", due:"", notes:"", notify:true, recurrence:"none", memberVisible:true });
   const [showTheme,    setShowTheme]    = useState(false);
   const [showStats,    setShowStats]    = useState(false);
   const [ghost,        setGhost]        = useState(null);
