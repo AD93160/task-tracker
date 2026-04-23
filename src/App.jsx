@@ -2881,6 +2881,7 @@ export default function App() {
                         </div>
                         <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0 }}>
                           {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();duplicateTeamTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 6px",color:theme.textMuted,fontSize:10,cursor:"pointer" }} title="Dupliquer">📋</button>}
+                          {isAdminRole(teamRole) && <button onClick={e=>{e.stopPropagation();toggleMemberVisible(task.id,task.memberVisible);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:"2px 6px",color:task.memberVisible!==false?theme.textMuted:"#cc9900",fontSize:10,cursor:"pointer" }} title={task.memberVisible!==false?"Masquer aux membres":"Rendre visible aux membres"}>{task.memberVisible!==false?"👁️":"🚫"}</button>}
                           <button className="delbtn" onClick={e=>{e.stopPropagation();deleteTeamTask(task.id);}} style={{ background:"transparent",border:"1px solid #5a1a1a",borderRadius:5,padding:"2px 7px",color:"#aa3030",fontSize:10,cursor:"pointer" }}>✕</button>
                           {!isAdminRole(teamRole) && !isMobile && <span style={{ fontSize:9,color:theme.textMuted,padding:"2px 6px",border:`1px solid ${theme.border}`,borderRadius:5 }}>proposer</span>}
                         </div>
