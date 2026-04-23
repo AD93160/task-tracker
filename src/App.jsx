@@ -763,6 +763,8 @@ export default function App() {
       const unsub = onSnapshot(doc(db, "teams", teamId), tSnap => {
         if (!tSnap.exists()) {
           setAdminTeams(prev => prev.filter(t => t.id !== teamId));
+          // Nettoyer la référence obsolète dans allTeamIds
+          setDoc(doc(db, "users", user.uid), { allTeamIds: arrayRemove(teamId) }, { merge:true }).catch(()=>{});
           return;
         }
         const tData = tSnap.data();
