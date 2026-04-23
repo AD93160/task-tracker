@@ -965,8 +965,9 @@ export default function App() {
     if (!t || !user) return;
     if (!window.confirm(`Dissoudre "${t.name}" ? Tous les membres seront retirés.`)) return;
     try {
-      for (const m of (t.members||[])) await setDoc(doc(db, "users", m.uid), { teamId:null, teamRole:null }, { merge:true });
-      await setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null }, { merge:true });
+      // Les règles Firestore n'autorisent pas l'admin à écrire les documents des autres users.
+      // On supprime l'équipe ; les membres seront nettoyés automatiquement à leur prochaine connexion.
+      await setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null, allTeamIds: arrayRemove(t.id) }, { merge:true });
       await deleteDoc(doc(db, "teams", t.id));
       setTeamSpace(false);
     } catch(e) { setTeamError(e.message); }
