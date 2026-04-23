@@ -89,13 +89,15 @@ export default function TeamChat({ team, user, theme, isMobile }) {
     } catch(e) { console.error("TeamChat send error:", e); }
   };
 
-  const btnBottom = isMobile ? 64 : 24;
+  const AD_H = 56; // hauteur du bandeau pub
+
+  const btnBottom = isMobile ? 64 : AD_H + 24;
   const btnLeft   = isMobile ? 16 : undefined;
   const btnRight  = isMobile ? undefined : 20;
 
-  const panelW    = isMobile ? "100%" : 340;
-  const panelH    = isMobile ? "70vh" : 460;
-  const panelBottom = isMobile ? 0 : 86;
+  const panelW      = isMobile ? "100%" : 340;
+  const panelH      = isMobile ? `calc(70vh - ${AD_H}px)` : 460;
+  const panelBottom = isMobile ? AD_H : AD_H + 86;
   const panelRight  = isMobile ? 0 : 20;
   const panelRadius = isMobile ? "20px 20px 0 0" : 16;
 
