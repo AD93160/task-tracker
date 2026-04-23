@@ -2321,7 +2321,7 @@ export default function App() {
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
-                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length>1?"s":""}`}
+                  {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length===0 ? (isAdminRole(teamRole)?"Glisse des tâches ici":"Aucune tâche planifiée") : `${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length} tâche${teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé"&&(isAdminRole(teamRole)||t.memberVisible!==false)).length>1?"s":""}`}
                 </div>
               </div>
               {teamTasks.filter(t=>t.scheduledFor==="tomorrow"&&t.status!=="Terminé").length===0 ? (
