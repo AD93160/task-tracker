@@ -2288,9 +2288,15 @@ export default function App() {
                       <div style={{ display:"flex",gap:4,marginBottom:8 }}>{[{v:"login",l:"Connexion"},{v:"register",l:"Inscription"}].map(({v,l})=>(<button key={v} onClick={()=>setEmailMode(v)} style={{ flex:1,background:emailMode===v?theme.accent+"22":"transparent",border:`1px solid ${emailMode===v?theme.accent:theme.border}`,borderRadius:7,padding:"5px",color:emailMode===v?theme.accent:theme.textMuted,fontSize:10,cursor:"pointer" }}>{l}</button>))}</div>
                       <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13,marginBottom:6 }} />
                       <div style={{ display:"flex",gap:6 }}>
-                        <input type="password" placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&loginEmail()} style={{ flex:1,background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:13 }} />
+                        <div style={{ position:"relative",flex:1 }}>
+                          <input type={showPassword?"text":"password"} placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&loginEmail()} style={{ width:"100%",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:7,padding:"7px 10px",paddingRight:30,color:theme.text,fontSize:13 }} />
+                          <button onClick={()=>setShowPassword(s=>!s)} style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:theme.textMuted,cursor:"pointer",padding:0,lineHeight:1 }}>
+                            {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                          </button>
+                        </div>
                         <button onClick={loginEmail} style={{ background:theme.accent,border:"none",borderRadius:7,padding:"7px 12px",color:"#fff",fontSize:12,cursor:"pointer" }}>→</button>
                       </div>
+                      {emailMode==="login" && <div style={{ textAlign:"right",marginTop:5 }}><span onClick={sendPasswordReset} style={{ fontSize:10,color:theme.accent,cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
                     </div>
                   )}
                 </div>
