@@ -151,11 +151,11 @@ export default function TeamChat({ team, user, theme, isMobile }) {
           {isMobile && <div style={{ position:"fixed",inset:0,zIndex:146,background:"#00000044" }} onClick={() => setOpen(false)} />}
           <div style={{
             position: "fixed",
+            top: panelTop,
             bottom: panelBottom,
             right: panelRight,
             left: isMobile ? 0 : undefined,
             width: panelW,
-            height: panelH,
             background: theme.bgCard,
             border: `1px solid ${theme.accent}44`,
             borderRadius: panelRadius,
