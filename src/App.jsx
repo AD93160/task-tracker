@@ -800,6 +800,16 @@ export default function App() {
           const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
             if (tSnap.exists()) {
               const tData = { id:tSnap.id, ...tSnap.data() };
+              // Vérifier que l'utilisateur est réellement dans cette équipe
+              const isInTeam = tData.adminUid === user.uid
+                || (tData.coAdminUids||[]).includes(user.uid)
+                || (tData.members||[]).some(m => m.uid === user.uid);
+              if (!isInTeam) {
+                // teamId pointe vers une équipe dont l'utilisateur ne fait pas partie → nettoyage
+                setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null, allTeamIds: arrayRemove(activeId) }, { merge:true }).catch(()=>{});
+                setTeam(null); setTeamSpace(false); setTeamRole(null);
+                return;
+              }
               setTeam(tData);
               const derived = tData.adminUid === user.uid ? "admin"
                 : (tData.coAdminUids||[]).includes(user.uid) ? "co-admin"
@@ -811,7 +821,11 @@ export default function App() {
               }
               prevTeamRole = derived;
               setTeamRole(derived);
-            } else { setTeam(null); setTeamSpace(false); setTeamRole(null); }
+            } else {
+              // L'équipe n'existe plus → nettoyer la référence obsolète
+              setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null, allTeamIds: arrayRemove(activeId) }, { merge:true }).catch(()=>{});
+              setTeam(null); setTeamSpace(false); setTeamRole(null);
+            }
           });
           teamUnsubs.set("__active__", activeUnsub);
         } else { setTeam(null); setTeamSpace(false); }
