@@ -779,6 +779,16 @@ export default function App() {
           return;
         }
         const tData = tSnap.data();
+        // Vérifier que l'utilisateur est réellement dans cette équipe
+        const isInTeam = tData.adminUid === user.uid
+          || (tData.coAdminUids||[]).includes(user.uid)
+          || (tData.members||[]).some(m => m.uid === user.uid);
+        if (!isInTeam) {
+          // Référence périmée dans allTeamIds → nettoyage silencieux
+          setAdminTeams(prev => prev.filter(t => t.id !== teamId));
+          setDoc(doc(db, "users", user.uid), { allTeamIds: arrayRemove(teamId) }, { merge:true }).catch(()=>{});
+          return;
+        }
         const myRole = tData.adminUid === user.uid ? "admin"
           : (tData.coAdminUids||[]).includes(user.uid) ? "co-admin"
           : "member";
