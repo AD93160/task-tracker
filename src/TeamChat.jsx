@@ -158,7 +158,8 @@ export default function TeamChat({ team, user, theme, isMobile }) {
   };
 
   const AD_H  = 56;
-  const FAB_H = 116;
+  // FAB container: bottom=64, Ajouter≈46px + gap 8px + micro 44px = 98px → top at 162px
+  const FAB_H = 172;
 
   const btnBottom = isMobile ? 64 : AD_H + 24;
   const btnLeft   = isMobile ? 16 : undefined;
