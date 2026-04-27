@@ -2,6 +2,7 @@
 
 ## Règles de travail
 - Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
+- Lire et appliquer le skill `/mnt/skills/user/task-tracker/SKILL.md` au début de chaque session.
 
 ## Stack
 - React 18 + Vite
