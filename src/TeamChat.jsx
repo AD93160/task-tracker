@@ -384,6 +384,13 @@ export default function TeamChat({ team, user, theme, isMobile }) {
               <div ref={bottomRef} />
             </div>
 
+            {/* Erreur upload */}
+            {uploadError && (
+              <div style={{ padding:"6px 12px", background:"#2a0a0a", borderTop:`1px solid #cc303066`, color:"#ff8080", fontSize:10, flexShrink:0 }}>
+                ⚠️ {uploadError}
+              </div>
+            )}
+
             {/* Input */}
             <div style={{
               padding: "8px 10px",
