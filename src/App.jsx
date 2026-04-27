@@ -1494,7 +1494,6 @@ export default function App() {
     if (teamSpace && pendingTeamTaskId && team) {
       try { await deleteDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId)); } catch(e) {}
     }
-    setPendingFiles([]);
     setPendingMemberProposal(null);
     setPendingTeamTaskId(null);
     setPendingTask(null);
