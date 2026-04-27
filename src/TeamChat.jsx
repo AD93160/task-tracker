@@ -506,14 +506,14 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                           <button
                             onClick={e => openContextMenu(e, msg)}
                             style={{
-                              background: "transparent",
-                              border: "none",
-                              color: theme.textMuted,
+                              background: theme.mode === "dark" ? "#ffffff18" : "#00000012",
+                              border: `1px solid ${theme.border}`,
+                              borderRadius: 5,
+                              color: theme.text,
                               cursor: "pointer",
-                              fontSize: 14,
-                              padding: "0 2px",
+                              fontSize: 13,
+                              padding: "1px 5px",
                               lineHeight: 1,
-                              opacity: 0.4,
                               flexShrink: 0,
                             }}
                             title="Options"
