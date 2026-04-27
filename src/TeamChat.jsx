@@ -154,7 +154,11 @@ export default function TeamChat({ team, user, theme, isMobile }) {
           storagePath: path,
         },
       });
-    } catch(e) { console.error("TeamChat upload error:", e); }
+    } catch(e) {
+      console.error("TeamChat upload error:", e);
+      setUploadError(e.message || "Erreur upload");
+      setTimeout(() => setUploadError(null), 6000);
+    }
     finally { setUploading(false); }
   };
 
