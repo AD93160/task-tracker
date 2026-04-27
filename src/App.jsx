@@ -2563,7 +2563,7 @@ export default function App() {
           )}
 
           {/* ── Zone scrollable (tâches uniquement) ── */}
-          <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding: isMobile ? "12px 14px 180px" : "8px 16px 20px", background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
+          <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding: isMobile ? "12px 14px 180px" : `8px 16px ${teamSpace ? "100px" : "20px"}`, background:isOverList?"#0f1a0f":"transparent", transition:"background .2s" }}>
 
           {/* Form */}
           {showForm && (
