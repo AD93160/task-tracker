@@ -327,7 +327,6 @@ export default function App() {
   const [myPendingProposals, setMyPendingProposals] = useState([]);
   const [showMyPendingPanel, setShowMyPendingPanel] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
-  const [pendingFiles,         setPendingFiles]         = useState([]);
   const [attachPopup,          setAttachPopup]          = useState(null); // task.id ou null
   const [filePopup,            setFilePopup]            = useState(null); // objet attachment
   const [userPhotoURL, setUserPhotoURL] = useState(null);
