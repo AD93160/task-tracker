@@ -107,7 +107,12 @@ service cloud.firestore {
                          (request.resource.data.text.size() > 0 || request.resource.data.keys().hasAny(['attachment']));
         allow delete: if isAdminOrCoAdminOf(teamId) ||
                          (isAuth() && resource.data.authorUid == request.auth.uid);
-        allow update: if false;
+        allow update: if isAuth() &&
+                         resource.data.authorUid == request.auth.uid &&
+                         request.resource.data.authorUid == resource.data.authorUid &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() <= 2000 &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
       }
 
       // ── Modifications en attente ──────────────────────────────────
