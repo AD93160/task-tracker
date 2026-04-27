@@ -370,6 +370,7 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                         ) : (
                           <div style={{
                             maxWidth: "78%",
+                            width: "fit-content",
                             padding: "7px 11px",
                             borderRadius,
                             background: isMe ? theme.accent : (theme.mode==="dark" ? "#1e1e3a" : "#ececf4"),
