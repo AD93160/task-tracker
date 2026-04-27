@@ -1577,7 +1577,7 @@ export default function App() {
   const applySchedule = async (choice, date) => {
     if (!pendingTask) return;
 
-    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); setPendingFiles([]); };
+    const resetForm = () => { setPendingTask(null); setFormStep(1); setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay(""); setShowForm(false); };
 
     // ── Proposition membre équipe ──
     if (pendingMemberProposal && team) {
