@@ -140,7 +140,7 @@ export default function TeamChat({ team, user, theme, isMobile }) {
       await uploadBytes(sRef, file);
       const url = await getDownloadURL(sRef);
       await addDoc(collection(db, "teams", team.id, "messages"), {
-        text: "",
+        text: " ",
         authorUid: user.uid,
         authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
         authorEmail: user.email || "",
