@@ -454,7 +454,7 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                   borderRadius: 20,
                   padding: "8px 14px",
                   color: theme.text,
-                  fontSize: 12,
+                  fontSize: 16,
                   outline: "none",
                   userSelect: "text",
                   WebkitUserSelect: "text",
