@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "./firebase";
 
 const ChatIcon = () => (
@@ -76,8 +76,14 @@ export default function TeamChat({ team, user, theme, isMobile }) {
   const [unread, setUnread]       = useState(0);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [replyTo, setReplyTo]     = useState(null);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText]   = useState("");
+  const [menuMsgId, setMenuMsgId] = useState(null);
+  const [menuPos, setMenuPos]     = useState(null);
   const bottomRef   = useRef(null);
   const fileRef     = useRef(null);
+  const inputRef    = useRef(null);
   const lastReadRef = useRef(parseInt(localStorage.getItem(`tt_chat_lastRead_${team?.id}`) || "0"));
   const wasOpenRef  = useRef(false);
 
@@ -117,18 +123,74 @@ export default function TeamChat({ team, user, theme, isMobile }) {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  // Ferme le menu contextuel sur clic extérieur
+  useEffect(() => {
+    if (!menuMsgId) return;
+    const close = () => { setMenuMsgId(null); setMenuPos(null); };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [menuMsgId]);
+
+  const handleReply = (msg) => {
+    setReplyTo({
+      id: msg.id,
+      authorName: msg.authorName,
+      text: msg.attachment ? null : (msg.text?.trim() === " " ? null : msg.text),
+      hasAttachment: !!msg.attachment,
+      attName: msg.attachment?.name || null,
+    });
+    setMenuMsgId(null);
+    setMenuPos(null);
+    setTimeout(() => inputRef.current?.focus(), 60);
+  };
+
+  const deleteMessage = async (msg) => {
+    if (msg.authorUid !== user.uid) return;
+    setMenuMsgId(null);
+    setMenuPos(null);
+    try {
+      if (msg.attachment?.storagePath) {
+        try { await deleteObject(storageRef(storage, msg.attachment.storagePath)); } catch(e) {}
+      }
+      await deleteDoc(doc(db, "teams", team.id, "messages", msg.id));
+    } catch(e) { console.error("TeamChat delete error:", e); }
+  };
+
+  const startEdit = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditText(msg.text?.trim() === " " ? "" : msg.text || "");
+    setMenuMsgId(null);
+    setMenuPos(null);
+    setTimeout(() => inputRef.current?.focus(), 60);
+  };
+
+  const saveEdit = async () => {
+    if (!editText.trim()) { cancelEdit(); return; }
+    try {
+      await updateDoc(doc(db, "teams", team.id, "messages", editingMsgId), {
+        text: editText.trim(),
+        edited: true,
+      });
+    } catch(e) { console.error("TeamChat edit error:", e); }
+    cancelEdit();
+  };
+
+  const cancelEdit = () => { setEditingMsgId(null); setEditText(""); };
+
   const sendMessage = async () => {
     if (!text.trim() || !team?.id || !user) return;
     const msg = text.trim();
     setText("");
+    const payload = {
+      text: msg,
+      authorUid: user.uid,
+      authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
+      authorEmail: user.email || "",
+      createdAt: serverTimestamp(),
+    };
+    if (replyTo) { payload.replyTo = replyTo; setReplyTo(null); }
     try {
-      await addDoc(collection(db, "teams", team.id, "messages"), {
-        text: msg,
-        authorUid: user.uid,
-        authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
-        authorEmail: user.email || "",
-        createdAt: serverTimestamp(),
-      });
+      await addDoc(collection(db, "teams", team.id, "messages"), payload);
     } catch(e) { console.error("TeamChat send error:", e); }
   };
 
@@ -148,25 +210,23 @@ export default function TeamChat({ team, user, theme, isMobile }) {
       return;
     }
     setUploading(true);
+    const currentReplyTo = replyTo;
+    if (replyTo) setReplyTo(null);
     try {
       const path = `teams/${team.id}/chat/${Date.now()}_${file.name}`;
       const sRef = storageRef(storage, path);
       await uploadBytes(sRef, file);
       const url = await getDownloadURL(sRef);
-      await addDoc(collection(db, "teams", team.id, "messages"), {
+      const payload = {
         text: " ",
         authorUid: user.uid,
         authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
         authorEmail: user.email || "",
         createdAt: serverTimestamp(),
-        attachment: {
-          name: file.name,
-          url,
-          type: file.type,
-          size: file.size,
-          storagePath: path,
-        },
-      });
+        attachment: { name: file.name, url, type: file.type, size: file.size, storagePath: path },
+      };
+      if (currentReplyTo) payload.replyTo = currentReplyTo;
+      await addDoc(collection(db, "teams", team.id, "messages"), payload);
     } catch(e) {
       console.error("TeamChat upload error:", e);
       setUploadError(e.message || "Erreur upload");
@@ -175,23 +235,45 @@ export default function TeamChat({ team, user, theme, isMobile }) {
     finally { setUploading(false); }
   };
 
-  const AD_H  = 56;
-  // FAB container: bottom=64, Ajouter≈46px + gap 8px + micro 44px = 98px → top at 162px
-  const FAB_H = 172;
+  const openContextMenu = (e, msg) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isMe = msg.authorUid === user.uid;
+    setMenuPos({
+      x: isMe ? Math.max(4, rect.left - 130) : Math.min(window.innerWidth - 138, rect.right - 4),
+      y: rect.top,
+      isMe,
+      msg,
+    });
+    setMenuMsgId(msg.id);
+  };
 
+  const AD_H  = 56;
+  const FAB_H = 172;
   const btnBottom = isMobile ? 64 : AD_H + 24;
   const btnLeft   = isMobile ? 16 : undefined;
   const btnRight  = isMobile ? undefined : 20;
-
   const panelW      = isMobile ? "100%" : 340;
   const panelTop    = isMobile ? 104 : 76;
   const panelBottom = isMobile ? FAB_H : AD_H + 86;
   const panelRight  = isMobile ? 0 : 20;
   const panelRadius = isMobile ? "20px 20px 0 0" : 16;
 
+  const menuBtnStyle = (color) => ({
+    display: "block",
+    width: "100%",
+    padding: "9px 14px",
+    background: "transparent",
+    border: "none",
+    textAlign: "left",
+    cursor: "pointer",
+    fontSize: 12,
+    color: color || theme.text,
+    whiteSpace: "nowrap",
+  });
+
   return (
     <>
-      {/* Bouton flottant — masqué sur mobile quand le panneau est ouvert */}
       {(!isMobile || !open) && (
         <button
           onClick={() => setOpen(s => !s)}
@@ -234,7 +316,34 @@ export default function TeamChat({ team, user, theme, isMobile }) {
         </button>
       )}
 
-      {/* Panneau de chat */}
+      {/* Menu contextuel */}
+      {menuMsgId && menuPos && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            left: menuPos.x,
+            top: menuPos.y,
+            transform: "translateY(-100%)",
+            background: theme.bgCard,
+            border: `1px solid ${theme.border}`,
+            borderRadius: 10,
+            boxShadow: "0 4px 20px #00000066",
+            zIndex: 9999,
+            minWidth: 130,
+            overflow: "hidden",
+          }}
+        >
+          <button style={menuBtnStyle()} onClick={() => handleReply(menuPos.msg)}>↩ Répondre</button>
+          {menuPos.isMe && !menuPos.msg.attachment && (
+            <button style={menuBtnStyle()} onClick={() => startEdit(menuPos.msg)}>✏️ Modifier</button>
+          )}
+          {menuPos.isMe && (
+            <button style={menuBtnStyle("#cc5555")} onClick={() => deleteMessage(menuPos.msg)}>🗑 Supprimer</button>
+          )}
+        </div>
+      )}
+
       {open && (
         <>
           {isMobile && <div style={{ position:"fixed",inset:0,zIndex:146,background:"#00000044" }} onClick={() => setOpen(false)} />}
@@ -293,17 +402,17 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                 const next = messages[i + 1];
                 const sameAuthorPrev = prev?.authorUid === msg.authorUid;
                 const sameAuthorNext = next?.authorUid === msg.authorUid;
-
                 const msgDay  = fmtDay(msg.createdAt);
                 const prevDay = prev ? fmtDay(prev.createdAt) : null;
                 const showDay = msgDay && msgDay !== prevDay;
-
                 const borderRadius = isMe
                   ? `14px 14px ${sameAuthorNext ? "4px" : "14px"} 14px`
                   : `14px 14px 14px ${sameAuthorNext ? "4px" : "14px"}`;
-
                 const att = msg.attachment;
                 const isImage = att?.type?.startsWith("image/");
+                const replyLabel = msg.replyTo
+                  ? (msg.replyTo.hasAttachment ? `📎 ${msg.replyTo.attName || "PJ"}` : msg.replyTo.text)
+                  : null;
 
                 return (
                   <div key={msg.id}>
@@ -318,7 +427,28 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                       </div>
                     )}
                     <div style={{ display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",marginBottom:sameAuthorNext?1:6 }}>
-                      <div style={{ display:"flex",alignItems:"flex-end",gap:5,flexDirection:isMe?"row-reverse":"row" }}>
+
+                      {/* Citation de réponse */}
+                      {msg.replyTo && (
+                        <div style={{
+                          fontSize: 10,
+                          color: theme.textMuted,
+                          background: isMe ? theme.accent+"22" : (theme.mode==="dark" ? "#ffffff11" : "#00000011"),
+                          borderLeft: `2px solid ${theme.accent}88`,
+                          borderRadius: "6px 6px 0 0",
+                          padding: "3px 8px",
+                          maxWidth: "78%",
+                          marginBottom: -2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                          <span style={{ fontWeight:700, color:theme.accent, marginRight:4 }}>{msg.replyTo.authorName}</span>
+                          <span style={{ opacity:0.8 }}>{replyLabel}</span>
+                        </div>
+                      )}
+
+                      <div style={{ display:"flex",alignItems:"flex-end",gap:4,flexDirection:isMe?"row-reverse":"row" }}>
 
                         {att ? (
                           isImage ? (
@@ -347,23 +477,8 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                               <div style={{ fontWeight: 600, marginBottom: 3, wordBreak:"break-all" }}>{att.name}</div>
                               {att.size > 0 && <div style={{ opacity: 0.7, fontSize: 10, marginBottom: 6 }}>{fmtSize(att.size)}</div>}
                               <div style={{ display:"flex", gap: 10 }}>
-                                <a
-                                  href={att.url}
-                                  download={att.name}
-                                  style={{ fontSize:10, color: isMe ? "#ffffffcc" : theme.accent, textDecoration:"underline" }}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Télécharger
-                                </a>
-                                <a
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ fontSize:10, color: isMe ? "#ffffffcc" : theme.accent, textDecoration:"underline" }}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Ouvrir
-                                </a>
+                                <a href={att.url} download={att.name} style={{ fontSize:10, color: isMe ? "#ffffffcc" : theme.accent, textDecoration:"underline" }} onClick={e => e.stopPropagation()}>Télécharger</a>
+                                <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:10, color: isMe ? "#ffffffcc" : theme.accent, textDecoration:"underline" }} onClick={e => e.stopPropagation()}>Ouvrir</a>
                               </div>
                             </div>
                           )
@@ -382,14 +497,34 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                             WebkitUserSelect: "text",
                           }}>
                             {renderText(msg.text)}
+                            {msg.edited && <span style={{ fontSize:8,opacity:0.5,marginLeft:5 }}>(modifié)</span>}
                           </div>
                         )}
 
-                        {!sameAuthorNext && (
-                          <span style={{ fontSize:8,color:theme.textMuted,flexShrink:0,marginBottom:1 }}>
-                            {fmtTime(msg.createdAt)}
-                          </span>
-                        )}
+                        {/* Bouton ⋮ + horodatage */}
+                        <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0 }}>
+                          <button
+                            onClick={e => openContextMenu(e, msg)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: theme.textMuted,
+                              cursor: "pointer",
+                              fontSize: 14,
+                              padding: "0 2px",
+                              lineHeight: 1,
+                              opacity: 0.4,
+                              flexShrink: 0,
+                            }}
+                            title="Options"
+                          >⋮</button>
+                          {!sameAuthorNext && (
+                            <span style={{ fontSize:8,color:theme.textMuted,flexShrink:0,marginBottom:1 }}>
+                              {fmtTime(msg.createdAt)}
+                            </span>
+                          )}
+                        </div>
+
                       </div>
                     </div>
                   </div>
@@ -405,7 +540,31 @@ export default function TeamChat({ team, user, theme, isMobile }) {
               </div>
             )}
 
-            {/* Input */}
+            {/* Bandeau réponse / modification */}
+            {(replyTo || editingMsgId) && (
+              <div style={{
+                padding: "5px 12px",
+                borderTop: `1px solid ${theme.border}`,
+                background: theme.mode === "dark" ? "#ffffff08" : "#00000008",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize:10, color:theme.accent, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {editingMsgId
+                    ? "✏️ Modification en cours"
+                    : `↩ ${replyTo.authorName} : ${replyTo.hasAttachment ? `📎 ${replyTo.attName || "PJ"}` : replyTo.text}`
+                  }
+                </span>
+                <button
+                  onClick={editingMsgId ? cancelEdit : () => setReplyTo(null)}
+                  style={{ background:"transparent", border:"none", color:theme.textMuted, cursor:"pointer", fontSize:14, padding:0, flexShrink:0 }}
+                >✕</button>
+              </div>
+            )}
+
+            {/* Zone de saisie */}
             <div style={{
               padding: "8px 10px",
               borderTop: `1px solid ${theme.border}`,
@@ -414,43 +573,55 @@ export default function TeamChat({ team, user, theme, isMobile }) {
               alignItems: "center",
               flexShrink: 0,
             }}>
-              <label
-                style={{
-                  cursor: uploading ? "default" : "pointer",
-                  color: uploading ? theme.border : theme.textMuted,
-                  display: "flex",
-                  alignItems: "center",
-                  flexShrink: 0,
-                  opacity: uploading ? 0.5 : 1,
-                  transition: "color .2s, opacity .2s",
-                }}
-                title="Joindre un fichier"
-              >
-                <ClipIcon />
-                <input
-                  ref={fileRef}
-                  type="file"
-                  style={{ display: "none" }}
-                  disabled={uploading}
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (f) sendFile(f);
-                    e.target.value = "";
+              {!editingMsgId && (
+                <label
+                  style={{
+                    cursor: uploading ? "default" : "pointer",
+                    color: uploading ? theme.border : theme.textMuted,
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    opacity: uploading ? 0.5 : 1,
+                    transition: "color .2s, opacity .2s",
                   }}
-                />
-              </label>
+                  title="Joindre un fichier"
+                >
+                  <ClipIcon />
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    style={{ display: "none" }}
+                    disabled={uploading}
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) sendFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
 
               <input
-                value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }}}
-                placeholder={uploading ? "Envoi en cours…" : "Message..."}
-                disabled={uploading}
+                ref={inputRef}
+                value={editingMsgId ? editText : text}
+                onChange={e => editingMsgId ? setEditText(e.target.value) : setText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    editingMsgId ? saveEdit() : sendMessage();
+                  }
+                  if (e.key === "Escape") {
+                    if (editingMsgId) cancelEdit();
+                    else setReplyTo(null);
+                  }
+                }}
+                placeholder={editingMsgId ? "Modifier le message…" : uploading ? "Envoi en cours…" : "Message..."}
+                disabled={uploading && !editingMsgId}
                 autoComplete="off"
                 style={{
                   flex: 1,
                   background: theme.bg,
-                  border: `1px solid ${theme.border}`,
+                  border: `1px solid ${editingMsgId ? theme.accent : theme.border}`,
                   borderRadius: 20,
                   padding: "8px 14px",
                   color: theme.text,
@@ -458,24 +629,27 @@ export default function TeamChat({ team, user, theme, isMobile }) {
                   outline: "none",
                   userSelect: "text",
                   WebkitUserSelect: "text",
-                  opacity: uploading ? 0.6 : 1,
+                  opacity: (uploading && !editingMsgId) ? 0.6 : 1,
+                  transition: "border-color .2s",
                 }}
               />
               <button
-                onClick={sendMessage}
-                disabled={!text.trim() || uploading}
+                onClick={editingMsgId ? saveEdit : sendMessage}
+                disabled={editingMsgId ? !editText.trim() : (!text.trim() || uploading)}
                 style={{
-                  background: text.trim() && !uploading ? theme.accent : theme.border,
+                  background: (editingMsgId ? editText.trim() : (text.trim() && !uploading)) ? theme.accent : theme.border,
                   border: "none",
                   borderRadius: "50%",
                   width: 34, height: 34,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: text.trim() && !uploading ? "pointer" : "default",
+                  cursor: (editingMsgId ? editText.trim() : (text.trim() && !uploading)) ? "pointer" : "default",
                   flexShrink: 0,
                   transition: "background .2s",
+                  fontSize: editingMsgId ? 16 : undefined,
+                  color: "#fff",
                 }}
               >
-                <SendIcon />
+                {editingMsgId ? "✓" : <SendIcon />}
               </button>
             </div>
           </div>
