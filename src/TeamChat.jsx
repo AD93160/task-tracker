@@ -75,6 +75,7 @@ export default function TeamChat({ team, user, theme, isMobile }) {
   const [text, setText]           = useState("");
   const [unread, setUnread]       = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const bottomRef   = useRef(null);
   const fileRef     = useRef(null);
   const lastReadRef = useRef(parseInt(localStorage.getItem(`tt_chat_lastRead_${team?.id}`) || "0"));
