@@ -132,8 +132,21 @@ export default function TeamChat({ team, user, theme, isMobile }) {
     } catch(e) { console.error("TeamChat send error:", e); }
   };
 
+  const CHAT_ALLOWED_TYPES = ["image/","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
+  const CHAT_MAX_SIZE = 10 * 1024 * 1024;
+
   const sendFile = async (file) => {
     if (!file || !team?.id || !user) return;
+    if (file.size > CHAT_MAX_SIZE) {
+      setUploadError("Fichier trop volumineux (max 10 Mo).");
+      setTimeout(() => setUploadError(null), 6000);
+      return;
+    }
+    if (!CHAT_ALLOWED_TYPES.some(t => file.type.startsWith(t))) {
+      setUploadError("Type de fichier non supporté. Formats acceptés : image, PDF, Word, Excel, mail.");
+      setTimeout(() => setUploadError(null), 6000);
+      return;
+    }
     setUploading(true);
     try {
       const path = `teams/${team.id}/chat/${Date.now()}_${file.name}`;
