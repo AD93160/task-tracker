@@ -1595,9 +1595,6 @@ export default function App() {
     if (pendingTeamTaskId && team) {
       const scheduled = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : (choice === "date" && date) ? date : null;
       try { await updateDoc(doc(db, "teams", team.id, "tasks", pendingTeamTaskId), { scheduledFor: scheduled }); } catch(e) {}
-      if (pendingFiles.length > 0) {
-        for (const f of pendingFiles) await uploadAttachment(pendingTeamTaskId, f, true);
-      }
       setPendingTeamTaskId(null);
       resetForm();
       return;
