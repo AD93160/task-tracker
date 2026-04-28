@@ -2962,7 +2962,9 @@ export default function App() {
                           <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:3 }}>
                             <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>
                             {task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.due)}</span>}
-                            {task.scheduledFor && <span style={{ fontSize:9,color:theme.accent }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</span>}
+                            {task.scheduledFor==="today" && <span style={{ fontSize:9,color:theme.accent }}>☀️ Aujourd'hui</span>}
+                            {task.scheduledFor==="tomorrow" && <span style={{ fontSize:9,color:theme.accent }}>🌙 Demain</span>}
+                            {task.scheduledFor && task.scheduledFor!=="today" && task.scheduledFor!=="tomorrow" && !task.due && <span style={{ fontSize:9,color:theme.accent+"aa" }}>📅 {formatDate(task.scheduledFor)}</span>}
                           </div>
                           {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginBottom:4,lineHeight:1.4 }}>{task.notes}</div>}
                           <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",borderTop:`1px solid ${theme.border}44`,paddingTop:5 }}>
