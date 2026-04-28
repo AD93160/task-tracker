@@ -1457,9 +1457,10 @@ export default function App() {
   const toggleMemberVisible = async (taskId, currentValue) => {
     if (!team || !isAdminRole(teamRole)) return;
     const newValue = currentValue !== false ? false : true;
+    const hiddenBy = newValue === false ? user.uid : null;
     try {
-      await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { memberVisible: newValue });
-      setTeamTasks(p => p.map(t => t.id === taskId ? {...t, memberVisible: newValue} : t));
+      await updateDoc(doc(db, "teams", team.id, "tasks", taskId), { memberVisible: newValue, hiddenBy });
+      setTeamTasks(p => p.map(t => t.id === taskId ? {...t, memberVisible: newValue, hiddenBy} : t));
     } catch(e) { setTeamError(e.message); }
   };
 
