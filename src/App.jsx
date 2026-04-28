@@ -446,10 +446,12 @@ export default function App() {
     const today = todayStr();
     const tom = new Date(); tom.setDate(tom.getDate()+1);
     const tomorrow = tom.toISOString().split("T")[0];
-    if (task.due) {
-      if (task.due < today) return RED;
-      if (task.due === today || task.scheduledFor === "today") return GOLD;
-      if (task.due === tomorrow || task.scheduledFor === "tomorrow") return ORANGE;
+    const sfDate = task.scheduledFor && task.scheduledFor !== "today" && task.scheduledFor !== "tomorrow" ? task.scheduledFor : null;
+    const refDate = task.due || sfDate;
+    if (refDate) {
+      if (refDate < today) return RED;
+      if (refDate === today || task.scheduledFor === "today") return GOLD;
+      if (refDate === tomorrow || task.scheduledFor === "tomorrow") return ORANGE;
       return GREEN;
     }
     if (task.scheduledFor === "today")    return GOLD;
