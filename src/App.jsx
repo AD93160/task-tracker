@@ -2130,7 +2130,7 @@ export default function App() {
         input,textarea,select { outline:none; user-select:text; -webkit-touch-callout:default; }
         button { touch-action:manipulation; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(var(--date-icon-invert, 0)); cursor:pointer; }
-        .row:hover { background:#16162e !important; }
+        @media (hover: hover) { .row:hover { box-shadow: inset 0 0 0 9999px rgba(0,0,0,0.07); } }
         .bubble { transition:transform .12s; cursor:grab; touch-action:none; }
         .bubble:hover { transform:scale(1.08); }
         .bubble.over { transform:scale(1.18); box-shadow:0 0 20px #5050dd88 !important; }
