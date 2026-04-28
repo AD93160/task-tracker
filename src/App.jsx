@@ -1376,7 +1376,19 @@ export default function App() {
           setTaskCounter(c => {
             const newNum = c + 1;
             setTimeout(() => {
-              setTasks(p => [...p, { ...t, id:Date.now(), status:"À faire", due:newDue, completion:null, num:newNum }]);
+              const newId = Date.now();
+              const todayDate = todayStr();
+              const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+              const tomorrowDateStr = tomorrowDate.toISOString().split("T")[0];
+              setTasks(p => [...p, { ...t, id:newId, status:"À faire", due:newDue, completion:null, num:newNum }]);
+              if (newDue === todayDate) {
+                setTodayIds(p => p.includes(newId) ? p : [...p, newId]);
+                setTodayDates(d => ({...d, [newId]: todayDate}));
+                setHighlighted(p => p.includes(newId) ? p : [...p, newId]);
+              } else if (newDue === tomorrowDateStr) {
+                setTomorrowIds(p => p.find(e=>e.id===newId) ? p : [...p, {id:newId, addedDate:todayDate}]);
+                setHighlighted(p => p.includes(newId) ? p : [...p, newId]);
+              }
             }, 100);
             return newNum;
           });
