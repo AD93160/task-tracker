@@ -2133,6 +2133,10 @@ export default function App() {
     </div>
   );
 
+  const renderTodayStr = todayStr();
+  const renderTomDate = new Date(); renderTomDate.setDate(renderTomDate.getDate()+1);
+  const renderTomorrowStr = renderTomDate.toISOString().split("T")[0];
+
   return (
     <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
