@@ -1543,7 +1543,7 @@ export default function App() {
         } else {
           const newNum = (team.taskCounter || 0) + 1;
           await updateDoc(doc(db, "teams", team.id), { taskCounter: newNum });
-          const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdAt:serverTimestamp(), memberVisible: form.memberVisible !== false, hiddenBy: form.memberVisible !== false ? null : user.uid });
+          const docRef = await addDoc(collection(db, "teams", team.id, "tasks"), { ...cleanForm, id:Date.now(), num:newNum, createdBy:user.uid, createdByEmail:user.email||"", createdAt:serverTimestamp(), memberVisible: form.memberVisible !== false, hiddenBy: form.memberVisible !== false ? null : user.uid });
           setPendingTask({ id: docRef.id, title: form.title });
           setPendingTeamTaskId(docRef.id);
           setFormStep(2);
