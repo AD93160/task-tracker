@@ -2936,7 +2936,9 @@ export default function App() {
                           </div>
                           {!isMobile && <>
                             {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
-                            {task.scheduledFor && <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>{task.scheduledFor==="today"?"☀️ Aujourd'hui":task.scheduledFor==="tomorrow"?"🌙 Demain":"📅 "+formatDate(task.scheduledFor)}</div>}
+                            {task.scheduledFor==="today" && <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>☀️ Aujourd'hui</div>}
+                            {task.scheduledFor==="tomorrow" && <div style={{ fontSize:9,color:theme.accent,marginTop:2 }}>🌙 Demain</div>}
+                            {task.scheduledFor && task.scheduledFor!=="today" && task.scheduledFor!=="tomorrow" && !task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.scheduledFor)}</div>}
                             {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                             <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap" }}>
                               <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||team.adminEmail}</span>
