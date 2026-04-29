@@ -2292,7 +2292,7 @@ export default function App() {
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {user && team && (
                 <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden", fontSize:10 }}>
-                  <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>Perso</button>
+                  <button onClick={()=>setTeamSpace(false)} style={{ padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>{userPseudo ? userPseudo.split(" ")[0].slice(0,10) : "Perso"}</button>
                   <button onClick={()=>setTeamSpace(true)}  style={{ padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer" }}>👥 {team.name}</button>
                 </div>
               )}
