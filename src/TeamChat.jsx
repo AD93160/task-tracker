@@ -69,7 +69,7 @@ function renderText(text) {
   return parts;
 }
 
-export default function TeamChat({ team, user, theme, isMobile }) {
+export default function TeamChat({ team, user, theme, isMobile, userPseudo, members = [] }) {
   const [open, setOpen]           = useState(false);
   const [messages, setMessages]   = useState([]);
   const [text, setText]           = useState("");
@@ -81,11 +81,24 @@ export default function TeamChat({ team, user, theme, isMobile }) {
   const [editText, setEditText]   = useState("");
   const [menuMsgId, setMenuMsgId] = useState(null);
   const [menuPos, setMenuPos]     = useState(null);
+  const [activeConv, setActiveConv] = useState(null); // null=groupe, {id,otherUid,otherName}=DM
+  const [openConvs, setOpenConvs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`tt_openConvs_${team?.id}`) || "[]"); } catch { return []; }
+  });
+  const [showMembers, setShowMembers] = useState(false);
   const bottomRef   = useRef(null);
   const fileRef     = useRef(null);
   const inputRef    = useRef(null);
   const lastReadRef = useRef(parseInt(localStorage.getItem(`tt_chat_lastRead_${team?.id}`) || "0"));
   const wasOpenRef  = useRef(false);
+
+  const authorName = userPseudo || user.displayName || user.email?.split("@")[0] || "Anonyme";
+  const getMsgCol = () => activeConv
+    ? collection(db, "teams", team.id, "dms", activeConv.id, "messages")
+    : collection(db, "teams", team.id, "messages");
+  const getMsgDoc = (id) => activeConv
+    ? doc(db, "teams", team.id, "dms", activeConv.id, "messages", id)
+    : doc(db, "teams", team.id, "messages", id);
 
   useEffect(() => {
     if (!team?.id) return;
