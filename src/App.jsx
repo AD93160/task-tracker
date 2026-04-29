@@ -331,6 +331,9 @@ export default function App() {
   const [filePopup,            setFilePopup]            = useState(null); // objet attachment
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [userPseudo, setUserPseudo] = useState(() => load("tt_userPseudo", ""));
+  const [editingPseudo, setEditingPseudo] = useState(false);
+  const [pseudoInput, setPseudoInput] = useState("");
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
   const [commentPopup,     setCommentPopup]     = useState(null); // firestoreId tâche équipe (popup commentaires)
   const [pjPopup,          setPjPopup]          = useState(null); // {id, isTeam} (popup PJ)
