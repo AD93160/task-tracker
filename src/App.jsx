@@ -837,7 +837,8 @@ export default function App() {
                 || (tData.coAdminUids||[]).includes(user.uid)
                 || (tData.members||[]).some(m => m.uid === user.uid);
               if (!isInTeam) {
-                // teamId pointe vers une équipe dont l'utilisateur ne fait pas partie → nettoyage
+                // Ne pas nettoyer sur un snapshot cache (peut être périmé juste après acceptInvite)
+                if (tSnap.metadata.fromCache) return;
                 setDoc(doc(db, "users", user.uid), { teamId:null, teamRole:null, allTeamIds: arrayRemove(activeId) }, { merge:true }).catch(()=>{});
                 setTeam(null); setTeamSpace(false); setTeamRole(null);
                 return;
