@@ -658,6 +658,7 @@ export default function App() {
           setTeamSpace(false);
           setUserPseudo(load(`tt_userPseudo_${newUid}`, ""));
         }
+        if (newUid === null) setUserPseudo("");
         return u;
       });
       setAuthLoading(false);
