@@ -197,14 +197,28 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     const payload = {
       text: msg,
       authorUid: user.uid,
-      authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
+      authorName,
       authorEmail: user.email || "",
       createdAt: serverTimestamp(),
     };
     if (replyTo) { payload.replyTo = replyTo; setReplyTo(null); }
     try {
-      await addDoc(collection(db, "teams", team.id, "messages"), payload);
+      await addDoc(getMsgCol(), payload);
     } catch(e) { console.error("TeamChat send error:", e); }
+  };
+
+  const startDM = (member) => {
+    const convId = [user.uid, member.uid].sort().join("_");
+    const conv = { id: convId, otherUid: member.uid, otherName: member.displayName || member.email };
+    setOpenConvs(prev => {
+      if (prev.find(c => c.id === convId)) return prev;
+      const updated = [...prev, conv];
+      localStorage.setItem(`tt_openConvs_${team.id}`, JSON.stringify(updated));
+      return updated;
+    });
+    setActiveConv(conv);
+    setShowMembers(false);
+    setMessages([]);
   };
 
   const CHAT_ALLOWED_TYPES = ["image/","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
