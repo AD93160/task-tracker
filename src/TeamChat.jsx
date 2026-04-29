@@ -557,7 +557,6 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                           )
                         ) : (
                           <div style={{
-                            maxWidth: "78%",
                             width: "fit-content",
                             padding: "7px 11px",
                             borderRadius,
