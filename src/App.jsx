@@ -510,7 +510,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem("tt_locale",       JSON.stringify(locale));         }, [locale]);
   useEffect(() => { localStorage.setItem("tt_dailyNotif",   JSON.stringify(dailyNotifEnabled)); }, [dailyNotifEnabled]);
   useEffect(() => { localStorage.setItem("tt_dailyNotifTime",JSON.stringify(dailyNotifTime)); }, [dailyNotifTime]);
-  useEffect(() => { localStorage.setItem("tt_userPseudo", JSON.stringify(userPseudo)); }, [userPseudo]);
+  useEffect(() => { if (user?.uid) localStorage.setItem(`tt_userPseudo_${user.uid}`, JSON.stringify(userPseudo)); }, [userPseudo, user?.uid]);
   useEffect(() => { tasksRef.current    = tasks;     }, [tasks]);
   useEffect(() => { todayIdsRef.current = todayIds;  }, [todayIds]);
   useEffect(() => { teamTasksRef.current = teamTasks;}, [teamTasks]);
