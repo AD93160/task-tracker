@@ -2987,7 +2987,7 @@ export default function App() {
                             {task.scheduledFor && task.scheduledFor!=="today" && task.scheduledFor!=="tomorrow" && !task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.scheduledFor)}</div>}
                             {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                             <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap" }}>
-                              <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {task.createdByEmail||(team?.members||[]).find(m=>m.uid===task.createdBy)?.email||team.adminEmail}</span>
+                              <span style={{ fontSize:9,color:theme.textMuted+"88" }}>par {(team?.members||[]).find(m=>m.uid===task.createdBy)?.displayName || task.createdByEmail || team.adminEmail}</span>
                               <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬</span>
                               <span onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ fontSize:9,color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:4 }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</span>
                               <span onClick={toggleNotify} style={{ fontSize:10,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</span>
