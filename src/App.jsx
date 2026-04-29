@@ -714,7 +714,7 @@ export default function App() {
       const total  = tasks.length;
       const done   = tasks.filter(t => t.status === "Terminé").length;
       const active = tasks.filter(t => t.status !== "Terminé").length;
-      saves.push(setDoc(doc(db, "teams", team.id, "memberStats", user.uid), { total, done, active, displayName: user.displayName || null, email: user.email || null }, { merge: true }));
+      saves.push(setDoc(doc(db, "teams", team.id, "memberStats", user.uid), { total, done, active, displayName: userPseudo || user.displayName || null, email: user.email || null }, { merge: true }));
     }
     Promise.all(saves)
       .catch(err => { console.error("Save to Firestore failed:", err); setSyncError("Erreur de synchronisation — vos données n'ont pas été sauvegardées."); setTimeout(() => setSyncError(null), 6000); })
