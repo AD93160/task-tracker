@@ -2263,7 +2263,7 @@ export default function App() {
             <div style={{ display:"flex", alignItems:"center", gap:6, paddingBottom:8 }}>
               {user && team ? (
                 <div style={{ display:"flex", background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:20, overflow:"hidden", fontSize:11, flex:1 }}>
-                  <button onClick={()=>setTeamSpace(false)} style={{ flex:1,padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer", borderRadius:20, fontWeight:!teamSpace?700:400 }}>Perso</button>
+                  <button onClick={()=>setTeamSpace(false)} style={{ flex:1,padding:"5px 10px", background:!teamSpace?theme.accent:"transparent", border:"none", color:!teamSpace?"#fff":theme.textMuted, cursor:"pointer", borderRadius:20, fontWeight:!teamSpace?700:400 }}>{userPseudo ? userPseudo.split(" ")[0].slice(0,10) : "Perso"}</button>
                   <button onClick={()=>setTeamSpace(true)}  style={{ flex:1,padding:"5px 10px", background:teamSpace?theme.accent:"transparent", border:"none", color:teamSpace?"#fff":theme.textMuted, cursor:"pointer", borderRadius:20, fontWeight:teamSpace?700:400 }}>👥 {team.name.length > 8 ? team.name.slice(0,8)+"…" : team.name}</button>
                 </div>
               ) : <div style={{ flex:1 }}/>}
