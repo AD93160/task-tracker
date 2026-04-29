@@ -1256,6 +1256,7 @@ export default function App() {
     setEditingPseudo(false);
     setPseudoInput("");
     if (!user) return;
+    localStorage.setItem(`tt_userPseudo_${user.uid}`, JSON.stringify(trimmed));
     try {
       await setDoc(doc(db, "users", user.uid), { pseudo: trimmed }, { merge: true });
       if (team) {
