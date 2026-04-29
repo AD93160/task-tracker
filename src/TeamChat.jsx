@@ -510,6 +510,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                           borderLeft: `2px solid ${theme.accent}88`,
                           borderRadius: "6px 6px 0 0",
                           padding: "3px 8px",
+                          alignSelf: isMe?"flex-end":"flex-start",
                           maxWidth: "78%",
                           marginBottom: -2,
                           overflow: "hidden",
