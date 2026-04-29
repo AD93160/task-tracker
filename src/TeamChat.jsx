@@ -240,20 +240,22 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     const currentReplyTo = replyTo;
     if (replyTo) setReplyTo(null);
     try {
-      const path = `teams/${team.id}/chat/${Date.now()}_${file.name}`;
+      const path = activeConv
+        ? `teams/${team.id}/dms/${activeConv.id}/${Date.now()}_${file.name}`
+        : `teams/${team.id}/chat/${Date.now()}_${file.name}`;
       const sRef = storageRef(storage, path);
       await uploadBytes(sRef, file);
       const url = await getDownloadURL(sRef);
       const payload = {
         text: " ",
         authorUid: user.uid,
-        authorName: user.displayName || user.email?.split("@")[0] || "Anonyme",
+        authorName,
         authorEmail: user.email || "",
         createdAt: serverTimestamp(),
         attachment: { name: file.name, url, type: file.type, size: file.size, storagePath: path },
       };
       if (currentReplyTo) payload.replyTo = currentReplyTo;
-      await addDoc(collection(db, "teams", team.id, "messages"), payload);
+      await addDoc(getMsgCol(), payload);
     } catch(e) {
       console.error("TeamChat upload error:", e);
       setUploadError(e.message || "Erreur upload");
