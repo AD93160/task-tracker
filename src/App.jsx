@@ -868,14 +868,16 @@ export default function App() {
       allIds.forEach(id => subscribeToTeam(id));
     });
 
+    let inviteUnsub = () => {};
     if (user.email) {
-      getDoc(doc(db, "invitations", user.email.toLowerCase())).then(s => {
+      inviteUnsub = onSnapshot(doc(db, "invitations", user.email.toLowerCase()), s => {
         setPendingInvite(s.exists() ? { id:s.id, ...s.data() } : null);
       });
     }
     return () => {
       userUnsub();
       teamUnsubs.forEach(fn => fn());
+      inviteUnsub();
     };
   }, [user?.uid]);
 
