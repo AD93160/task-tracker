@@ -414,7 +414,6 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                   title={activeConv ? "" : "Voir les membres"}
                 >
                   {activeConv ? activeConv.otherName.toUpperCase() : showMembers ? "MEMBRES" : team.name.toUpperCase()}
-                  {!activeConv && !showMembers && <span style={{ fontSize:9, color:theme.textMuted, marginLeft:4 }}>👥</span>}
                 </span>
               </div>
               <button onClick={() => setOpen(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,cursor:"pointer",fontSize:16,lineHeight:1,padding:0 }}>✕</button>
