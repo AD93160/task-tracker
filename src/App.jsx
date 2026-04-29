@@ -331,7 +331,7 @@ export default function App() {
   const [filePopup,            setFilePopup]            = useState(null); // objet attachment
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [userPseudo, setUserPseudo] = useState(() => load("tt_userPseudo", ""));
+  const [userPseudo, setUserPseudo] = useState("");
   const [editingPseudo, setEditingPseudo] = useState(false);
   const [pseudoInput, setPseudoInput] = useState("");
   const [teamModal,        setTeamModal]        = useState(null); // firestoreId tâche ouverte
