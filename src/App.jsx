@@ -828,7 +828,10 @@ export default function App() {
         if (activeId) {
           const activeUnsub = onSnapshot(doc(db, "teams", activeId), tSnap => {
             if (tSnap.exists()) {
-              const tData = { id:tSnap.id, ...tSnap.data() };
+              const raw = tSnap.data();
+              // Dédupliquer les membres par uid (robustesse re-invitation)
+              const dedupedMembers = [...new Map((raw.members||[]).map(m=>[m.uid,m])).values()];
+              const tData = { id:tSnap.id, ...raw, members: dedupedMembers };
               // Vérifier que l'utilisateur est réellement dans cette équipe
               const isInTeam = tData.adminUid === user.uid
                 || (tData.coAdminUids||[]).includes(user.uid)
