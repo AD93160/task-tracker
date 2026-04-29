@@ -168,7 +168,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
       if (msg.attachment?.storagePath) {
         try { await deleteObject(storageRef(storage, msg.attachment.storagePath)); } catch(e) {}
       }
-      await deleteDoc(doc(db, "teams", team.id, "messages", msg.id));
+      await deleteDoc(getMsgDoc(msg.id));
     } catch(e) { console.error("TeamChat delete error:", e); }
   };
 
