@@ -656,6 +656,7 @@ export default function App() {
           setTodayIds([]); setTodayDates({}); setTomorrowIds([]);
           setScheduledIds([]); setHighlighted([]); setTaskCounter(0);
           setTeamSpace(false);
+          setUserPseudo(load(`tt_userPseudo_${newUid}`, ""));
         }
         return u;
       });
