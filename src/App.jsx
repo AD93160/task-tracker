@@ -933,7 +933,7 @@ export default function App() {
     const t   = targetTeam || team;
     if (!t || !raw) return;
     if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(raw)) { setTeamError("Adresse email invalide"); return; }
-    if ((t.members || []).some(m => m.email?.toLowerCase() === raw)) { setTeamError("Cette personne est déjà membre de l'équipe"); return; }
+    if ((t.members || []).some(m => m.email?.toLowerCase() === raw)) { setTeamError("Cette personne est déjà membre — vous pouvez tout de même renvoyer l'invitation si elle n'a pas accès"); }
     try {
       await setDoc(doc(db, "invitations", raw), { teamId:t.id, teamName:t.name, invitedBy:user.email||"", createdAt:serverTimestamp() });
       try {
