@@ -2209,7 +2209,16 @@ export default function App() {
                   </div>
                   {showUserMenu && (
                     <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:190,boxShadow:"0 8px 40px #00000099" }}>
-                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{user.displayName||user.email}</div>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{userPseudo || user.displayName || user.email}</div>
+                      {editingPseudo ? (
+                        <div style={{ display:"flex",gap:4,padding:"4px 6px",borderBottom:`1px solid ${theme.border}22`,marginBottom:2 }}>
+                          <input autoFocus value={pseudoInput} onChange={e=>setPseudoInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")savePseudo(pseudoInput);if(e.key==="Escape"){setEditingPseudo(false);setPseudoInput("");}}} placeholder="Ton pseudo…" style={{ flex:1,background:theme.bg,border:`1px solid ${theme.accent}66`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12,outline:"none" }} />
+                          <button onClick={()=>savePseudo(pseudoInput)} style={{ background:theme.accent,border:"none",borderRadius:6,padding:"5px 8px",color:"#fff",fontSize:11,cursor:"pointer" }}>✓</button>
+                          <button onClick={()=>{setEditingPseudo(false);setPseudoInput("");}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 7px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>
+                        </div>
+                      ) : (
+                        <button onClick={()=>{setPseudoInput(userPseudo);setEditingPseudo(true);}} style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left" }}>✏️ {userPseudo?"Modifier le pseudo":"Définir un pseudo"}</button>
+                      )}
                       <label style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",boxSizing:"border-box" }}>
                         <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) uploadAvatar(e.target.files[0]); e.target.value=""; }}/>
                         {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
@@ -2308,7 +2317,16 @@ export default function App() {
                   </div>
                   {showUserMenu && (
                     <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:12,padding:8,zIndex:300,minWidth:190,boxShadow:"0 8px 40px #00000099" }}>
-                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{user.displayName||user.email}</div>
+                      <div style={{ fontSize:11,color:theme.textMuted,padding:"6px 10px",borderBottom:`1px solid ${theme.border}44`,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180 }}>{userPseudo || user.displayName || user.email}</div>
+                      {editingPseudo ? (
+                        <div style={{ display:"flex",gap:4,padding:"4px 6px",borderBottom:`1px solid ${theme.border}22`,marginBottom:2 }}>
+                          <input autoFocus value={pseudoInput} onChange={e=>setPseudoInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")savePseudo(pseudoInput);if(e.key==="Escape"){setEditingPseudo(false);setPseudoInput("");}}} placeholder="Ton pseudo…" style={{ flex:1,background:theme.bg,border:`1px solid ${theme.accent}66`,borderRadius:6,padding:"5px 8px",color:theme.text,fontSize:12,outline:"none" }} />
+                          <button onClick={()=>savePseudo(pseudoInput)} style={{ background:theme.accent,border:"none",borderRadius:6,padding:"5px 8px",color:"#fff",fontSize:11,cursor:"pointer" }}>✓</button>
+                          <button onClick={()=>{setEditingPseudo(false);setPseudoInput("");}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:6,padding:"5px 7px",color:theme.textMuted,fontSize:11,cursor:"pointer" }}>✕</button>
+                        </div>
+                      ) : (
+                        <button onClick={()=>{setPseudoInput(userPseudo);setEditingPseudo(true);}} style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left" }}>✏️ {userPseudo?"Modifier le pseudo":"Définir un pseudo"}</button>
+                      )}
                       <label style={{ display:"block",width:"100%",background:"transparent",borderBottom:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.text,fontSize:12,cursor:"pointer",textAlign:"left",boxSizing:"border-box" }}>
                         <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) uploadAvatar(e.target.files[0]); e.target.value=""; }}/>
                         {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
