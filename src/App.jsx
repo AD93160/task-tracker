@@ -2203,7 +2203,7 @@ export default function App() {
                     {(userPhotoURL||user.photoURL)
                       ? <img src={userPhotoURL||user.photoURL} alt="" style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block", objectFit:"cover" }} />
                       : <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:theme.accent }}>
-                          {(user.displayName||user.email||"?")[0].toUpperCase()}
+                          {(userPseudo||user.displayName||user.email||"?")[0].toUpperCase()}
                         </div>
                     }
                   </div>
@@ -2311,7 +2311,7 @@ export default function App() {
                     {(userPhotoURL||user.photoURL)
                       ? <img src={userPhotoURL||user.photoURL} alt="" style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${theme.accent}55`, display:"block", objectFit:"cover" }} />
                       : <div style={{ width:30,height:30,borderRadius:"50%",background:theme.accent+"33",border:`2px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:theme.accent }}>
-                          {(user.displayName||user.email||"?")[0].toUpperCase()}
+                          {(userPseudo||user.displayName||user.email||"?")[0].toUpperCase()}
                         </div>
                     }
                   </div>
