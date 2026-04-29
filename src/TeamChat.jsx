@@ -183,10 +183,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
   const saveEdit = async () => {
     if (!editText.trim()) { cancelEdit(); return; }
     try {
-      await updateDoc(doc(db, "teams", team.id, "messages", editingMsgId), {
-        text: editText.trim(),
-        edited: true,
-      });
+      await updateDoc(getMsgDoc(editingMsgId), { text: editText.trim(), edited: true });
     } catch(e) { console.error("TeamChat edit error:", e); }
     cancelEdit();
   };
