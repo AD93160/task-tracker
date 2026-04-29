@@ -403,13 +403,38 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
               flexShrink: 0,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bcb77", boxShadow: "0 0 6px #6bcb7788" }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: theme.text, letterSpacing: 1.5 }}>
-                  {team.name.toUpperCase()}
+                {(activeConv || showMembers) ? (
+                  <button onClick={()=>{setActiveConv(null);setShowMembers(false);setMessages([]);}} style={{ background:"transparent",border:"none",color:theme.accent,cursor:"pointer",fontSize:14,padding:0,lineHeight:1 }}>←</button>
+                ) : (
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bcb77", boxShadow: "0 0 6px #6bcb7788" }} />
+                )}
+                <span
+                  onClick={()=>{ if(!activeConv) setShowMembers(s=>!s); }}
+                  style={{ fontSize: 11, fontWeight: 700, color: theme.text, letterSpacing: 1.5, cursor: activeConv ? "default" : "pointer" }}
+                  title={activeConv ? "" : "Voir les membres"}
+                >
+                  {activeConv ? activeConv.otherName.toUpperCase() : showMembers ? "MEMBRES" : team.name.toUpperCase()}
+                  {!activeConv && !showMembers && <span style={{ fontSize:9, color:theme.textMuted, marginLeft:4 }}>👥</span>}
                 </span>
               </div>
               <button onClick={() => setOpen(false)} style={{ background:"transparent",border:"none",color:theme.textMuted,cursor:"pointer",fontSize:16,lineHeight:1,padding:0 }}>✕</button>
             </div>
+
+            {/* Onglets conversations */}
+            {(openConvs.length > 0) && (
+              <div style={{ display:"flex", gap:4, padding:"6px 10px", borderBottom:`1px solid ${theme.border}`, overflowX:"auto", flexShrink:0 }}>
+                <button
+                  onClick={()=>{setActiveConv(null);setShowMembers(false);setMessages([]);}}
+                  style={{ background:!activeConv?theme.accent:theme.bg, border:`1px solid ${!activeConv?theme.accent:theme.border}`, borderRadius:12, padding:"3px 10px", fontSize:10, color:!activeConv?"#fff":theme.textMuted, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}
+                >GROUPE</button>
+                {openConvs.map(conv => (
+                  <button key={conv.id}
+                    onClick={()=>{setActiveConv(conv);setShowMembers(false);setMessages([]);}}
+                    style={{ background:activeConv?.id===conv.id?theme.accent:theme.bg, border:`1px solid ${activeConv?.id===conv.id?theme.accent:theme.border}`, borderRadius:12, padding:"3px 10px", fontSize:10, color:activeConv?.id===conv.id?"#fff":theme.textMuted, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}
+                  >{conv.otherName.split(" ")[0].slice(0,12)}</button>
+                ))}
+              </div>
+            )}
 
             {/* Messages */}
             <div style={{
