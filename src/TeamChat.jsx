@@ -124,12 +124,16 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     wasOpenRef.current = open;
     if (open) {
       const now = Date.now();
-      lastReadRef.current = now;
-      localStorage.setItem(`tt_chat_lastRead_${team?.id}`, now);
-      setUnread(0);
+      if (!activeConv) {
+        lastReadRef.current = now;
+        localStorage.setItem(`tt_chat_lastRead_${team?.id}`, now);
+        setUnread(0);
+      } else {
+        localStorage.setItem(`tt_chat_lastRead_${team?.id}_${activeConv.id}`, now);
+      }
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 60);
     }
-  }, [open]);
+  }, [open, activeConv]);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
