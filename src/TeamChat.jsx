@@ -102,15 +102,14 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
 
   useEffect(() => {
     if (!team?.id) return;
-    const q = query(
-      collection(db, "teams", team.id, "messages"),
-      orderBy("createdAt", "asc"),
-      limit(100)
-    );
+    const col = activeConv
+      ? collection(db, "teams", team.id, "dms", activeConv.id, "messages")
+      : collection(db, "teams", team.id, "messages");
+    const q = query(col, orderBy("createdAt", "asc"), limit(100));
     const unsub = onSnapshot(q, snap => {
       const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setMessages(msgs);
-      if (!wasOpenRef.current) {
+      if (!wasOpenRef.current && !activeConv) {
         const count = msgs.filter(m =>
           m.authorUid !== user.uid &&
           (m.createdAt?.toMillis?.() ?? 0) > lastReadRef.current
@@ -119,7 +118,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
       }
     });
     return unsub;
-  }, [team?.id]);
+  }, [team?.id, activeConv]);
 
   useEffect(() => {
     wasOpenRef.current = open;
