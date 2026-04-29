@@ -499,7 +499,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                         {msg.authorName}
                       </div>
                     )}
-                    <div style={{ display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",marginBottom:sameAuthorNext?1:6 }}>
+                    <div style={{ display:"flex",flexDirection:"column",width:"100%",marginBottom:sameAuthorNext?1:6 }}>
 
                       {/* Citation de réponse */}
                       {msg.replyTo && (
