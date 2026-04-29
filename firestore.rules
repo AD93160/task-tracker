@@ -115,6 +115,21 @@ service cloud.firestore {
                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
       }
 
+      // ── Messages privés (DM) ─────────────────────────────────────
+      match /dms/{convId}/messages/{messageId} {
+        allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
+        allow create: if (isMemberOf(teamId) || isAdminOrCoAdminOf(teamId)) &&
+                         request.resource.data.authorUid == request.auth.uid &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() <= 2000;
+        allow delete: if isAuth() && resource.data.authorUid == request.auth.uid;
+        allow update: if isAuth() &&
+                         resource.data.authorUid == request.auth.uid &&
+                         request.resource.data.authorUid == resource.data.authorUid &&
+                         request.resource.data.text is string &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
+      }
+
       // ── Modifications en attente ──────────────────────────────────
       match /pendingChanges/{changeId} {
         // Admin et co-admins voient tout ; les membres voient uniquement leurs propres propositions
