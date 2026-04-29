@@ -694,6 +694,7 @@ export default function App() {
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
+        if (data.pseudo !== undefined) setUserPseudo(data.pseudo || "");
       }
     });
     return unsub;
