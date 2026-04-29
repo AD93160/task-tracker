@@ -605,7 +605,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                 );
               })}
               <div ref={bottomRef} />
-            </div>
+            </div>}
 
             {/* Erreur upload */}
             {uploadError && (
