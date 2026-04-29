@@ -3678,7 +3678,7 @@ export default function App() {
       )}
 
       {/* Messagerie équipe */}
-      {teamSpace && team && user && <TeamChat team={team} user={user} theme={theme} isMobile={isMobile} />}
+      {teamSpace && team && user && <TeamChat team={team} user={user} theme={theme} isMobile={isMobile} userPseudo={userPseudo} members={(team.members||[]).filter(m=>m.uid!==user.uid)} />}
 
       {/* Toast notifications */}
       {toastMsg && (
