@@ -521,7 +521,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                         </div>
                       )}
 
-                      <div style={{ display:"flex",alignItems:"flex-end",gap:4,flexDirection:isMe?"row-reverse":"row" }}>
+                      <div style={{ display:"flex",alignItems:"flex-end",gap:4,flexDirection:isMe?"row-reverse":"row",maxWidth:"78%",alignSelf:isMe?"flex-end":"flex-start" }}>
 
                         {att ? (
                           isImage ? (
