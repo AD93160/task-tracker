@@ -1249,6 +1249,23 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
+  const savePseudo = async (pseudo) => {
+    const trimmed = pseudo.trim();
+    setUserPseudo(trimmed);
+    setEditingPseudo(false);
+    setPseudoInput("");
+    if (!user) return;
+    try {
+      await setDoc(doc(db, "users", user.uid), { pseudo: trimmed }, { merge: true });
+      if (team) {
+        const newMembers = (team.members || []).map(m =>
+          m.uid === user.uid ? { ...m, displayName: trimmed || m.email || "" } : m
+        );
+        await updateDoc(doc(db, "teams", team.id), { members: newMembers });
+      }
+    } catch(e) { console.error("savePseudo:", e); }
+  };
+
   const uploadAvatar = async (file) => {
     if (!user || !file) return;
     if (!file.type.startsWith("image/")) { toast("Seules les images sont acceptées pour l'avatar.", true); return; }
