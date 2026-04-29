@@ -436,8 +436,28 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
               </div>
             )}
 
+            {/* Liste membres (quand showMembers) */}
+            {showMembers && (
+              <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+                {members.length === 0 ? (
+                  <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:theme.textMuted,fontSize:11,padding:20 }}>Aucun autre membre</div>
+                ) : members.map(m => (
+                  <div key={m.uid} onClick={()=>startDM(m)} style={{ padding:"10px 14px", borderBottom:`1px solid ${theme.border}22`, cursor:"pointer", display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:theme.accent,flexShrink:0 }}>
+                      {(m.displayName||m.email||"?")[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontSize:12,color:theme.text,fontWeight:500 }}>{m.displayName || m.email}</div>
+                      {m.displayName && <div style={{ fontSize:10,color:theme.textMuted }}>{m.email}</div>}
+                    </div>
+                    <span style={{ marginLeft:"auto",fontSize:10,color:theme.accent }}>Message →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Messages */}
-            <div style={{
+            {!showMembers && <div style={{
               flex: 1,
               overflowY: "auto",
               padding: "10px 10px 4px",
