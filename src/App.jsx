@@ -951,13 +951,8 @@ export default function App() {
     if (!pendingInvite || !user || inviteLoading) return;
     setInviteLoading(true);
     try {
-      // Lire les membres actuels pour éviter les doublons (re-invitation)
-      const teamSnap = await getDoc(doc(db, "teams", pendingInvite.teamId));
-      const currentMembers = teamSnap.exists() ? (teamSnap.data().members || []) : [];
-      const newMember = { uid:user.uid, email:user.email||"", displayName:userPseudo||user.displayName||user.email||"" };
-      const dedupedMembers = [...currentMembers.filter(m => m.uid !== user.uid), newMember];
       const batch = writeBatch(db);
-      batch.update(doc(db, "teams", pendingInvite.teamId), { members: dedupedMembers });
+      batch.update(doc(db, "teams", pendingInvite.teamId), { members: arrayUnion({ uid:user.uid, email:user.email||"", displayName:userPseudo||user.displayName||user.email||"" }) });
       batch.set(doc(db, "users", user.uid), { teamId:pendingInvite.teamId, teamRole:"member", allTeamIds:arrayUnion(pendingInvite.teamId) }, { merge:true });
       batch.delete(doc(db, "invitations", (user.email||"").toLowerCase()));
       await batch.commit();
