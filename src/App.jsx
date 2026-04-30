@@ -3000,6 +3000,7 @@ export default function App() {
                               <span onClick={e=>{e.stopPropagation();setCommentPopup(task.id);}} style={{ fontSize:9,color:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${theme.border}`,borderRadius:4 }}>💬</span>
                               <span onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:true});}} style={{ fontSize:9,color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,cursor:"pointer",padding:"1px 5px",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:4 }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</span>
                               <span onClick={toggleNotify} style={{ fontSize:10,cursor:"pointer",opacity:notified?1:0.4 }}>{notified?"🔔":"🔕"}</span>
+                              {isAdminRole(teamRole) && <span onClick={e=>{e.stopPropagation();toggleMemberVisible(task.id,task.memberVisible);}} style={{ fontSize:10,cursor:"pointer",opacity:task.memberVisible!==false?1:0.4 }} title={task.memberVisible!==false?"Masquer aux membres":"Rendre visible aux membres"}>{task.memberVisible!==false?"🔓":"🔒"}</span>}
                             </div>
                           </>}
                         </div>
