@@ -2,7 +2,16 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Avatar utilisateur : lecture publique, écriture par le propriétaire
+    function isAllowedType() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd\\.openxmlformats-officedocument\\..*') ||
+             request.resource.contentType.matches('application/vnd\\.ms-.*') ||
+             request.resource.contentType.matches('message/rfc822');
+    }
+
+    // Avatar utilisateur : lecture par utilisateurs auth, écriture par le propriétaire
     match /users/{uid}/avatar {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid
@@ -14,24 +23,59 @@ service firebase.storage {
     match /users/{uid}/attachments/{taskId}/{fileName} {
       allow read:   if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null && request.auth.uid == uid
-                    && request.resource.size < 10 * 1024 * 1024;
+                    && request.resource.size < 10 * 1024 * 1024
+                    && isAllowedType();
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Pièces jointes tâches équipe : membres authentifiés peuvent lire
-    // Seul le uploadeur ou un admin peut supprimer (géré côté app via pendingChanges)
-    match /teams/{teamId}/attachments/{taskId}/{fileName} {
+    // ── Pièces jointes tâches équipe ─────────────────────────────────
+    // Nouveau format : uid dans le chemin → seul l'uploadeur peut créer
+    match /teams/{teamId}/attachments/{taskId}/{uid}/{fileName} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null
-                    && request.resource.size < 10 * 1024 * 1024;
+                    && request.auth.uid == uid
+                    && request.resource.size < 10 * 1024 * 1024
+                    && isAllowedType();
+      // Suppression : uploadeur ou admin (admin SDK via Cloud Function pour les non-propriétaires)
       allow delete: if request.auth != null;
     }
 
-    // Pièces jointes messagerie d'équipe
-    match /teams/{teamId}/chat/{fileName} {
+    // Rétrocompatibilité : fichiers uploadés avant migration (lecture + suppression admin)
+    match /teams/{teamId}/attachments/{taskId}/{fileName} {
+      allow read:   if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // ── Messagerie d'équipe (chat groupe + DM) ───────────────────────
+    // Nouveau format : uid dans le chemin → seul l'uploadeur peut créer
+    match /teams/{teamId}/chat/{uid}/{fileName} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null
-                    && request.resource.size < 10 * 1024 * 1024;
+                    && request.auth.uid == uid
+                    && request.resource.size < 10 * 1024 * 1024
+                    && isAllowedType();
+      allow delete: if request.auth != null;
+    }
+
+    // Rétrocompatibilité chat
+    match /teams/{teamId}/chat/{fileName} {
+      allow read:   if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // ── Messages privés (DM) storage ────────────────────────────────
+    match /teams/{teamId}/dms/{convId}/{uid}/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.size < 10 * 1024 * 1024
+                    && isAllowedType();
+      allow delete: if request.auth != null;
+    }
+
+    // Rétrocompatibilité DM storage
+    match /teams/{teamId}/dms/{convId}/{fileName} {
+      allow read:   if request.auth != null;
       allow delete: if request.auth != null;
     }
   }

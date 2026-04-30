@@ -1212,7 +1212,7 @@ export default function App() {
     setUploadingAttachment(true);
     try {
       const path = isTeam
-        ? `teams/${team.id}/attachments/${taskId}/${Date.now()}_${file.name}`
+        ? `teams/${team.id}/attachments/${taskId}/${user.uid}/${Date.now()}_${file.name}`
         : `users/${user.uid}/attachments/${taskId}/${Date.now()}_${file.name}`;
       const sRef = storageRef(storage, path);
       await uploadBytes(sRef, file);

@@ -23,10 +23,10 @@ service cloud.firestore {
       return isAdminOf(teamId) || isCoAdminOf(teamId);
     }
 
-    // Vérifie si l'utilisateur est membre d'une équipe (via son profil user)
+    // Vérifie si l'utilisateur est membre d'une équipe via allTeamIds (supporte multi-équipes)
     function isMemberOf(teamId) {
       return isAuth() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId == teamId;
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('allTeamIds', []).hasAny([teamId]);
     }
 
     // Vérifie si l'utilisateur a une invitation en attente
@@ -34,6 +34,15 @@ service cloud.firestore {
       return isAuth() &&
              exists(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())) &&
              get(/databases/$(database)/documents/invitations/$(request.auth.token.email.lower())).data.teamId == teamId;
+    }
+
+    // Vérifie si l'utilisateur est participant d'une conversation DM
+    // convId = [uid1, uid2].sort().join("_")
+    function isDmParticipant(convId) {
+      return isAuth() && (
+        convId.matches(request.auth.uid + '_.*') ||
+        convId.matches('.*_' + request.auth.uid)
+      );
     }
 
     // ── Profils utilisateurs ──────────────────────────────────────────
@@ -78,9 +87,9 @@ service cloud.firestore {
         allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
         // Admin ET co-admins peuvent créer/modifier/supprimer directement
         allow create, update, delete: if isAdminOrCoAdminOf(teamId);
-        // Membres : notification perso + pièces jointes (sans validation)
+        // Membres : notification perso uniquement — les PJ passent par pendingChanges
         allow update: if isMemberOf(teamId) &&
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notifyUsers', 'attachments']);
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notifyUsers']);
 
         // ── Commentaires ─────────────────────────────────────────────
         match /comments/{commentId} {
@@ -116,9 +125,10 @@ service cloud.firestore {
       }
 
       // ── Messages privés (DM) ─────────────────────────────────────
+      // convId = [uid1, uid2].sort().join("_") — seuls les participants peuvent lire
       match /dms/{convId}/messages/{messageId} {
-        allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId);
-        allow create: if (isMemberOf(teamId) || isAdminOrCoAdminOf(teamId)) &&
+        allow read: if isAdminOrCoAdminOf(teamId) || isDmParticipant(convId);
+        allow create: if isDmParticipant(convId) &&
                          request.resource.data.authorUid == request.auth.uid &&
                          request.resource.data.text is string &&
                          request.resource.data.text.size() <= 2000;
