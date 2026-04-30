@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, Component } from "react";
-import { auth, provider, db, storage, getMessagingInstance } from "./firebase";
+import { auth, provider, db, storage, functions, getMessagingInstance } from "./firebase";
+import { httpsCallable } from "firebase/functions";
 import { getToken, onMessage } from "firebase/messaging";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
@@ -414,6 +415,7 @@ export default function App() {
   const sendDailyNotifCb    = useRef(null);
   const teamPendingPrevCount = useRef(-1); // -1 = pas encore initialisé (évite notif au 1er chargement)
   const teamTasksPrevIds    = useRef(null); // null = pas encore initialisé
+  const currentUidRef       = useRef(null); // uid courant, mis à jour de façon synchrone avant les setState
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -642,6 +644,9 @@ export default function App() {
   // Auth listener — réinitialise les données perso quand l'utilisateur change
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => {
+      // Mise à jour synchrone avant tout setState pour que les listeners Firestore
+      // actifs puissent détecter un changement de session et ignorer leurs callbacks
+      currentUidRef.current = u?.uid ?? null;
       setUser(prev => {
         const prevUid = prev?.uid ?? null;
         const newUid  = u?.uid   ?? null;
@@ -669,8 +674,11 @@ export default function App() {
   // Sync Firestore → local quand connecté
   useEffect(() => {
     if (!user) return;
+    const sessionUid = user.uid;
     const ref = doc(db, "users", user.uid);
     const unsub = onSnapshot(ref, snap => {
+      // Ignorer les callbacks d'une session précédente (race condition déconnexion/reconnexion)
+      if (currentUidRef.current !== sessionUid) return;
       if (snap.exists()) {
         const data = snap.data();
         // Marquer ce snapshot comme "déjà en Firestore" pour ne pas le re-sauvegarder
@@ -915,21 +923,8 @@ export default function App() {
   };
 
   const sendInviteEmail = async (toEmail, teamName, invitedBy) => {
-    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id:   import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        template_id:  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        user_id:      import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-        template_params: {
-          to_email:   toEmail,
-          team_name:  teamName,
-          invited_by: invitedBy,
-          app_url:    window.location.origin + "/?join=true"
-        }
-      })
-    });
+    const callSendInvite = httpsCallable(functions, "sendInviteEmail");
+    await callSendInvite({ toEmail, teamName, invitedBy });
   };
 
   const inviteMember = async (emailArg, targetTeam) => {
@@ -1212,7 +1207,7 @@ export default function App() {
     setUploadingAttachment(true);
     try {
       const path = isTeam
-        ? `teams/${team.id}/attachments/${taskId}/${Date.now()}_${file.name}`
+        ? `teams/${team.id}/attachments/${taskId}/${user.uid}/${Date.now()}_${file.name}`
         : `users/${user.uid}/attachments/${taskId}/${Date.now()}_${file.name}`;
       const sRef = storageRef(storage, path);
       await uploadBytes(sRef, file);

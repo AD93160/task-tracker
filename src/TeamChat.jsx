@@ -241,8 +241,8 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     if (replyTo) setReplyTo(null);
     try {
       const path = activeConv
-        ? `teams/${team.id}/dms/${activeConv.id}/${Date.now()}_${file.name}`
-        : `teams/${team.id}/chat/${Date.now()}_${file.name}`;
+        ? `teams/${team.id}/dms/${activeConv.id}/${user.uid}/${Date.now()}_${file.name}`
+        : `teams/${team.id}/chat/${user.uid}/${Date.now()}_${file.name}`;
       const sRef = storageRef(storage, path);
       await uploadBytes(sRef, file);
       const url = await getDownloadURL(sRef);

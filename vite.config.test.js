@@ -34,6 +34,11 @@ export default defineConfig({
         find: 'firebase/messaging',
         replacement: path.resolve(__dirname, 'src/mocks/firebase-messaging.js'),
       },
+      // Replace firebase/functions with our mock
+      {
+        find: 'firebase/functions',
+        replacement: path.resolve(__dirname, 'src/mocks/firebase-functions.js'),
+      },
     ],
   },
 });

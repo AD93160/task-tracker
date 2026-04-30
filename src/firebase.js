@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
@@ -18,6 +19,7 @@ export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 export const storage = getStorage(app);
+export const functions = getFunctions(app, "us-central1");
 
 // Messaging : initialisé async car non disponible partout (Safari, etc.)
 export const getMessagingInstance = async () => {
