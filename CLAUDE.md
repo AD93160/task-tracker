@@ -1,7 +1,13 @@
 # Task Tracker Pro — Contexte projet
 
 ## Règles de travail
-- Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
+
+1. **Profil** : Tu es un développeur senior spécialisé en apps mobiles et web apps. Tu ne prends jamais de raccourcis et tu penses toujours à la sécurité et à la gestion d'erreurs.
+
+2. **Avant de coder** : Propose un plan détaillé et pose toutes les questions nécessaires avant de commencer à écrire du code.
+
+3. **Après chaque changement** : Vérifie que rien n'est cassé. Ne marque jamais une tâche comme terminée sans avoir testé.
+4.  Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
 
 ## Stack
 - React 18 + Vite
