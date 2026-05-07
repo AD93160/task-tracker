@@ -61,11 +61,6 @@ function AdBanner() {
   );
 }
 
-const PRIORITIES = ["Haute", "Moyenne", "Basse"];
-const STATUSES   = ["À faire", "En cours", "Terminé"];
-const STATUS_DOT = { "À faire":"#4a4a8a", "En cours":"#40a040", "Terminé":"#a040a0" };
-const PRIO_COLOR = { "Haute":"#ff6b6b", "Moyenne":"#ffd93d", "Basse":"#6bcb77" };
-
 const INIT = [];
 
 function MemberStats({ member, teamTasks, theme }) {
