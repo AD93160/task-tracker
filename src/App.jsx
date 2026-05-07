@@ -3588,13 +3588,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Bandeau publicitaire AdSense */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:theme.mode==="dark"?"#0a0a18":"#f0f0ea", borderTop:`1px solid ${theme.border}`, display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, minHeight:56 }}>
-        <AdBanner />
-      </div>
-
-      {/* Spacer pour le bandeau pub */}
-      <div style={{ height:56 }} />
+      {/* Bandeau publicitaire AdSense — masqué dans Electron */}
+      {!isElectronEnv && (
+        <>
+          <div style={{ position:"fixed", bottom:0, left:0, right:0, background:theme.mode==="dark"?"#0a0a18":"#f0f0ea", borderTop:`1px solid ${theme.border}`, display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, minHeight:56 }}>
+            <AdBanner />
+          </div>
+          <div style={{ height:56 }} />
+        </>
+      )}
 
       {/* FAB fixe — mobile page perso (au-dessus du bandeau pub) */}
       {!teamSpace && isMobile && !showForm && (
