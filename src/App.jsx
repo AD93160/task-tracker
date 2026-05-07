@@ -416,6 +416,7 @@ export default function App() {
   const teamPendingPrevCount = useRef(-1); // -1 = pas encore initialisé (évite notif au 1er chargement)
   const teamTasksPrevIds    = useRef(null); // null = pas encore initialisé
   const currentUidRef       = useRef(null); // uid courant, mis à jour de façon synchrone avant les setState
+  const googlePopupPending  = useRef(false);
 
   const todayStr = () => new Date().toISOString().split("T")[0];
 
