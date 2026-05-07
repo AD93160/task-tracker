@@ -935,7 +935,6 @@ export default function App() {
     finally { setInviteLoading(false); }
   };
 
-  const isAdminRole = (role) => role === "admin" || role === "co-admin";
 
   const promoteToCoAdmin = async (member, teamId) => {
     const tid = teamId || team?.id;
