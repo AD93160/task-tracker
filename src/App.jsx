@@ -40,9 +40,12 @@ const ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXXXX";
 const ADSENSE_SLOT   = "XXXXXXXXXX";
 
 function AdBanner() {
+  const isElectron = window.electronAPI?.isElectron || navigator.userAgent.toLowerCase().includes("electron");
   useEffect(() => {
+    if (isElectron) return;
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-  }, []);
+  }, [isElectron]);
+  if (isElectron) return null;
   if (ADSENSE_CLIENT.includes("XXXXX")) {
     // Placeholder tant que le compte AdSense n'est pas configuré
     return (
