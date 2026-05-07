@@ -18,8 +18,11 @@ function createWindow() {
     },
   });
 
-  // Ouvre les liens externes dans le navigateur par défaut, pas dans Electron
+  // Autorise les popups Firebase/Google (OAuth), ouvre le reste dans le navigateur système
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.includes("firebaseapp.com/__/auth") || url.includes("accounts.google.com")) {
+      return { action: "allow" };
+    }
     shell.openExternal(url);
     return { action: "deny" };
   });
