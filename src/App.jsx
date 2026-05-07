@@ -420,52 +420,8 @@ export default function App() {
   const currentUidRef       = useRef(null); // uid courant, mis à jour de façon synchrone avant les setState
   const googlePopupPending  = useRef(false);
 
-  const todayStr = () => new Date().toISOString().split("T")[0];
-
-  const GREEN  = { base:"#2a7a2a", light:"#3aaa3a" };
-  const GOLD   = { base:"#8a6a00", light:"#ccaa00" };
-  const ORANGE = { base:"#8a4a00", light:"#cc7700" };
-  const RED    = { base:"#8a1a1a", light:"#cc3030" };
-
-  const taskColor = (task) => {
-    if (!task || task.status === "Terminé") return null;
-    const today = todayStr();
-    const tom = new Date(); tom.setDate(tom.getDate()+1);
-    const tomorrow = tom.toISOString().split("T")[0];
-    const inTom = tomorrowIds.map(e => e.id).includes(task.id);
-    if (task.due) {
-      if (task.due < today) return RED;
-      if (task.due === today) return GOLD;
-      if (todayIds.includes(task.id)) return GOLD;
-      if (task.due === tomorrow || inTom) return ORANGE;
-      return GREEN;
-    }
-    if (inTom) return ORANGE;
-    if (todayIds.includes(task.id)) {
-      const added = todayDates[task.id];
-      return (!added || added === today) ? GOLD : RED;
-    }
-    return null;
-  };
-
-  // Variante pour les tâches équipe : utilise scheduledFor au lieu de todayIds/tomorrowIds
-  const teamTaskColor = (task) => {
-    if (!task || task.status === "Terminé") return null;
-    const today = todayStr();
-    const tom = new Date(); tom.setDate(tom.getDate()+1);
-    const tomorrow = tom.toISOString().split("T")[0];
-    const sfDate = task.scheduledFor && task.scheduledFor !== "today" && task.scheduledFor !== "tomorrow" ? task.scheduledFor : null;
-    const refDate = task.due || sfDate;
-    if (refDate) {
-      if (refDate < today) return RED;
-      if (refDate === today || task.scheduledFor === "today") return GOLD;
-      if (refDate === tomorrow || task.scheduledFor === "tomorrow") return ORANGE;
-      return GREEN;
-    }
-    if (task.scheduledFor === "today")    return GOLD;
-    if (task.scheduledFor === "tomorrow") return ORANGE;
-    return null;
-  };
+  const taskColor     = (task) => _taskColor(task, { todayIds, tomorrowIds, todayDates });
+  const buildCompletion = (task) => _buildCompletion(task, { todayIds, tomorrowIds, todayDates });
 
   const exportIcs = (task) => {
     if (!task.due) return;
