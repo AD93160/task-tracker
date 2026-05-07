@@ -738,8 +738,15 @@ export default function App() {
   };
 
   const loginGoogle = async () => {
+    if (googlePopupPending.current) return;
+    googlePopupPending.current = true;
     try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
-    catch(e) { setAuthError(e.code==="auth/popup-closed-by-user"?"Annulé.":e.message); }
+    catch(e) {
+      if (e.code !== "auth/cancelled-popup-request") {
+        setAuthError(e.code === "auth/popup-closed-by-user" ? "Annulé." : e.message);
+      }
+    }
+    finally { googlePopupPending.current = false; }
   };
   const sendPasswordReset = async () => {
     if (!emailForm.email) { setAuthError("Entrez votre email pour réinitialiser votre mot de passe."); return; }
