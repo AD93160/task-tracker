@@ -8,6 +8,8 @@ node_modules/
 
 # Build output
 dist/
+apps/desktop/www/
+release/
 
 # Editor
 .DS_Store
