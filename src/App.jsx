@@ -1317,20 +1317,7 @@ export default function App() {
   };
   const stopVoice = () => { recognitionRef.current?.stop(); setListening(false); };
 
-  const buildCompletion = (task) => {
-    const now   = new Date();
-    const tc    = taskColor(task);
-    const color = tc ? tc.light : STATUS_DOT["Terminé"];
-    let deltaMin=null, deltaLabel=null;
-    if (task.due) {
-      const dueMs = new Date(task.due+"T23:59:59").getTime();
-      deltaMin = Math.round((now.getTime()-dueMs)/60000);
-      const abs=Math.abs(deltaMin), d=Math.floor(abs/1440), h=Math.floor((abs%1440)/60), m=abs%60;
-      const parts=[]; if(d)parts.push(d+"j"); if(h)parts.push(h+"h"); if(m||!parts.length)parts.push(m+"min");
-      deltaLabel = (deltaMin<0?"−":"+")+parts.join(" ");
-    }
-    return { doneAt:now.toISOString(), doneDate:now.toISOString().split("T")[0], color, deltaMin, deltaLabel };
-  };
+
 
   const cycleStatus = (id) => {
     setTasks(prev => prev.map(t => {
