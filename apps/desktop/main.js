@@ -95,7 +95,7 @@ ipcMain.handle("google-auth", (event) => {
       ipcMain.removeListener("auth-token", onToken);
       authWin.close();
       if (data.error) reject(new Error(data.error));
-      else resolve(data.idToken);
+      else resolve({ idToken: data.idToken, accessToken: data.accessToken });
     };
     ipcMain.on("auth-token", onToken);
 
