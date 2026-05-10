@@ -10,7 +10,8 @@ import { auth, provider, db, storage, functions, getMessagingInstance } from "./
 import { httpsCallable } from "firebase/functions";
 import { getToken, onMessage } from "firebase/messaging";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
+import { GoogleAuthProvider } from "firebase/auth";
 import TeamChat from "./TeamChat";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
@@ -702,10 +703,21 @@ export default function App() {
   const loginGoogle = async () => {
     if (googlePopupPending.current) return;
     googlePopupPending.current = true;
-    try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
-    catch(e) {
+    try {
+      if (window.electronAPI?.isElectron) {
+        // Fenêtre d'auth dédiée : évite le blocage Google sur Electron
+        const idToken = await window.electronAPI.startGoogleAuth();
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+      setShowAuthMenu(false);
+      setAuthError(null);
+    } catch(e) {
       if (e.code !== "auth/cancelled-popup-request") {
-        setAuthError(e.code === "auth/popup-closed-by-user" ? "Annulé." : e.message);
+        const isCancel = e.code === "auth/popup-closed-by-user" || e.message === "auth/popup-closed-by-user";
+        setAuthError(isCancel ? "Annulé." : e.message);
       }
     }
     finally { googlePopupPending.current = false; }
