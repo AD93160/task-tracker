@@ -703,10 +703,21 @@ export default function App() {
   const loginGoogle = async () => {
     if (googlePopupPending.current) return;
     googlePopupPending.current = true;
-    try { await signInWithPopup(auth, provider); setShowAuthMenu(false); setAuthError(null); }
-    catch(e) {
+    try {
+      if (window.electronAPI?.isElectron) {
+        // Fenêtre d'auth dédiée : évite le blocage Google sur Electron
+        const idToken = await window.electronAPI.startGoogleAuth();
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+      setShowAuthMenu(false);
+      setAuthError(null);
+    } catch(e) {
       if (e.code !== "auth/cancelled-popup-request") {
-        setAuthError(e.code === "auth/popup-closed-by-user" ? "Annulé." : e.message);
+        const isCancel = e.code === "auth/popup-closed-by-user" || e.message === "auth/popup-closed-by-user";
+        setAuthError(isCancel ? "Annulé." : e.message);
       }
     }
     finally { googlePopupPending.current = false; }
