@@ -2,12 +2,7 @@
   "name": "@task-tracker/desktop",
   "version": "1.0.0",
   "private": true,
-  "main": "main.js",
-  "scripts": {
-    "build": "electron-builder --config electron-builder.yml"
-  },
-  "devDependencies": {
-    "electron": "33.4.11",
-    "electron-builder": "^25.0.0"
-  }
+  "description": "Task Tracker — Desktop App",
+  "author": "Task Tracker",
+  "main": "main.js"
 }
