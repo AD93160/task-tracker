@@ -26,6 +26,7 @@
     "@playwright/test": "^1.51.1",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^9.0.0",
+    "app-builder-bin": "5.0.0-alpha.10",
     "electron": "33.4.11",
     "electron-builder": "^25.0.0",
     "turbo": "^2.0.0",
