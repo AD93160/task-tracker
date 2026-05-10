@@ -1,6 +1,7 @@
 appId: com.tasktracker.desktop
 productName: Task Tracker
 copyright: Copyright © 2026
+electronVersion: "33.4.11"
 
 directories:
   output: ../../release
