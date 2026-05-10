@@ -1,10 +1,29 @@
-const { app, BrowserWindow, shell, ipcMain, session } = require("electron");
+const { app, BrowserWindow, shell, ipcMain, session, protocol, net } = require("electron");
 const path = require("path");
+
+// Doit être appelé AVANT app.whenReady()
+// Enregistre app:// comme un scheme standard+sécurisé : les pages chargées sur
+// app://localhost/ ont l'hostname "localhost", accepté par Firebase Auth.
+protocol.registerSchemesAsPrivileged([
+  { scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+]);
 
 const isDev = !app.isPackaged;
 
-// User agent Chrome — requis pour que Google accepte l'OAuth (Electron est bloqué par Google)
 const CHROME_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+function serveLocal(request) {
+  const url = new URL(request.url);
+  const wwwPath = path.resolve(path.join(__dirname, "www"));
+  const resolved = path.resolve(path.join(wwwPath, url.pathname));
+  // Sécurité : empêcher les path traversal (../../etc)
+  if (!resolved.startsWith(wwwPath + path.sep) && resolved !== wwwPath) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  return net.fetch("file://" + resolved).catch(() =>
+    net.fetch("file://" + path.join(wwwPath, "index.html"))
+  );
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -17,11 +36,9 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      // Pas de sandbox — nécessaire pour signInWithCredential après auth
     },
   });
 
-  // Tous les liens externes s'ouvrent dans le navigateur système
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -31,7 +48,7 @@ function createWindow() {
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, "www", "index.html"));
+    win.loadURL("app://localhost/index.html");
   }
 
   win.webContents.on("did-fail-load", (_e, code, desc, url) => {
@@ -39,7 +56,6 @@ function createWindow() {
   });
 }
 
-// Ouvre une fenêtre d'auth dédiée avec user agent Chrome et sans sandbox
 ipcMain.handle("google-auth", (event) => {
   return new Promise((resolve, reject) => {
     const authWin = new BrowserWindow({
@@ -51,13 +67,11 @@ ipcMain.handle("google-auth", (event) => {
         preload: path.join(__dirname, "preload.js"),
         contextIsolation: true,
         nodeIntegration: false,
-        // Pas de sandbox — postMessage entre popup et opener doit fonctionner
       },
     });
 
     authWin.webContents.setUserAgent(CHROME_UA);
 
-    // Autoriser la popup Google OAuth depuis la fenêtre d'auth
     authWin.webContents.setWindowOpenHandler(({ url }) => {
       if (
         url.includes("accounts.google.com") ||
@@ -82,7 +96,7 @@ ipcMain.handle("google-auth", (event) => {
 
     const authUrl = isDev
       ? "http://localhost:5173/#electron-auth"
-      : `file://${path.join(__dirname, "www", "index.html")}#electron-auth`;
+      : "app://localhost/index.html#electron-auth";
 
     authWin.loadURL(authUrl);
 
@@ -110,7 +124,10 @@ ipcMain.handle("google-auth", (event) => {
 });
 
 app.whenReady().then(() => {
-  // User agent Chrome pour toute la session (popups incluses)
+  // Sert les fichiers locaux via app://localhost/ pour que Firebase Auth
+  // voie l'hostname "localhost" (domaine autorisé par défaut dans Firebase)
+  protocol.handle("app", serveLocal);
+
   session.defaultSession.setUserAgent(CHROME_UA);
 
   createWindow();
