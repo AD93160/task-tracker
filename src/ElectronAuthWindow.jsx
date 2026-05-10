@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, provider } from "./firebase";
 
 export default function ElectronAuthWindow() {
@@ -10,8 +10,10 @@ export default function ElectronAuthWindow() {
     const doAuth = async () => {
       try {
         const result = await signInWithPopup(auth, provider);
-        const idToken = await result.user.getIdToken();
-        window.electronAPI.sendAuthToken({ idToken });
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const idToken = credential?.idToken || null;
+        const accessToken = credential?.accessToken || null;
+        window.electronAPI.sendAuthToken({ idToken, accessToken });
         setStatus("success");
       } catch (e) {
         const isCancel =
