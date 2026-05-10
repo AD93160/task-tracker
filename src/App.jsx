@@ -706,8 +706,8 @@ export default function App() {
     try {
       if (window.electronAPI?.isElectron) {
         // Fenêtre d'auth dédiée : évite le blocage Google sur Electron
-        const idToken = await window.electronAPI.startGoogleAuth();
-        const credential = GoogleAuthProvider.credential(idToken);
+        const { idToken, accessToken } = await window.electronAPI.startGoogleAuth();
+        const credential = GoogleAuthProvider.credential(idToken, accessToken);
         await signInWithCredential(auth, credential);
       } else {
         await signInWithPopup(auth, provider);
