@@ -11,7 +11,7 @@
     "dev": "vite",
     "dev:desktop": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron apps/desktop/main.js\"",
     "build": "vite build",
-    "build:desktop": "vite build --config vite.config.desktop.js --outDir apps/desktop/www && npm run build --workspace=@task-tracker/desktop",
+    "build:desktop": "vite build --config vite.config.desktop.js --outDir apps/desktop/www && electron-builder --config apps/desktop/electron-builder.yml --project apps/desktop",
     "preview": "vite preview",
     "test:e2e": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test",
     "test:e2e:ui": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test --ui"
