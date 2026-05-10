@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, memoryLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
@@ -17,7 +17,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
-export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+
+// persistentLocalCache (IndexedDB) ne fonctionne pas sur le protocole file:// d'Electron
+const isElectron = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
+export const db = initializeFirestore(app, {
+  localCache: isElectron ? memoryLocalCache() : persistentLocalCache(),
+});
 export const storage = getStorage(app);
 export const functions = getFunctions(app, "us-central1");
 
