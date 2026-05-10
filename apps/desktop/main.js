@@ -29,9 +29,14 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL("http://localhost:5173");
+    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, "www", "index.html"));
   }
+
+  win.webContents.on("did-fail-load", (_e, code, desc, url) => {
+    console.error(`[Electron] Échec chargement (${code} ${desc}) : ${url}`);
+  });
 }
 
 // Ouvre une fenêtre d'auth dédiée avec user agent Chrome et sans sandbox
