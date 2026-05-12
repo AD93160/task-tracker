@@ -156,6 +156,14 @@ isMobile          // bool, screen.width <= 768
 - `fromFirestore.current = true` avant `setTasks` depuis Firestore pour éviter boucle de sync
 - Firebase Storage paths : `users/${uid}/attachments/...` et `teams/${teamId}/attachments/...`
 
+## Environnement local (Mac de Julie)
+- Projet sur le Bureau : `~/Desktop/task-tracker`
+- Shell : zsh — alias `tasktracker` configuré dans `~/.zshrc`
+  ```bash
+  alias tasktracker="cd ~/Desktop/task-tracker && git fetch origin && git pull"
+  ```
+- Commande de début de session : `tasktracker`
+
 ## Branche de travail
 - Production : `main` → Vercel déploie automatiquement
 - Features : `claude/resume-work-ZxXiO` (branche active)
