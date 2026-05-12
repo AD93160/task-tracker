@@ -97,7 +97,11 @@ function createWindow() {
   });
 }
 
-ipcMain.handle("google-auth", (event) => {
+ipcMain.handle("google-auth", async (event) => {
+  // Serveur HTTP local pour que Firebase Auth accepte l'origine http://localhost
+  const server = isDev ? null : await startLocalServer();
+  const port = server ? server.address().port : 5173;
+
   return new Promise((resolve, reject) => {
     const authWin = new BrowserWindow({
       width: 500,
@@ -135,13 +139,13 @@ ipcMain.handle("google-auth", (event) => {
       return { action: "deny" };
     });
 
-    const authUrl = isDev
-      ? "http://localhost:5173/#electron-auth"
-      : "app://localhost/index.html#electron-auth";
-
-    authWin.loadURL(authUrl);
+    authWin.loadURL(`http://localhost:${port}/#electron-auth`);
 
     let settled = false;
+
+    const cleanup = () => {
+      if (server) server.close();
+    };
 
     const onToken = (e, data) => {
       if (e.sender !== authWin.webContents) return;
@@ -149,6 +153,7 @@ ipcMain.handle("google-auth", (event) => {
       settled = true;
       ipcMain.removeListener("auth-token", onToken);
       authWin.close();
+      cleanup();
       if (data.error) reject(new Error(data.error));
       else resolve({ idToken: data.idToken, accessToken: data.accessToken });
     };
@@ -158,6 +163,7 @@ ipcMain.handle("google-auth", (event) => {
       if (!settled) {
         settled = true;
         ipcMain.removeListener("auth-token", onToken);
+        cleanup();
         reject(new Error("auth/popup-closed-by-user"));
       }
     });
