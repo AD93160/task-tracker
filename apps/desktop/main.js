@@ -72,24 +72,9 @@ ipcMain.handle("google-auth", (event) => {
 
     authWin.webContents.setUserAgent(CHROME_UA);
 
+    // Flux redirect : authWin navigue directement vers Google (pas de popup Firebase).
+    // Les éventuels window.open() sont ouverts dans le navigateur système.
     authWin.webContents.setWindowOpenHandler(({ url }) => {
-      if (
-        url.includes("accounts.google.com") ||
-        url.includes("firebaseapp.com/__/auth")
-      ) {
-        return {
-          action: "allow",
-          overrideBrowserWindowOptions: {
-            width: 500,
-            height: 650,
-            autoHideMenuBar: true,
-            webPreferences: {
-              contextIsolation: true,
-              nodeIntegration: false,
-            },
-          },
-        };
-      }
       shell.openExternal(url);
       return { action: "deny" };
     });
