@@ -162,7 +162,13 @@ isMobile          // bool, screen.width <= 768
 
 ## Nomenclature des tickets
 
-Format : `[SUPPORT][MODE][RÔLE] SECTION — description`
+Format : `[PLATEFORME][SUPPORT][MODE][RÔLE] SECTION — description`
+
+**Plateforme**
+- `AP` = App web initiale (React + Vite + Vercel)
+- `EL` = App Electron (desktop natif)
+- `MO` = App mobile (natif, à venir)
+- `ALL` = Les trois plateformes
 
 **Support**
 - `M` = Mobile uniquement (390px, layout colonne)
@@ -203,11 +209,11 @@ Format : `[SUPPORT][MODE][RÔLE] SECTION — description`
 
 **Exemples**
 ```
-[D][P][TR] LISTE          Liste perso desktop, tous rôles
-[M][E][MB] LISTE-ÉQUIPE   Liste équipe mobile, membre
-[A][E][AD] EN-ATTENTE     Panneau en attente, tous supports, admin
-[M][T][TR] HEADER         Header mobile, tous modes et rôles
-[D][E][CO] PANNEAU-ÉQUIPE Panneau équipe desktop, co-admin
+[AP][D][P][TR] LISTE          Liste perso web desktop, tous rôles
+[AP][M][E][MB] LISTE-ÉQUIPE   Liste équipe web mobile, membre
+[ALL][A][E][AD] EN-ATTENTE    Panneau en attente, toutes plateformes
+[EL][D][T][TR] HEADER         Header Electron, tous modes et rôles
+[AP][D][E][CO] PANNEAU-ÉQUIPE Panneau équipe web desktop, co-admin
 ```
 
 ## Tests E2E (Playwright)
