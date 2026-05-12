@@ -123,7 +123,7 @@ async function createAuthUri(apiKey, continueUri) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        identifier: "google.com",
+        identifier: continueUri,  // Firebase: utiliser continueUri quand l'email est inconnu
         continueUri,
         providerId: "google.com",
         oauthScopes: "email profile openid",
