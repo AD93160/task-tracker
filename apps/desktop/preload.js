@@ -3,8 +3,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   isElectron: true,
   platform: process.platform,
-  // Lance la fenêtre d'auth Google dédiée, retourne l'idToken Firebase
-  startGoogleAuth: () => ipcRenderer.invoke("google-auth"),
-  // Appelé par la fenêtre d'auth pour renvoyer le token au processus principal
+  // apiKey transmis depuis le renderer pour éviter de stocker les vars d'env dans le process main
+  startGoogleAuth: (apiKey) => ipcRenderer.invoke("google-auth", { apiKey }),
+  // Conservé pour compatibilité (plus utilisé avec le flux navigateur système)
   sendAuthToken: (data) => ipcRenderer.send("auth-token", data),
 });
