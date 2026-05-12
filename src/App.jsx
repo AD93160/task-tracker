@@ -971,8 +971,12 @@ export default function App() {
   const removeMember = async (member) => {
     if (!team || !isAdminRole(teamRole)) return;
     try {
-      await updateDoc(doc(db, "teams", team.id), { members: arrayRemove(member) });
-      await setDoc(doc(db, "users", member.uid), { teamId:null, teamRole:null }, { merge:true });
+      await updateDoc(doc(db, "teams", team.id), {
+        members: arrayRemove(member),
+        coAdminUids: arrayRemove(member.uid),
+      });
+      // Le doc user du membre sera nettoyé à sa prochaine connexion
+      // (le listener détecte qu'il n'est plus dans l'équipe et met à jour son propre doc)
     } catch(e) { setTeamError(e.message); }
   };
 
