@@ -1,5 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain, session, protocol, net } = require("electron");
 const path = require("path");
+const http = require("http");
+const fs = require("fs");
 
 // Doit être appelé AVANT app.whenReady()
 // Enregistre app:// comme un scheme standard+sécurisé : les pages chargées sur
@@ -9,6 +11,45 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const isDev = !app.isPackaged;
+
+const MIME = {
+  ".html": "text/html", ".js": "application/javascript",
+  ".css": "text/css", ".json": "application/json",
+  ".png": "image/png", ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml", ".ico": "image/x-icon",
+  ".woff2": "font/woff2", ".woff": "font/woff",
+};
+
+// Démarre un serveur HTTP local sur un port aléatoire pour servir le dossier www.
+// Nécessaire pour que Firebase Auth accepte l'origine (http://localhost est autorisé,
+// app://localhost ne l'est pas pour signInWithPopup).
+function startLocalServer() {
+  const wwwPath = path.resolve(__dirname, "www");
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const urlPath = req.url.split("?")[0].split("#")[0];
+      const resolved = path.resolve(path.join(wwwPath, urlPath));
+      if (!resolved.startsWith(wwwPath + path.sep) && resolved !== wwwPath) {
+        res.writeHead(403); res.end(); return;
+      }
+      fs.readFile(resolved, (err, data) => {
+        if (err) {
+          fs.readFile(path.join(wwwPath, "index.html"), (err2, html) => {
+            if (err2) { res.writeHead(404); res.end(); return; }
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(html);
+          });
+          return;
+        }
+        const mime = MIME[path.extname(resolved)] || "application/octet-stream";
+        res.writeHead(200, { "Content-Type": mime });
+        res.end(data);
+      });
+    });
+    server.listen(0, "127.0.0.1", () => resolve(server));
+    server.on("error", reject);
+  });
+}
 
 const CHROME_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
@@ -56,7 +97,11 @@ function createWindow() {
   });
 }
 
-ipcMain.handle("google-auth", (event) => {
+ipcMain.handle("google-auth", async (event) => {
+  // Serveur HTTP local pour que Firebase Auth accepte l'origine http://localhost
+  const server = isDev ? null : await startLocalServer();
+  const port = server ? server.address().port : 5173;
+
   return new Promise((resolve, reject) => {
     const authWin = new BrowserWindow({
       width: 500,
@@ -94,13 +139,13 @@ ipcMain.handle("google-auth", (event) => {
       return { action: "deny" };
     });
 
-    const authUrl = isDev
-      ? "http://localhost:5173/#electron-auth"
-      : "app://localhost/index.html#electron-auth";
-
-    authWin.loadURL(authUrl);
+    authWin.loadURL(`http://localhost:${port}/#electron-auth`);
 
     let settled = false;
+
+    const cleanup = () => {
+      if (server) server.close();
+    };
 
     const onToken = (e, data) => {
       if (e.sender !== authWin.webContents) return;
@@ -108,6 +153,7 @@ ipcMain.handle("google-auth", (event) => {
       settled = true;
       ipcMain.removeListener("auth-token", onToken);
       authWin.close();
+      cleanup();
       if (data.error) reject(new Error(data.error));
       else resolve({ idToken: data.idToken, accessToken: data.accessToken });
     };
@@ -117,6 +163,7 @@ ipcMain.handle("google-auth", (event) => {
       if (!settled) {
         settled = true;
         ipcMain.removeListener("auth-token", onToken);
+        cleanup();
         reject(new Error("auth/popup-closed-by-user"));
       }
     });
