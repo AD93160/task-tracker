@@ -705,8 +705,10 @@ export default function App() {
     googlePopupPending.current = true;
     try {
       if (window.electronAPI?.isElectron) {
-        // Fenêtre d'auth dédiée : évite le blocage Google sur Electron
-        const { idToken, accessToken } = await window.electronAPI.startGoogleAuth();
+        // OAuth via navigateur système : évite la détection Electron par Google
+        const { idToken, accessToken } = await window.electronAPI.startGoogleAuth(
+          import.meta.env.VITE_FIREBASE_API_KEY
+        );
         const credential = GoogleAuthProvider.credential(idToken, accessToken);
         await signInWithCredential(auth, credential);
       } else {
