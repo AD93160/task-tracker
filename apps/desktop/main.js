@@ -1,5 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain, session, protocol, net } = require("electron");
 const path = require("path");
+const http = require("http");
+const fs = require("fs");
 
 // Doit être appelé AVANT app.whenReady()
 // Enregistre app:// comme un scheme standard+sécurisé : les pages chargées sur
