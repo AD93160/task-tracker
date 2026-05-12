@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { auth, provider } from "./firebase";
 
 export default function ElectronAuthWindow() {
@@ -9,12 +9,19 @@ export default function ElectronAuthWindow() {
   useEffect(() => {
     const doAuth = async () => {
       try {
-        const result = await signInWithPopup(auth, provider);
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        const idToken = credential?.idToken || null;
-        const accessToken = credential?.accessToken || null;
-        window.electronAPI.sendAuthToken({ idToken, accessToken });
-        setStatus("success");
+        // Vérifie si on revient d'un redirect Google (2e passage)
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          const idToken = credential?.idToken || null;
+          const accessToken = credential?.accessToken || null;
+          window.electronAPI.sendAuthToken({ idToken, accessToken });
+          setStatus("success");
+          return;
+        }
+        // Pas de résultat → initie le redirect (navigue cette fenêtre vers Google)
+        setStatus("redirecting");
+        await signInWithRedirect(auth, provider);
       } catch (e) {
         const isCancel =
           e.code === "auth/popup-closed-by-user" ||
@@ -35,15 +42,18 @@ export default function ElectronAuthWindow() {
       height: "100vh", background: "#1a1a2e", color: "#fff",
       flexDirection: "column", fontFamily: "sans-serif", gap: 16,
     }}>
-      {status === "loading" && (
+      {(status === "loading" || status === "redirecting") && (
         <>
           <div style={{
             width: 36, height: 36, borderRadius: "50%",
-            border: "3px solid #333", borderTopColor: "#E8630A",
+            border: "3px solid #333",
+            borderTopColor: status === "redirecting" ? "#4285F4" : "#E8630A",
             animation: "spin 0.8s linear infinite",
           }} />
           <p style={{ margin: 0, color: "#aaa", fontSize: 14 }}>
-            Connexion Google en cours…
+            {status === "redirecting"
+              ? "Redirection vers Google…"
+              : "Connexion Google en cours…"}
           </p>
         </>
       )}
