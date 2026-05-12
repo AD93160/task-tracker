@@ -2,7 +2,15 @@
   NOMENCLATURE DES TICKETS — TASK TRACKER PRO
 =====================================================
 
-Format : [SUPPORT] [MODE] [RÔLE] SECTION — description
+Format : [PLATEFORME] [SUPPORT] [MODE] [RÔLE] SECTION — description
+
+-----------------------------------------------------
+  PLATEFORME
+-----------------------------------------------------
+  AP  = App web initiale (React + Vite + Vercel)
+  EL  = App Electron (desktop natif)
+  MO  = App mobile (natif, à venir)
+  ALL = Les trois plateformes
 
 -----------------------------------------------------
   SUPPORT
@@ -44,6 +52,7 @@ Format : [SUPPORT] [MODE] [RÔLE] SECTION — description
     MES-PROPS       Panneau mes propositions (membre)
     STATS-ÉQUIPE    Panneau statistiques équipe
     PANNEAU-ÉQUIPE  Panneau gestion équipe (membres, invitations)
+    CHAT            Messagerie équipe (groupe + DMs)
 
   Global :
     HEADER          Barre de navigation en haut
@@ -52,10 +61,10 @@ Format : [SUPPORT] [MODE] [RÔLE] SECTION — description
 -----------------------------------------------------
   EXEMPLES
 -----------------------------------------------------
-  [D][P][TR] LISTE          Liste perso sur desktop, tous rôles
-  [M][E][MB] LISTE-ÉQUIPE   Liste équipe sur mobile, membre
-  [A][E][AD] EN-ATTENTE     Panneau en attente, tous supports, admin
-  [M][T][TR] HEADER         Header sur mobile, tous modes et rôles
-  [D][E][CO] PANNEAU-ÉQUIPE Panneau équipe sur desktop, co-admin
+  [AP][D][P][TR] LISTE          Liste perso web desktop, tous rôles
+  [AP][M][E][MB] LISTE-ÉQUIPE   Liste équipe web mobile, membre
+  [ALL][A][E][AD] EN-ATTENTE    Panneau en attente, toutes plateformes
+  [EL][D][T][TR] HEADER         Header Electron, tous modes et rôles
+  [AP][D][E][CO] PANNEAU-ÉQUIPE Panneau équipe web desktop, co-admin
 
 =====================================================
