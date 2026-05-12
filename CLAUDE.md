@@ -8,6 +8,7 @@
 
 3. **Après chaque changement** : Vérifie que rien n'est cassé. Ne marque jamais une tâche comme terminée sans avoir testé.
 4. Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
+5. **Avant toute modification de doc ou config** : Explorer la structure complète du repo pour identifier tous les fichiers concernés (ex : CLAUDE.md ET NOMENCLATURE.txt pour la nomenclature). Ne jamais modifier un seul fichier sans avoir vérifié qu'il n'en existe pas d'autres liés.
 
 ## Stack
 - React 18 + Vite
