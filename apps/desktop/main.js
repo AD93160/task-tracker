@@ -1,9 +1,10 @@
 const { app, BrowserWindow, shell, ipcMain, session, protocol, net } = require("electron");
 const path = require("path");
+const http = require("http");
+const fs = require("fs");
 
 // Doit être appelé AVANT app.whenReady()
-// Enregistre app:// comme un scheme standard+sécurisé : les pages chargées sur
-// app://localhost/ ont l'hostname "localhost", accepté par Firebase Auth.
+// Enregistre app:// comme un scheme standard+sécurisé pour la fenêtre principale.
 protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
@@ -23,6 +24,57 @@ function serveLocal(request) {
   return net.fetch("file://" + resolved).catch(() =>
     net.fetch("file://" + path.join(wwwPath, "index.html"))
   );
+}
+
+// Démarre un serveur HTTP local sur un port aléatoire pour servir l'app
+// depuis http://localhost:PORT — scheme http accepté par Firebase Auth.
+function startLocalAuthServer() {
+  const wwwPath = path.resolve(path.join(__dirname, "www"));
+  const MIME = {
+    ".html": "text/html; charset=utf-8",
+    ".js":   "application/javascript",
+    ".css":  "text/css",
+    ".json": "application/json",
+    ".png":  "image/png",
+    ".jpg":  "image/jpeg",
+    ".svg":  "image/svg+xml",
+    ".ico":  "image/x-icon",
+    ".woff2":"font/woff2",
+    ".woff": "font/woff",
+    ".ttf":  "font/ttf",
+  };
+
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const urlPath = new URL(req.url, "http://localhost").pathname;
+      let filePath = path.resolve(path.join(wwwPath, urlPath));
+
+      // Sécurité : empêcher path traversal
+      if (!filePath.startsWith(wwwPath + path.sep) && filePath !== wwwPath) {
+        res.writeHead(403); res.end("Forbidden"); return;
+      }
+
+      // SPA fallback : tout chemin inexistant → index.html
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) filePath = path.join(wwwPath, "index.html");
+      } catch {
+        filePath = path.join(wwwPath, "index.html");
+      }
+
+      fs.readFile(filePath, (err, data) => {
+        if (err) { res.writeHead(500); res.end("Internal Error"); return; }
+        const ext = path.extname(filePath).toLowerCase();
+        res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+        res.end(data);
+      });
+    });
+
+    server.listen(0, "127.0.0.1", () => {
+      resolve({ server, port: server.address().port });
+    });
+    server.on("error", reject);
+  });
 }
 
 function createWindow() {
@@ -56,7 +108,20 @@ function createWindow() {
   });
 }
 
-ipcMain.handle("google-auth", (event) => {
+ipcMain.handle("google-auth", async () => {
+  // En production, démarre un serveur HTTP local pour que Firebase Auth accepte
+  // le scheme http://localhost (le scheme app:// est rejeté par le handler Firebase).
+  let localServer = null;
+  let authUrl;
+
+  if (isDev) {
+    authUrl = "http://localhost:5173/#electron-auth";
+  } else {
+    const { server, port } = await startLocalAuthServer();
+    localServer = server;
+    authUrl = `http://localhost:${port}/#electron-auth`;
+  }
+
   return new Promise((resolve, reject) => {
     const authWin = new BrowserWindow({
       width: 500,
@@ -79,19 +144,20 @@ ipcMain.handle("google-auth", (event) => {
       return { action: "deny" };
     });
 
-    const authUrl = isDev
-      ? "http://localhost:5173/#electron-auth"
-      : "app://localhost/index.html#electron-auth";
-
     authWin.loadURL(authUrl);
 
     let settled = false;
+
+    const cleanup = () => {
+      if (localServer) { localServer.close(); localServer = null; }
+    };
 
     const onToken = (e, data) => {
       if (e.sender !== authWin.webContents) return;
       if (settled) return;
       settled = true;
       ipcMain.removeListener("auth-token", onToken);
+      cleanup();
       authWin.close();
       if (data.error) reject(new Error(data.error));
       else resolve({ idToken: data.idToken, accessToken: data.accessToken });
@@ -102,6 +168,7 @@ ipcMain.handle("google-auth", (event) => {
       if (!settled) {
         settled = true;
         ipcMain.removeListener("auth-token", onToken);
+        cleanup();
         reject(new Error("auth/popup-closed-by-user"));
       }
     });
@@ -109,8 +176,7 @@ ipcMain.handle("google-auth", (event) => {
 });
 
 app.whenReady().then(() => {
-  // Sert les fichiers locaux via app://localhost/ pour que Firebase Auth
-  // voie l'hostname "localhost" (domaine autorisé par défaut dans Firebase)
+  // Sert les fichiers locaux via app://localhost/ pour la fenêtre principale.
   protocol.handle("app", serveLocal);
 
   session.defaultSession.setUserAgent(CHROME_UA);
