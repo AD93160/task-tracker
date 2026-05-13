@@ -122,6 +122,8 @@ function createWindow() {
   win.webContents.on("did-fail-load", (_e, code, desc, url) => {
     console.error(`[Electron] Échec chargement (${code} ${desc}) : ${url}`);
   });
+
+  win.webContents.once("did-finish-load", () => checkForUpdates(win));
 }
 
 ipcMain.handle("google-auth", async (event) => {
