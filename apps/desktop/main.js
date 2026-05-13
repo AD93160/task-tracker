@@ -66,6 +66,33 @@ function serveLocal(request) {
   );
 }
 
+function isNewerVersion(latest, current) {
+  const parse = v => (v || "0").replace(/^v/, "").split(".").map(Number);
+  const [lMaj, lMin, lPatch] = parse(latest);
+  const [cMaj, cMin, cPatch] = parse(current);
+  if (lMaj !== cMaj) return lMaj > cMaj;
+  if (lMin !== cMin) return lMin > cMin;
+  return lPatch > cPatch;
+}
+
+async function checkForUpdates(win) {
+  if (isDev) return;
+  try {
+    const res = await net.fetch("https://api.github.com/repos/AD93160/task-tracker/releases/latest", {
+      headers: { "User-Agent": "Task-Tracker-Desktop" },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const latest = (data.tag_name || "").replace(/^v/, "");
+    const current = app.getVersion();
+    if (isNewerVersion(latest, current)) {
+      win.webContents.send("update-available", { version: latest, url: data.html_url });
+    }
+  } catch (_) {
+    // Pas d'internet ou API indisponible — silencieux
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -95,7 +122,11 @@ function createWindow() {
   win.webContents.on("did-fail-load", (_e, code, desc, url) => {
     console.error(`[Electron] Échec chargement (${code} ${desc}) : ${url}`);
   });
+
+  win.webContents.once("did-finish-load", () => checkForUpdates(win));
 }
+
+ipcMain.handle("open-external", (_event, url) => shell.openExternal(url));
 
 ipcMain.handle("google-auth", async (event) => {
   // Serveur HTTP local pour que Firebase Auth accepte l'origine http://localhost

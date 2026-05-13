@@ -347,6 +347,7 @@ export default function App() {
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const isElectronEnv = window.electronAPI?.isElectron || navigator.userAgent.toLowerCase().includes("electron");
+  const [updateInfo,   setUpdateInfo]   = useState(null);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
@@ -364,6 +365,10 @@ export default function App() {
     const handler = () => setIsMobile(checkMobile());
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
   }, []);
 
   const [theme, setTheme] = useState({
@@ -2157,6 +2162,19 @@ export default function App() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
         body { overflow-x:hidden; }
       `}</style>
+
+      {/* Bannière mise à jour Electron */}
+      {updateInfo && (
+        <div style={{ background:"#1a1a2e", color:"#fff", fontSize:12, padding:"7px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, zIndex:500 }}>
+          <span>🚀 Version {updateInfo.version} disponible !</span>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={()=>window.electronAPI?.openExternal?.(updateInfo.url)} style={{ background:"#E8630A", border:"none", borderRadius:6, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+              Télécharger
+            </button>
+            <button onClick={()=>setUpdateInfo(null)} style={{ background:"transparent", border:"none", color:"#aaa", cursor:"pointer", fontSize:14, lineHeight:1 }}>✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{
