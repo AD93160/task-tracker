@@ -223,7 +223,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
                             <span style={{ fontSize:13 }}>⭐</span> Co-admin
                           </button>
                       }
-                      <button onClick={()=>onRemoveMember(m)}
+                      <button onClick={()=>onRemoveMember(m, sel.id)}
                         style={{ flex:1,background:"transparent",border:"none",padding:"7px 0",color:"#cc3030",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
                         <span style={{ fontSize:13 }}>✕</span> Retirer
                       </button>
@@ -968,11 +968,13 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
-  const removeMember = async (member) => {
-    if (!team || !isAdminRole(teamRole)) return;
+  const removeMember = async (member, teamId) => {
+    const tid = teamId || team?.id;
+    if (!tid || !isAdminRole(teamRole)) return;
     try {
-      const newMembers = (team.members || []).filter(m => m.uid !== member.uid);
-      await updateDoc(doc(db, "teams", team.id), {
+      const targetTeam = adminTeams.find(t => t.id === tid);
+      const newMembers = (targetTeam?.members || []).filter(m => m.uid !== member.uid);
+      await updateDoc(doc(db, "teams", tid), {
         members: newMembers,
         coAdminUids: arrayRemove(member.uid),
       });
@@ -3570,7 +3572,7 @@ export default function App() {
           onActivateTeam={t=>{ switchActiveTeam(t); setTeamSpace(true); setShowTeam(false); }}
           onCreateTeam={createTeam}
           onInvite={inviteMember}
-          onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
+          onRemoveMember={(m, teamId)=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m, teamId); }}
           onPromote={(m, teamId)=>promoteToCoAdmin(m, teamId)}
           onDemote={(m, teamId)=>demoteToMember(m, teamId)}
           isOwner={team?.adminUid === user?.uid}
