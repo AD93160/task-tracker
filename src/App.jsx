@@ -968,11 +968,13 @@ export default function App() {
     } catch(e) { setTeamError(e.message); }
   };
 
-  const removeMember = async (member) => {
-    if (!team || !isAdminRole(teamRole)) return;
+  const removeMember = async (member, teamId) => {
+    const tid = teamId || team?.id;
+    if (!tid || !isAdminRole(teamRole)) return;
     try {
-      const newMembers = (team.members || []).filter(m => m.uid !== member.uid);
-      await updateDoc(doc(db, "teams", team.id), {
+      const targetTeam = adminTeams.find(t => t.id === tid);
+      const newMembers = (targetTeam?.members || []).filter(m => m.uid !== member.uid);
+      await updateDoc(doc(db, "teams", tid), {
         members: newMembers,
         coAdminUids: arrayRemove(member.uid),
       });
