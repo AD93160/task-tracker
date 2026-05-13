@@ -367,6 +367,10 @@ export default function App() {
     return () => window.removeEventListener("resize", handler);
   }, []);
 
+  useEffect(() => {
+    window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
+  }, []);
+
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
     accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A",
