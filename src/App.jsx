@@ -223,7 +223,7 @@ function TeamPanel({ allUserTeams, activeTeamId, teamPending, teamTasks, theme, 
                             <span style={{ fontSize:13 }}>⭐</span> Co-admin
                           </button>
                       }
-                      <button onClick={()=>onRemoveMember(m)}
+                      <button onClick={()=>onRemoveMember(m, sel.id)}
                         style={{ flex:1,background:"transparent",border:"none",padding:"7px 0",color:"#cc3030",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
                         <span style={{ fontSize:13 }}>✕</span> Retirer
                       </button>
