@@ -2163,6 +2163,19 @@ export default function App() {
         body { overflow-x:hidden; }
       `}</style>
 
+      {/* Bannière mise à jour Electron */}
+      {updateInfo && (
+        <div style={{ background:"#1a1a2e", color:"#fff", fontSize:12, padding:"7px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, zIndex:500 }}>
+          <span>🚀 Version {updateInfo.version} disponible !</span>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={()=>window.electronAPI.openExternal?.(updateInfo.url) || require?.("electron")?.shell?.openExternal?.(updateInfo.url)} style={{ background:"#E8630A", border:"none", borderRadius:6, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+              Télécharger
+            </button>
+            <button onClick={()=>setUpdateInfo(null)} style={{ background:"transparent", border:"none", color:"#aaa", cursor:"pointer", fontSize:14, lineHeight:1 }}>✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
