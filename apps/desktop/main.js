@@ -126,6 +126,8 @@ function createWindow() {
   win.webContents.once("did-finish-load", () => checkForUpdates(win));
 }
 
+ipcMain.handle("open-external", (_event, url) => shell.openExternal(url));
+
 ipcMain.handle("google-auth", async (event) => {
   // Serveur HTTP local pour que Firebase Auth accepte l'origine http://localhost
   const server = isDev ? null : await startLocalServer();
