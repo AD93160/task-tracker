@@ -3570,7 +3570,7 @@ export default function App() {
           onActivateTeam={t=>{ switchActiveTeam(t); setTeamSpace(true); setShowTeam(false); }}
           onCreateTeam={createTeam}
           onInvite={inviteMember}
-          onRemoveMember={m=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m); }}
+          onRemoveMember={(m, teamId)=>{ if(window.confirm(`Retirer ${m.email} ?`)) removeMember(m, teamId); }}
           onPromote={(m, teamId)=>promoteToCoAdmin(m, teamId)}
           onDemote={(m, teamId)=>demoteToMember(m, teamId)}
           isOwner={team?.adminUid === user?.uid}
