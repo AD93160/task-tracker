@@ -971,8 +971,9 @@ export default function App() {
   const removeMember = async (member) => {
     if (!team || !isAdminRole(teamRole)) return;
     try {
+      const newMembers = (team.members || []).filter(m => m.uid !== member.uid);
       await updateDoc(doc(db, "teams", team.id), {
-        members: arrayRemove(member),
+        members: newMembers,
         coAdminUids: arrayRemove(member.uid),
       });
       // Le doc user du membre sera nettoyé à sa prochaine connexion
