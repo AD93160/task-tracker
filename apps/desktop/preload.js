@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   sendAuthToken: (data) => ipcRenderer.send("auth-token", data),
   // Notifie le renderer quand une mise à jour est disponible
   onUpdateAvailable: (cb) => ipcRenderer.on("update-available", (_e, info) => cb(info)),
+  // Ouvre une URL dans le navigateur système
+  openExternal: (url) => ipcRenderer.invoke("open-external", url),
 });
