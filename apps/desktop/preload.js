@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   startGoogleAuth: () => ipcRenderer.invoke("google-auth"),
   // Appelé par la fenêtre d'auth pour renvoyer le token au processus principal
   sendAuthToken: (data) => ipcRenderer.send("auth-token", data),
+  // Notifie le renderer quand une mise à jour est disponible
+  onUpdateAvailable: (cb) => ipcRenderer.on("update-available", (_e, info) => cb(info)),
 });
