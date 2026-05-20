@@ -2,6 +2,7 @@ appId: com.tasktracker.desktop
 productName: Task Tracker
 copyright: Copyright © 2026
 electronVersion: "33.4.11"
+icon: assets/icon.png
 
 directories:
   output: ../../release
@@ -11,6 +12,12 @@ files:
   - main.js
   - preload.js
   - www/**/*
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Utility
 
 win:
   target:
