@@ -373,6 +373,32 @@ export default function App() {
     window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
   }, []);
 
+  useEffect(() => {
+    if (!user || isElectronEnv || isMobile) return;
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (localStorage.getItem('tt_dl_done') === 'true') return;
+    const t = setTimeout(() => setShowDownloadPopup(true), 2000);
+    return () => clearTimeout(t);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!showDownloadPopup || dlUrl) return;
+    fetch('https://api.github.com/repos/AD93160/task-tracker/releases/latest')
+      .then(r => r.json())
+      .then(data => {
+        const assets = data.assets || [];
+        const ua = navigator.userAgent;
+        const isMacOS = /Mac/i.test(ua) && !/iPhone|iPad/i.test(ua);
+        const isWindows = /Win/i.test(ua);
+        let asset;
+        if (isMacOS) asset = assets.find(a => a.name.endsWith('.dmg'));
+        else if (isWindows) asset = assets.find(a => a.name.endsWith('.exe'));
+        else asset = assets.find(a => a.name.endsWith('.AppImage'));
+        setDlUrl(asset?.browser_download_url || data.html_url || 'https://github.com/AD93160/task-tracker/releases/latest');
+      })
+      .catch(() => setDlUrl('https://github.com/AD93160/task-tracker/releases/latest'));
+  }, [showDownloadPopup]);
+
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
     accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A",
