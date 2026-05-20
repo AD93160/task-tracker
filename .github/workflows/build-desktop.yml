@@ -21,11 +21,10 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml
+      - run: npx electron-builder --config electron-builder.yml --publish never
         working-directory: apps/desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: softprops/action-gh-release@v2
         with:
           files: release/*.dmg
@@ -42,10 +41,8 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml
+      - run: npx electron-builder --config electron-builder.yml --publish never
         working-directory: apps/desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: softprops/action-gh-release@v2
         with:
           files: release/*.exe
@@ -62,10 +59,8 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml
+      - run: npx electron-builder --config electron-builder.yml --publish never
         working-directory: apps/desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: softprops/action-gh-release@v2
         with:
           files: release/*.AppImage
