@@ -347,7 +347,9 @@ export default function App() {
   const [teamComments,     setTeamComments]     = useState([]);
   const [commentInput,     setCommentInput]     = useState("");
   const isElectronEnv = window.electronAPI?.isElectron || navigator.userAgent.toLowerCase().includes("electron");
-  const [updateInfo,   setUpdateInfo]   = useState(null);
+  const [updateInfo,       setUpdateInfo]       = useState(null);
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+  const [dlUrl,             setDlUrl]             = useState(null);
   const checkMobile = () => screen.width <= 768 || window.innerWidth <= 768;
   const [isMobile,     setIsMobile]     = useState(checkMobile);
   const [showDone,     setShowDone]     = useState(false);
