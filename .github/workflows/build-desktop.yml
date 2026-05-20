@@ -1,9 +1,8 @@
 name: Build Desktop
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [created]
 
 permissions:
   contents: write
