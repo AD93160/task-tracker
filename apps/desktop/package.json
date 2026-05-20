@@ -5,6 +5,10 @@
   "description": "Task Tracker — Desktop App",
   "author": "Task Tracker",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AD93160/task-tracker.git"
+  },
   "devDependencies": {
     "electron-builder": "^25.0.0"
   }
