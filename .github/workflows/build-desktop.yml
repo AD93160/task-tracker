@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-mac:
     runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_IDENTITY_AUTO_DISCOVERY: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,16 +24,13 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml --publish never
+      - run: npx electron-builder --config electron-builder.yml
         working-directory: apps/desktop
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: release/*.dmg
 
   build-windows:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,14 +41,13 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml --publish never
+      - run: npx electron-builder --config electron-builder.yml
         working-directory: apps/desktop
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: release/*.exe
 
   build-linux:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,8 +58,5 @@ jobs:
       - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
       - run: npm install
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml --publish never
+      - run: npx electron-builder --config electron-builder.yml
         working-directory: apps/desktop
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: release/*.AppImage
