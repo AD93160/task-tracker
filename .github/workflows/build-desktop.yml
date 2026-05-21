@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ github.event.release.tag_name }}"
-          npm version "${VERSION#v}" --no-git-tag-version
+          npm version "${VERSION#[vV]}" --no-git-tag-version
 
       - name: Package Electron (Mac — x64 + arm64)
         working-directory: apps/desktop
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ github.event.release.tag_name }}"
-          npm version "${VERSION#v}" --no-git-tag-version
+          npm version "${VERSION#[vV]}" --no-git-tag-version
 
       - name: Package Electron (Windows — x64)
         working-directory: apps/desktop
@@ -126,7 +126,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ github.event.release.tag_name }}"
-          npm version "${VERSION#v}" --no-git-tag-version
+          npm version "${VERSION#[vV]}" --no-git-tag-version
 
       - name: Package Electron (Linux — x64)
         working-directory: apps/desktop
