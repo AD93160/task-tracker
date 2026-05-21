@@ -12,17 +12,35 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
-      - run: npm install
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build web assets (Vite)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
+
+      - name: Install desktop dependencies
         working-directory: apps/desktop
-      - run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config electron-builder.yml --publish never
+        run: npm ci
+
+      - name: Package Electron (Mac — x64 + arm64)
         working-directory: apps/desktop
-      - uses: softprops/action-gh-release@v2
+        run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config electron-builder.yml --mac --publish never
+
+      - name: Upload DMG to release
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*.dmg
 
@@ -30,17 +48,35 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
-      - run: npm install
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build web assets (Vite)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
+
+      - name: Install desktop dependencies
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml --publish never
+        run: npm ci
+
+      - name: Package Electron (Windows — x64)
         working-directory: apps/desktop
-      - uses: softprops/action-gh-release@v2
+        run: npx electron-builder --config electron-builder.yml --win --publish never
+
+      - name: Upload EXE to release
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*.exe
 
@@ -48,16 +84,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
-      - run: npm install
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build web assets (Vite)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: npx vite build --config vite.config.desktop.js --outDir apps/desktop/www
+
+      - name: Install desktop dependencies
         working-directory: apps/desktop
-      - run: npx electron-builder --config electron-builder.yml --publish never
+        run: npm ci
+
+      - name: Package Electron (Linux — x64)
         working-directory: apps/desktop
-      - uses: softprops/action-gh-release@v2
+        run: npx electron-builder --config electron-builder.yml --linux --publish never
+
+      - name: Upload AppImage to release
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*.AppImage
