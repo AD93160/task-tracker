@@ -157,9 +157,22 @@ isMobile          // bool, screen.width <= 768
 - `fromFirestore.current = true` avant `setTasks` depuis Firestore pour éviter boucle de sync
 - Firebase Storage paths : `users/${uid}/attachments/...` et `teams/${teamId}/attachments/...`
 
-## Branche de travail
-- Production : `main` → Vercel déploie automatiquement
-- Features : `claude/resume-work-ZxXiO` (branche active)
+## Branches de travail
+
+| Branche | Rôle |
+|---|---|
+| `main` | Production — Vercel déploie automatiquement, NE PAS toucher directement |
+| `develop` | Intégration — branche de travail principale, preview Vercel automatique |
+| `feature/...` ou `fix/...` | Branches courtes → PR vers `develop` |
+
+### Workflow de release
+1. Développer sur `develop` (ou branches courtes mergées dans `develop`)
+2. Tester via l'URL de preview Vercel de `develop`
+3. Quand prêt : PR `develop` → `main` (web en prod) + créer une release GitHub `vX.Y.Z` (build Electron déclenché, users notifiés)
+
+### Règle importante
+- Les commits sur `main` et `develop` n'affectent PAS les utilisateurs Electron installés
+- Seule la création d'une release GitHub avec un tag `vX.Y.Z` supérieur déclenche la notification de mise à jour dans l'app desktop
 
 ## Nomenclature des tickets
 
