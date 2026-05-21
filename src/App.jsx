@@ -376,6 +376,7 @@ export default function App() {
   useEffect(() => {
     if (!user || isElectronEnv || isMobile) return;
     if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (/Mac/i.test(navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent)) return;
     if (localStorage.getItem('tt_dl_done') === 'true') return;
     const t = setTimeout(() => setShowDownloadPopup(true), 2000);
     return () => clearTimeout(t);
