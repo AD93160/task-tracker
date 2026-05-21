@@ -2224,7 +2224,13 @@ export default function App() {
                 disabled={!dlUrl}
                 onClick={() => {
                   setShowDownloadPopup(false);
-                  if (dlUrl) window.location.href = dlUrl;
+                  if (dlUrl) {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = dlUrl;
+                    document.body.appendChild(iframe);
+                    setTimeout(() => { try { document.body.removeChild(iframe); } catch(e){} }, 60000);
+                  }
                 }}
                 style={{ background:theme.accent, color:'#fff', borderRadius:8, padding:'8px 0', textAlign:'center', fontWeight:700, fontSize:13, cursor: dlUrl ? 'pointer' : 'default', border:'none', opacity: dlUrl ? 1 : 0.6 }}
               >
