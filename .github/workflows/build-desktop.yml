@@ -121,6 +121,13 @@ jobs:
         working-directory: apps/desktop
         run: npm ci
 
+      - name: Sync version from release tag
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          npm version "${VERSION#v}" --no-git-tag-version
+
       - name: Package Electron (Linux — x64)
         working-directory: apps/desktop
         run: npx electron-builder --config electron-builder.yml --linux --publish never
