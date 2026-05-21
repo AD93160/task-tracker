@@ -2192,18 +2192,44 @@ export default function App() {
         body { overflow-x:hidden; }
       `}</style>
 
-      {/* Bannière mise à jour Electron */}
-      {updateInfo && (
-        <div style={{ background:"#1a1a2e", color:"#fff", fontSize:12, padding:"7px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, zIndex:500 }}>
-          <span>🚀 Version {updateInfo.version} disponible !</span>
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <button onClick={()=>window.electronAPI?.openExternal?.(updateInfo.url)} style={{ background:"#E8630A", border:"none", borderRadius:6, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-              Télécharger
-            </button>
-            <button onClick={()=>setUpdateInfo(null)} style={{ background:"transparent", border:"none", color:"#aaa", cursor:"pointer", fontSize:14, lineHeight:1 }}>✕</button>
+      {/* Popup mise à jour Electron */}
+      {updateInfo && (() => {
+        const platform = window.electronAPI?.platform;
+        const v = updateInfo.version;
+        const dlUrl = platform === 'win32'
+          ? `https://github.com/AD93160/task-tracker/releases/download/v${v}/Task.Tracker.Setup.${v}.exe`
+          : platform === 'linux'
+          ? `https://github.com/AD93160/task-tracker/releases/download/v${v}/Task.Tracker-${v}.AppImage`
+          : updateInfo.url;
+        return (
+          <div style={{ position:'fixed', bottom:24, right:24, zIndex:1001, background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'18px 20px', boxShadow:'0 8px 32px #0004', width:280, display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <img src="/favicon.svg" width={34} height={34} style={{ borderRadius:8 }} alt="" />
+                <div>
+                  <div style={{ fontWeight:700, fontSize:13, color:theme.text }}>Mise à jour disponible</div>
+                  <div style={{ fontSize:11, color:theme.textMuted }}>Version {v} est prête</div>
+                </div>
+              </div>
+              <button onClick={() => setUpdateInfo(null)} style={{ background:'none', border:'none', cursor:'pointer', color:theme.textMuted, fontSize:16, lineHeight:1, padding:'0 0 0 8px' }}>✕</button>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              <button
+                onClick={() => { window.electronAPI?.openExternal?.(dlUrl); setUpdateInfo(null); }}
+                style={{ background:theme.accent, color:'#fff', borderRadius:8, padding:'8px 0', textAlign:'center', fontWeight:700, fontSize:13, cursor:'pointer', border:'none' }}
+              >
+                ⬇ Mettre à jour
+              </button>
+              <button
+                onClick={() => setUpdateInfo(null)}
+                style={{ background:'none', border:`1px solid ${theme.border}`, borderRadius:8, padding:'6px 0', color:theme.textMuted, fontSize:11, cursor:'pointer' }}
+              >
+                Plus tard
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Popup téléchargement app desktop */}
       {showDownloadPopup && !isMobile && !isElectronEnv && (() => {
