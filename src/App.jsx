@@ -2205,36 +2205,42 @@ export default function App() {
       )}
 
       {/* Popup téléchargement app desktop */}
-      {showDownloadPopup && !isMobile && !isElectronEnv && (
-        <div style={{ position:'fixed', bottom:24, right:24, zIndex:1000, background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'18px 20px', boxShadow:'0 8px 32px #0002', width:280, display:'flex', flexDirection:'column', gap:12 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <img src="/favicon.svg" width={34} height={34} style={{ borderRadius:8 }} alt="" />
-              <div>
-                <div style={{ fontWeight:700, fontSize:13, color:theme.text }}>App desktop disponible</div>
-                <div style={{ fontSize:11, color:theme.textMuted }}>Meilleure expérience native</div>
+      {showDownloadPopup && !isMobile && !isElectronEnv && (() => {
+        const osLabel = dlUrl?.endsWith('.dmg') ? ' pour Mac' : dlUrl?.endsWith('.exe') ? ' pour Windows' : dlUrl?.endsWith('.AppImage') ? ' pour Linux' : '';
+        return (
+          <div style={{ position:'fixed', bottom:24, right:24, zIndex:1000, background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'18px 20px', boxShadow:'0 8px 32px #0002', width:280, display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <img src="/favicon.svg" width={34} height={34} style={{ borderRadius:8 }} alt="" />
+                <div>
+                  <div style={{ fontWeight:700, fontSize:13, color:theme.text }}>App desktop disponible</div>
+                  <div style={{ fontSize:11, color:theme.textMuted }}>Meilleure expérience native</div>
+                </div>
               </div>
+              <button onClick={() => setShowDownloadPopup(false)} style={{ background:'none', border:'none', cursor:'pointer', color:theme.textMuted, fontSize:16, lineHeight:1, padding:'0 0 0 8px' }}>✕</button>
             </div>
-            <button onClick={() => setShowDownloadPopup(false)} style={{ background:'none', border:'none', cursor:'pointer', color:theme.textMuted, fontSize:16, lineHeight:1, padding:'0 0 0 8px' }}>✕</button>
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              <button
+                disabled={!dlUrl}
+                onClick={() => {
+                  localStorage.setItem('tt_dl_done', 'true');
+                  setShowDownloadPopup(false);
+                  if (dlUrl) window.location.href = dlUrl;
+                }}
+                style={{ background:theme.accent, color:'#fff', borderRadius:8, padding:'8px 0', textAlign:'center', fontWeight:700, fontSize:13, cursor: dlUrl ? 'pointer' : 'default', border:'none', opacity: dlUrl ? 1 : 0.6 }}
+              >
+                {dlUrl ? `⬇ Télécharger${osLabel}` : '⏳ Chargement…'}
+              </button>
+              <button
+                onClick={() => { localStorage.setItem('tt_dl_done', 'true'); setShowDownloadPopup(false); }}
+                style={{ background:'none', border:`1px solid ${theme.border}`, borderRadius:8, padding:'6px 0', color:theme.textMuted, fontSize:11, cursor:'pointer' }}
+              >
+                Ne plus afficher
+              </button>
+            </div>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-            <a
-              href={dlUrl || 'https://github.com/AD93160/task-tracker/releases/latest'}
-              target="_blank" rel="noopener noreferrer"
-              onClick={() => { localStorage.setItem('tt_dl_done', 'true'); setShowDownloadPopup(false); }}
-              style={{ background:theme.accent, color:'#fff', borderRadius:8, padding:'8px 0', textAlign:'center', fontWeight:700, fontSize:13, cursor:'pointer', textDecoration:'none', display:'block' }}
-            >
-              ⬇ Télécharger
-            </a>
-            <button
-              onClick={() => { localStorage.setItem('tt_dl_done', 'true'); setShowDownloadPopup(false); }}
-              style={{ background:'none', border:`1px solid ${theme.border}`, borderRadius:8, padding:'6px 0', color:theme.textMuted, fontSize:11, cursor:'pointer' }}
-            >
-              Ne plus afficher
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Header */}
       <div style={{
