@@ -2223,7 +2223,6 @@ export default function App() {
               <button
                 disabled={!dlUrl}
                 onClick={() => {
-                  localStorage.setItem('tt_dl_done', 'true');
                   setShowDownloadPopup(false);
                   if (dlUrl) window.location.href = dlUrl;
                 }}
