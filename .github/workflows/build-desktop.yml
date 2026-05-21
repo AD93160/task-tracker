@@ -35,6 +35,13 @@ jobs:
         working-directory: apps/desktop
         run: npm ci
 
+      - name: Sync version from release tag
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          npm version "${VERSION#v}" --no-git-tag-version
+
       - name: Package Electron (Mac — x64 + arm64)
         working-directory: apps/desktop
         run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config electron-builder.yml --mac --publish never
