@@ -32,7 +32,7 @@ self.addEventListener("push", event => {
     const n = payload.notification ?? {};
     const d = payload.data ?? {};
 
-    await self.registration.showNotification(n.title || "Task Tracker", {
+    await self.registration.showNotification(n.title || "Flynt", {
       body:  n.body  || "",
       icon:  n.icon  || "/favicon.svg",
       badge: "/favicon.svg",
