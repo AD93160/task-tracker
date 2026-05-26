@@ -3492,7 +3492,7 @@ export default function App() {
             <button onClick={async()=>{
               if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
-              await setDoc(ref,{theme},{merge:true});
+              await setDoc(ref,{theme:{mode:theme.mode}},{merge:true});
               toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder le thème
