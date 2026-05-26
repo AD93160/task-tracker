@@ -3498,7 +3498,7 @@ export default function App() {
                 const p = await Notification.requestPermission();
                 if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
-              new Notification("Task Tracker Pro 🔔", {
+              new Notification("Flynt 🔔", {
                 body: "Test de notification — tout fonctionne !",
                 icon: "/favicon.ico",
                 tag: "test-notif",
