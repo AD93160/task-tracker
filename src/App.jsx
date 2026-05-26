@@ -432,7 +432,7 @@ export default function App() {
       { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
     ],
     light: [
-      { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
+      { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0" },
       { name:"Papier",     bg:"#f8f8f4", bgLeft:"#f0f0ea", bgCard:"#ffffff", accent:"#5050dd", text:"#1a1a2e", textMuted:"#9090a0", border:"#e0e0e8" },
       { name:"Sauge",      bg:"#f4f8f4", bgLeft:"#ebf2eb", bgCard:"#ffffff", accent:"#2a8a2a", text:"#0a1a0a", textMuted:"#7a9a7a", border:"#d0e8d0" },
       { name:"Terracotta", bg:"#faf5f2", bgLeft:"#f5ede8", bgCard:"#ffffff", accent:"#cc4820", text:"#1a0a08", textMuted:"#aa8878", border:"#e8d5cc" },
