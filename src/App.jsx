@@ -402,8 +402,8 @@ export default function App() {
 
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
-    accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A",
-    border:"#E8D5B0", font:"Inter", titleFont:"Playfair Display", mode:"light",
+    accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A",
+    border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
   });
 
   const FONTS = [
