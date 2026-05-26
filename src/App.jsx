@@ -1059,7 +1059,7 @@ export default function App() {
         if (teamTasksPrevIds.current !== null && !isAdminRole(teamRole)) {
           const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
           if (newTasks.length > 0 && Notification.permission === "granted") {
-            new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
+            new Notification("Flynt — Nouvelle tâche équipe 📋", {
               body: newTasks.map(tk => tk.title).join(" • "),
               icon: "/favicon.ico", tag: "team-task-added"
             });
