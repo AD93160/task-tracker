@@ -406,41 +406,8 @@ export default function App() {
     border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
   });
 
-  const FONTS = [
-    { label:"Inter",       value:"Inter" },
-    { label:"DM Mono",     value:"DM Mono" },
-    { label:"Space Mono",  value:"Space Mono" },
-    { label:"Courier",     value:"Courier New" },
-    { label:"Roboto Mono", value:"Roboto Mono" },
-  ];
-  const TITLE_FONTS = [
-    { label:"Playfair Display", value:"Playfair Display" },
-    { label:"Cormorant",        value:"Cormorant Garamond" },
-    { label:"Syne",             value:"Syne" },
-    { label:"Bebas Neue",       value:"Bebas Neue" },
-    { label:"Oswald",           value:"Oswald" },
-    { label:"Rajdhani",         value:"Rajdhani" },
-    { label:"Orbitron",         value:"Orbitron" },
-  ];
-  const PRESETS = {
-    dark: [
-      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#8888aa", border:"#1a1a3a" },
-      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#6a9a6a", border:"#1a3a1a" },
-      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#9a7878", border:"#3a1a1a" },
-      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#6a8aaa", border:"#1a2a3a" },
-      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#888888", border:"#222222" },
-      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
-    ],
-    light: [
-      { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0" },
-      { name:"Papier",     bg:"#f8f8f4", bgLeft:"#f0f0ea", bgCard:"#ffffff", accent:"#5050dd", text:"#1a1a2e", textMuted:"#9090a0", border:"#e0e0e8" },
-      { name:"Sauge",      bg:"#f4f8f4", bgLeft:"#ebf2eb", bgCard:"#ffffff", accent:"#2a8a2a", text:"#0a1a0a", textMuted:"#7a9a7a", border:"#d0e8d0" },
-      { name:"Terracotta", bg:"#faf5f2", bgLeft:"#f5ede8", bgCard:"#ffffff", accent:"#cc4820", text:"#1a0a08", textMuted:"#aa8878", border:"#e8d5cc" },
-      { name:"Ciel",       bg:"#f2f6fc", bgLeft:"#e8f0f8", bgCard:"#ffffff", accent:"#1a70cc", text:"#08102a", textMuted:"#6080aa", border:"#ccdaee" },
-      { name:"Craie",      bg:"#f8f8f8", bgLeft:"#f0f0f0", bgCard:"#ffffff", accent:"#555555", text:"#111111", textMuted:"#999999", border:"#dddddd" },
-      { name:"Lavande",    bg:"#f6f4fc", bgLeft:"#eeebf8", bgCard:"#ffffff", accent:"#7040bb", text:"#180a2a", textMuted:"#9080aa", border:"#ddd0ee" },
-    ],
-  };
+  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
+  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
