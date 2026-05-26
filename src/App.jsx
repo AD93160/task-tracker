@@ -873,7 +873,7 @@ export default function App() {
                 : "member";
               if (prevTeamRole !== null && prevTeamRole !== "co-admin" && derived === "co-admin") {
                 if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification("Task Tracker — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
+                  new Notification("Flynt — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
                 }
               }
               prevTeamRole = derived;
