@@ -3456,7 +3456,7 @@ export default function App() {
               await setDoc(ref,{theme:{mode:theme.mode}},{merge:true});
               toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
-              💾 Sauvegarder le thème
+              💾 Sauvegarder les préférences
             </button>
 
             <button onClick={async()=>{
