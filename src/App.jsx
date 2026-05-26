@@ -873,7 +873,7 @@ export default function App() {
                 : "member";
               if (prevTeamRole !== null && prevTeamRole !== "co-admin" && derived === "co-admin") {
                 if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification("Task Tracker — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
+                  new Notification("Flynt — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
                 }
               }
               prevTeamRole = derived;
@@ -1059,7 +1059,7 @@ export default function App() {
         if (teamTasksPrevIds.current !== null && !isAdminRole(teamRole)) {
           const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
           if (newTasks.length > 0 && Notification.permission === "granted") {
-            new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
+            new Notification("Flynt — Nouvelle tâche équipe 📋", {
               body: newTasks.map(tk => tk.title).join(" • "),
               icon: "/favicon.ico", tag: "team-task-added"
             });
@@ -1079,7 +1079,7 @@ export default function App() {
           if (Notification.permission === "granted") {
             const newest = items[items.length - 1];
             const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
-            new Notification("Task Tracker — Modification proposée 🔔", {
+            new Notification("Flynt — Modification proposée 🔔", {
               body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
               icon: "/favicon.ico", tag: "team-pending"
             });
@@ -2287,7 +2287,7 @@ export default function App() {
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
               <img src="/favicon.svg" alt="logo" style={{ width:22, height:22, flexShrink:0 }} />
-              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>TASK TRACKER PRO</div>
+              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>FLYNT</div>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
@@ -2378,7 +2378,7 @@ export default function App() {
         ) : (
           /* Desktop : ligne unique inchangée */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
-            <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
+            <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>FLYNT</div>
             <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
               <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block" }} />
             </div>
@@ -3498,7 +3498,7 @@ export default function App() {
                 const p = await Notification.requestPermission();
                 if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
-              new Notification("Task Tracker Pro 🔔", {
+              new Notification("Flynt 🔔", {
                 body: "Test de notification — tout fonctionne !",
                 icon: "/favicon.ico",
                 tag: "test-notif",
