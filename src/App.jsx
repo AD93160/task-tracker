@@ -3379,56 +3379,17 @@ export default function App() {
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowTheme(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
-            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>APPARENCE</div>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>PARAMÈTRES</div>
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
-              {["dark","light"].map(m=>(
-                <button key={m} onClick={()=>{ const p=PRESETS[m][0]; setTheme(t=>({...t,mode:m,bg:p.bg,bgLeft:p.bgLeft,bgCard:p.bgCard,accent:p.accent,text:p.text,textMuted:p.textMuted,border:p.border})); }}
+              {["light","dark"].map(m=>(
+                <button key={m} onClick={()=>setTheme(m==="dark" ? FLYNT_DARK : FLYNT_LIGHT)}
                   style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?"#fff":theme.textMuted,fontSize:11,cursor:"pointer" }}>
                   {m==="dark"?"🌙 Sombre":"☀️ Clair"}
                 </button>
               ))}
             </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>PALETTE</div>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:7,marginBottom:18 }}>
-              {PRESETS[theme.mode].map(p=>(
-                <button key={p.name} onClick={()=>setTheme(t=>({...t,...p,font:t.font,titleFont:t.titleFont,mode:t.mode}))}
-                  style={{ background:p.bg,border:`2px solid ${theme.bg===p.bg?theme.accent:"transparent"}`,borderRadius:8,padding:"6px 10px",cursor:"pointer",color:theme.bg===p.bg?theme.accent:theme.textMuted,fontSize:11,display:"flex",alignItems:"center",gap:6 }}>
-                  <span style={{ width:8,height:8,borderRadius:"50%",background:p.accent,display:"inline-block" }}/>
-                  {p.name}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>ACCENT</div>
-            <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
-              <input type="color" value={theme.accent} onChange={e=>setTheme(t=>({...t,accent:e.target.value}))}
-                style={{ width:40,height:32,border:"none",borderRadius:6,cursor:"pointer" }} />
-              <span style={{ fontSize:11,color:theme.textMuted }}>{theme.accent}</span>
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TEXTE</div>
-            <div style={{ display:"grid",gap:5,marginBottom:18 }}>
-              {FONTS.map(f=>(
-                <button key={f.value} onClick={()=>setTheme(t=>({...t,font:f.value}))}
-                  style={{ background:theme.font===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.font===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.font===f.value?theme.accent:theme.textMuted,fontSize:12,fontFamily:`'${f.value}',monospace`,textAlign:"left" }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TITRE</div>
-            <div style={{ display:"grid",gap:5,marginBottom:18 }}>
-              {TITLE_FONTS.map(f=>(
-                <button key={f.value} onClick={()=>setTheme(t=>({...t,titleFont:f.value}))}
-                  style={{ background:theme.titleFont===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.titleFont===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.titleFont===f.value?theme.accent:theme.textMuted,fontSize:14,fontFamily:`'${f.value}',sans-serif`,textAlign:"left",fontWeight:700 }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:18 }}>
