@@ -1,5 +1,5 @@
-appId: com.tasktracker.desktop
-productName: Task Tracker
+appId: com.flynt.desktop
+productName: Flynt
 copyright: Copyright © 2026
 electronVersion: "33.4.11"
 icon: assets/icon.png
