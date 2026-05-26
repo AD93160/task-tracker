@@ -2129,8 +2129,10 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:"#0e0e1a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#c8c8e8" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:24 }} />
-      <div style={{ fontSize:20, fontWeight:800, letterSpacing:3, color:"#E8630A", marginBottom:8 }}>TASK TRACKER PRO</div>
+      <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:14 }} />
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+        <span style={{ fontSize:24, fontWeight:800, letterSpacing:0.5, color:"#E8966A", fontFamily:"'Playfair Display',serif" }}>Flynt</span>
+      </div>
       <div style={{ fontSize:12, color:"#666688", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
       {authError && <div style={{ color:"#ff6b6b", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#6bcb77", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
