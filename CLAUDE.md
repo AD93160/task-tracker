@@ -1,4 +1,4 @@
-# Task Tracker Pro — Contexte projet
+# Flynt — Contexte projet
 
 ## Règles de travail
 
