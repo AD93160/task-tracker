@@ -1079,7 +1079,7 @@ export default function App() {
           if (Notification.permission === "granted") {
             const newest = items[items.length - 1];
             const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
-            new Notification("Task Tracker — Modification proposée 🔔", {
+            new Notification("Flynt — Modification proposée 🔔", {
               body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
               icon: "/favicon.ico", tag: "team-pending"
             });
