@@ -665,7 +665,7 @@ export default function App() {
         if (data.tomorrowIds)  setTomorrowIds(data.tomorrowIds);
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
-        if (data.theme)        setTheme(t => ({...t, ...data.theme}));
+        if (data.theme?.mode)  setTheme(data.theme.mode === "dark" ? FLYNT_DARK : FLYNT_LIGHT);
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
