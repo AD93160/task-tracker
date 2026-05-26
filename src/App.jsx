@@ -2138,8 +2138,8 @@ export default function App() {
       {authInfo  && <div style={{ color:"#6bcb77", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#1a1a2e", border:"1px solid #2a2a4a", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320 }}>
         <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #2a2a4a" }}>
-          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"#E8630A":"transparent", border:"none", color:emailMode==="login"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Connexion</button>
-          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"#E8630A":"transparent", border:"none", color:emailMode==="register"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Inscription</button>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"#E8966A":"transparent", border:"none", color:emailMode==="login"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"#E8966A":"transparent", border:"none", color:emailMode==="register"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Inscription</button>
         </div>
         <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#0e0e1a", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
         <div style={{ position:"relative", marginBottom:16 }}>
@@ -2153,8 +2153,8 @@ export default function App() {
             }
           </button>
         </div>
-        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#E8630A",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
-        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8630A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#E8966A",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8966A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
         <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #dadce0", borderRadius:8, color:"#3c4043", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
@@ -2162,7 +2162,7 @@ export default function App() {
           Continuer avec Google
         </button>
         {unverifiedEmail && (
-          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #E8630A44", borderRadius:8, color:"#E8630A", fontSize:11, cursor:"pointer" }}>
+          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #E8966A44", borderRadius:8, color:"#E8966A", fontSize:11, cursor:"pointer" }}>
             Renvoyer l'email de vérification
           </button>
         )}
