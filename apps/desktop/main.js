@@ -137,7 +137,7 @@ ipcMain.handle("google-auth", async (event) => {
     const authWin = new BrowserWindow({
       width: 500,
       height: 650,
-      title: "Connexion — Task Tracker",
+      title: "Connexion — Flynt",
       resizable: false,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
