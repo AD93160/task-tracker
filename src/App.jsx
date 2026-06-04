@@ -2098,7 +2098,7 @@ export default function App() {
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
       <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:14 }} />
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-        <span style={{ fontSize:24, fontWeight:800, letterSpacing:0.5, color:"#E8966A", fontFamily:"'Playfair Display',serif" }}>Flynt</span>
+        <span style={{ fontSize:24, fontWeight:800, letterSpacing:0.5, color:"#E8966A", fontFamily:"'Open Sans',sans-serif" }}>Flynt</span>
       </div>
       <div style={{ fontSize:12, color:"#666688", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
       {authError && <div style={{ color:"#ff6b6b", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
