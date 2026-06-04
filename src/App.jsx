@@ -2378,7 +2378,7 @@ export default function App() {
         ) : (
           /* Desktop : ligne unique inchangée */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
-            <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>FLYNT</div>
+            <div style={{ fontFamily:"'Open Sans',sans-serif", fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>FLYNT</div>
             <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
               <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block" }} />
             </div>
