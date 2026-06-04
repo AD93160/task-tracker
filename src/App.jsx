@@ -2349,7 +2349,7 @@ export default function App() {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block", borderRadius:8 }} />
-              <span style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:20, fontWeight:800, color:theme.accent, letterSpacing:0.5 }}>Flynt</span>
+              <span style={{ fontFamily:"'Open Sans',sans-serif", fontSize:20, fontWeight:800, color:theme.accent, letterSpacing:0.5 }}>Flynt</span>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
