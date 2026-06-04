@@ -2256,7 +2256,7 @@ export default function App() {
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
               <img src="/favicon.svg" alt="logo" style={{ width:28, height:28, flexShrink:0, borderRadius:7 }} />
-              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:16, fontWeight:800, color:theme.accent, letterSpacing:0.5, flex:1 }}>Flynt</div>
+              <div style={{ fontFamily:"'Open Sans',sans-serif", fontSize:16, fontWeight:800, color:theme.accent, letterSpacing:0.5, flex:1 }}>Flynt</div>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
