@@ -1,20 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <radialGradient id="bg" cx="35%" cy="30%" r="72%">
-      <stop offset="0%" stop-color="#F8BF9C"/>
-      <stop offset="100%" stop-color="#E8966A"/>
-    </radialGradient>
     <filter id="ef" x="-4%" y="-4%" width="112%" height="115%">
       <feDropShadow dx="5" dy="8" stdDeviation="9" flood-color="#000000" flood-opacity="0.20"/>
     </filter>
     <filter id="ec" x="-20%" y="-25%" width="145%" height="150%">
       <feDropShadow dx="4" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.18"/>
     </filter>
-    <filter id="ed" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.15"/>
-    </filter>
   </defs>
-  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="230" fill="#E8966A"/>
   <path d="
     M 220,228 A 28,28 0 0,1 248,200 L 622,200 A 28,28 0 0,1 650,228
     L 650,272 A 28,28 0 0,1 622,300 L 332,300 A 12,12 0 0,0 320,312
@@ -24,7 +17,4 @@
     stroke="#86EFAC" stroke-width="88"
     stroke-linecap="round" stroke-linejoin="round" fill="none"
     filter="url(#ec)"/>
-  <circle cx="575" cy="795" r="26" fill="#86EFAC" opacity="0.50" filter="url(#ed)"/>
-  <circle cx="665" cy="795" r="26" fill="#86EFAC" opacity="0.70" filter="url(#ed)"/>
-  <circle cx="755" cy="795" r="26" fill="#86EFAC" filter="url(#ed)"/>
 </svg>
