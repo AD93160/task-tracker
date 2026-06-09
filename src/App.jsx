@@ -13,6 +13,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "fi
 import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { GoogleAuthProvider } from "firebase/auth";
 import TeamChat from "./TeamChat";
+import FlyntLogo from "./FlyntLogo";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
