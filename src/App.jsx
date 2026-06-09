@@ -2253,7 +2253,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <FlyntLogo height={32} />
+              <FlyntLogo height={42} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
