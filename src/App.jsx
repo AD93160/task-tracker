@@ -2343,10 +2343,10 @@ export default function App() {
             </div>
           </>
         ) : (
-          /* Desktop : ligne unique inchangée */
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
+          /* Desktop */
+          <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", paddingBottom:14 }}>
             <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
-              <FlyntLogo height={48} />
+              <FlyntLogo height={72} />
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
