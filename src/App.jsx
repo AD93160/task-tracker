@@ -13,6 +13,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "fi
 import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { GoogleAuthProvider } from "firebase/auth";
 import TeamChat from "./TeamChat";
+import FlyntLogo from "./FlyntLogo";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
@@ -2096,10 +2097,7 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:"#0e0e1a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#c8c8e8" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:14 }} />
-      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-        <span style={{ fontSize:24, fontWeight:800, letterSpacing:0.5, color:"#E8966A", fontFamily:"'Open Sans',sans-serif" }}>Flynt</span>
-      </div>
+      <FlyntLogo width={160} style={{ marginBottom:28 }} />
       <div style={{ fontSize:12, color:"#666688", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
       {authError && <div style={{ color:"#ff6b6b", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#6bcb77", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
@@ -2255,8 +2253,13 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+<<<<<<< HEAD
               <img src="/favicon.svg" alt="logo" style={{ width:28, height:28, flexShrink:0, borderRadius:7 }} />
               <div style={{ fontFamily:"'Open Sans',sans-serif", fontSize:16, fontWeight:800, color:theme.accent, letterSpacing:0.5, flex:1 }}>Flynt</div>
+=======
+              <FlyntLogo height={32} />
+              <div style={{ flex:1 }} />
+>>>>>>> claude/ecstatic-wozniak-ufR3r
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
@@ -2347,9 +2350,14 @@ export default function App() {
         ) : (
           /* Desktop : ligne unique inchangée */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
+<<<<<<< HEAD
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block", borderRadius:8 }} />
               <span style={{ fontFamily:"'Open Sans',sans-serif", fontSize:20, fontWeight:800, color:theme.accent, letterSpacing:0.5 }}>Flynt</span>
+=======
+            <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
+              <FlyntLogo height={48} />
+>>>>>>> claude/ecstatic-wozniak-ufR3r
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
