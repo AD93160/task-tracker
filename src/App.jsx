@@ -2098,7 +2098,7 @@ export default function App() {
     <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
       <FlyntLogo width={160} style={{ marginBottom:28 }} />
-      <div style={{ fontSize:12, color:"#4a7a5a", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
+      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", color:"#2a4a3a", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
