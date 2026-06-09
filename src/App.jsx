@@ -1996,7 +1996,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>AVANCEMENT ÉQUIPE</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#3aaa3a":rate>40?"#ccaa00":"#cc3030",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#E8966A":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
