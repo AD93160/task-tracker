@@ -2344,9 +2344,10 @@ export default function App() {
           </>
         ) : (
           /* Desktop */
-          <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", paddingBottom:14 }}>
-            <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
               <FlyntLogo height={72} />
+              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", color:"#E8966A", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
