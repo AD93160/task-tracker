@@ -2245,6 +2245,7 @@ export default function App() {
       <div style={{
         padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
+        background: "linear-gradient(to right, transparent, #86EFAC33, transparent)",
         display:"flex",
         flexDirection: "column",
         position: "relative",
