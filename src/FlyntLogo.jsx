@@ -13,7 +13,7 @@ export default function FlyntLogo({ width, height, style }) {
           <feDropShadow dx="5" dy="8" stdDeviation="9" floodColor="#000000" floodOpacity="0.22"/>
         </filter>
       </defs>
-      <rect x="60" y="155" width="710" height="770" rx="60" fill="#E8966A"/>
+      <rect x="60" y="155" width="710" height="770" rx="60" fill="#3DAA6B"/>
       <path
         d="M 220,345 A 45,45 0,0,1 265,300 L 606,300 A 45,45 0,0,1 651,345
            L 651,355 A 45,45 0,0,1 606,400 L 342,400 A 22,22 0,0,0 320,422
