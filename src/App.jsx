@@ -2459,7 +2459,7 @@ export default function App() {
           {teamSpace && team ? (<>
             {/* TODAY — équipe */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"rgba(255,255,255,0.55)", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"transparent", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2528,7 +2528,7 @@ export default function App() {
           </>) : (<>
             {/* TODAY — perso */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"rgba(255,255,255,0.55)", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"transparent", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
