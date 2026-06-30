@@ -4,8 +4,8 @@
   "description": "Gérez vos tâches efficacement",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F8BF9C",
-  "theme_color": "#E8966A",
+  "background_color": "#86EFAC",
+  "theme_color": "#3DAA6B",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
