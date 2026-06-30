@@ -2103,8 +2103,8 @@ export default function App() {
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
         <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #86EFAC66" }}>
-          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"#E8966A":"transparent", border:"none", color:emailMode==="login"?"#fff":"#4a7a5a", fontSize:12, cursor:"pointer" }}>Connexion</button>
-          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"#E8966A":"transparent", border:"none", color:emailMode==="register"?"#fff":"#4a7a5a", fontSize:12, cursor:"pointer" }}>Inscription</button>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
         </div>
         <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#f0faf5", border:"1px solid #86EFAC88", borderRadius:8, color:"#1a3a2a", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
         <div style={{ position:"relative", marginBottom:16 }}>
@@ -2118,8 +2118,8 @@ export default function App() {
             }
           </button>
         </div>
-        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#E8966A",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
-        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8966A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#3a9a5a",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"linear-gradient(to right, #ffffff, #86EFAC)", border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
         <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #86EFAC88", borderRadius:8, color:"#2a4a3a", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
@@ -2127,7 +2127,7 @@ export default function App() {
           Continuer avec Google
         </button>
         {unverifiedEmail && (
-          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #E8966A44", borderRadius:8, color:"#E8966A", fontSize:11, cursor:"pointer" }}>
+          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #86EFAC66", borderRadius:8, color:"#3a9a5a", fontSize:11, cursor:"pointer" }}>
             Renvoyer l'email de vérification
           </button>
         )}
