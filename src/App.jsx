@@ -3698,7 +3698,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
         </div>
