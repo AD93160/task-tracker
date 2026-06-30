@@ -2493,7 +2493,7 @@ export default function App() {
 
             {/* TOMORROW — équipe */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":"rgba(255,255,255,0.4)", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2563,7 +2563,7 @@ export default function App() {
 
             {/* TOMORROW — perso */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":"rgba(255,255,255,0.4)", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
