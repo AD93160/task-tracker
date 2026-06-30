@@ -403,12 +403,12 @@ export default function App() {
 
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
-    accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A",
+    accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A",
     border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
   });
 
-  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8966A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
-  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
+  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
+  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
