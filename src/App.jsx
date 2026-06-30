@@ -2610,7 +2610,7 @@ export default function App() {
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
                 <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
-                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+                  style={{ flex:1,background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:8,padding:"9px 16px",color:"#2a4a3a",fontSize:12,fontWeight:700,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
                 <div style={{ position:"relative" }}>
