@@ -7,7 +7,7 @@
       <feDropShadow dx="4" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.18"/>
     </filter>
   </defs>
-  <rect width="1024" height="1024" rx="230" fill="#E8966A"/>
+  <rect width="1024" height="1024" rx="230" fill="#3DAA6B"/>
   <path d="
     M 220,228 A 28,28 0 0,1 248,200 L 622,200 A 28,28 0 0,1 650,228
     L 650,272 A 28,28 0 0,1 622,300 L 332,300 A 12,12 0 0,0 320,312
