@@ -2605,7 +2605,7 @@ export default function App() {
 
           {/* ── Contrôles fixes (desktop/tablet uniquement) ── */}
           {!isMobile && (
-            <div style={{ flexShrink:0, background:theme.bg, padding:"20px 16px 0", zIndex:10 }}>
+            <div style={{ flexShrink:0, background:"transparent", padding:"20px 16px 0", zIndex:10 }}>
 
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
