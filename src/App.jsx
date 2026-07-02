@@ -3173,7 +3173,7 @@ export default function App() {
                             : task.completion.doneDate}
                         </span>
                         {task.completion.deltaLabel && (
-                          <span style={{ fontSize:9,fontWeight:700,color:task.completion.deltaMin<0?"#3aaa3a":"#cc3030",background:task.completion.deltaMin<0?"#3aaa3a22":"#cc303022",padding:"1px 5px",borderRadius:3 }}>
+                          <span style={{ fontSize:9,fontWeight:700,color:task.completion.deltaMin<0?"#22C55E":"#EF4444",background:task.completion.deltaMin<0?"#22C55E22":"#EF444422",padding:"1px 5px",borderRadius:3 }}>
                             {task.completion.deltaMin<0?"⚡ ":"⚠ "}{task.completion.deltaLabel}
                           </span>
                         )}
