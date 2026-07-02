@@ -3031,7 +3031,7 @@ export default function App() {
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>openEdit(task)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
+                      style={{ background:bgC,border:bdC,borderLeft:blC,boxShadow:shadowC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
 
                       {/* ── Ligne principale (commune desktop + mobile) ── */}
                       <div style={{ display:"flex",alignItems:"center",gap:9 }}>
