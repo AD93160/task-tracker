@@ -3015,9 +3015,10 @@ export default function App() {
                   return 0;
                 }).map(task => {
                   const tc  = teamTaskColor(task);
-                  const bgC = tc ? tc.base+"33" : theme.bgCard;
+                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : "rgba(255,255,255,0.55)") : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
-                  const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
+                  const blC = tc ? `${tc.blWidth} solid ${tc.light}` : `1px solid ${theme.border}`;
+                  const shadowC = tc?.shadow || undefined;
                   const dot = STATUS_DOT[task.status]||"#888";
                   const isTeamGhost = ghost?.id===task.id;
                   const hasPending = isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id);
