@@ -3195,6 +3195,7 @@ export default function App() {
                     )}
                     {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                   </div>
+                  {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
                     <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?"#86EFAC22":"transparent",border:`1px solid ${task.status==="Terminé"?"#86EFAC88":"#86EFAC66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#86EFAC",fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
