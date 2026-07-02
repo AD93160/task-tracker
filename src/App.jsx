@@ -3043,6 +3043,7 @@ export default function App() {
                             <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44`,flexShrink:0 }}>{(task.priority||"?").toUpperCase()}</span>
                             {!isMobile && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>}
                             {hasPending && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044",flexShrink:0 }}>⏳</span>}
+                            {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                           </div>
                           {!isMobile && <>
                             {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
