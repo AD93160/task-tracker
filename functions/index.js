@@ -168,10 +168,16 @@ exports.sendInviteEmail = onCall({ region: REGION }, async (request) => {
   const serviceId  = process.env.EMAILJS_SERVICE_ID;
   const templateId = process.env.EMAILJS_TEMPLATE_ID;
   const publicKey  = process.env.EMAILJS_PUBLIC_KEY;
+  const privateKey = process.env.EMAILJS_PRIVATE_KEY;
   const appUrl     = process.env.APP_URL || "https://task-tracker-2ea82.web.app/?join=true";
 
   if (!serviceId || !templateId || !publicKey) {
     throw new HttpsError("internal", "Configuration email manquante.");
+  }
+  // EmailJS bloque les appels hors navigateur : la clé privée (accessToken) est
+  // obligatoire pour les appels serveur (Cloud Functions), sinon réponse 403.
+  if (!privateKey) {
+    throw new HttpsError("internal", "Clé privée EmailJS manquante (EMAILJS_PRIVATE_KEY).");
   }
 
   const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
@@ -181,6 +187,7 @@ exports.sendInviteEmail = onCall({ region: REGION }, async (request) => {
       service_id:  serviceId,
       template_id: templateId,
       user_id:     publicKey,
+      accessToken: privateKey,
       template_params: {
         to_email:   toEmail,
         team_name:  teamName.slice(0, 50),
@@ -191,7 +198,10 @@ exports.sendInviteEmail = onCall({ region: REGION }, async (request) => {
   });
 
   if (!res.ok) {
-    throw new HttpsError("internal", "Erreur lors de l'envoi de l'email.");
+    // Remonter le détail EmailJS dans les logs pour faciliter le diagnostic.
+    const detail = await res.text().catch(() => "");
+    console.error("EmailJS send failed:", res.status, detail);
+    throw new HttpsError("internal", `Erreur lors de l'envoi de l'email (EmailJS ${res.status}).`);
   }
 
   return { success: true };
