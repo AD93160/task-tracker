@@ -69,7 +69,23 @@ function renderText(text) {
   return parts;
 }
 
+// Déduit si le thème est sombre à partir de la vraie couleur du texte,
+// plus fiable que l'étiquette theme.mode (qui peut être désynchronisée
+// sur un thème sauvegardé d'une ancienne version).
+function hexLuminance(hex) {
+  if (typeof hex !== "string") return 1;
+  let h = hex.replace("#", "").trim();
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  if (h.length !== 6) return 1;
+  const r = parseInt(h.slice(0, 2), 16),
+        g = parseInt(h.slice(2, 4), 16),
+        b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
 export default function TeamChat({ team, user, theme, isMobile, userPseudo, members = [] }) {
+  // Texte clair ⇒ thème sombre ⇒ bulles et fonds sombres (et inversement).
+  const isDark = hexLuminance(theme.text) > 0.5;
   const [open, setOpen]           = useState(false);
   const [messages, setMessages]   = useState([]);
   const [text, setText]           = useState("");
@@ -506,7 +522,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                         <div style={{
                           fontSize: 10,
                           color: theme.textMuted,
-                          background: isMe ? theme.accent+"22" : (theme.mode==="dark" ? "#ffffff11" : "#00000011"),
+                          background: isMe ? theme.accent+"22" : (isDark ? "#ffffff11" : "#00000011"),
                           borderLeft: `2px solid ${theme.accent}88`,
                           borderRadius: "6px 6px 0 0",
                           padding: "3px 8px",
@@ -530,7 +546,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                               maxWidth: "78%",
                               borderRadius,
                               overflow: "hidden",
-                              background: isMe ? theme.accent : (theme.mode==="dark" ? "#1e1e3a" : "#ececf4"),
+                              background: isMe ? theme.accent : (isDark ? "#1e1e3a" : "#ececf4"),
                             }}>
                               <img
                                 src={att.url}
@@ -544,7 +560,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                               maxWidth: "78%",
                               padding: "8px 11px",
                               borderRadius,
-                              background: isMe ? theme.accent : (theme.mode==="dark" ? "#1e1e3a" : "#ececf4"),
+                              background: isMe ? theme.accent : (isDark ? "#1e1e3a" : "#ececf4"),
                               color: isMe ? "#fff" : theme.text,
                               fontSize: 11,
                             }}>
@@ -561,7 +577,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                             width: "fit-content",
                             padding: "7px 11px",
                             borderRadius,
-                            background: isMe ? theme.accent : (theme.mode==="dark" ? "#1e1e3a" : "#ececf4"),
+                            background: isMe ? theme.accent : (isDark ? "#1e1e3a" : "#ececf4"),
                             color: isMe ? "#fff" : theme.text,
                             fontSize: 12,
                             lineHeight: 1.45,
@@ -579,7 +595,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                           <button
                             onClick={e => openContextMenu(e, msg)}
                             style={{
-                              background: theme.mode === "dark" ? "#ffffff18" : "#00000012",
+                              background: isDark ? "#ffffff18" : "#00000012",
                               border: `1px solid ${theme.border}`,
                               borderRadius: 5,
                               color: theme.text,
@@ -618,7 +634,7 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
               <div style={{
                 padding: "5px 12px",
                 borderTop: `1px solid ${theme.border}`,
-                background: theme.mode === "dark" ? "#ffffff08" : "#00000008",
+                background: isDark ? "#ffffff08" : "#00000008",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
