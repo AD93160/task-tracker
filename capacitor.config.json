@@ -3,6 +3,7 @@
   "appName": "Flynt",
   "webDir": "apps/mobile/www",
   "android": {
+    "path": "apps/mobile/android",
     "backgroundColor": "#FFFFFF"
   },
   "server": {

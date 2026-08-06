@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond des icônes adaptatives : le dégradé signature Flynt.
+     Android compose ce calque sous ic_launcher_foreground et applique
+     le masque du constructeur (rond, squircle, etc.). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#3DAA6B"
+        android:endColor="#86EFAC"
+        android:angle="0" />
+</shape>

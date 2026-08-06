@@ -13,15 +13,20 @@
     "build:desktop": "vite build --config vite.config.desktop.js --outDir apps/desktop/www && (cd apps/desktop && npm install && CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config electron-builder.yml)",
     "preview": "vite preview",
     "test:e2e": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test",
-    "test:e2e:ui": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test --ui"
+    "test:e2e:ui": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test --ui",
+    "build:android": "vite build --config vite.config.android.js --outDir apps/mobile/www && npx cap sync android",
+    "open:android": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "@task-tracker/shared": "*",
     "firebase": "^10.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "@playwright/test": "^1.51.1",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^9.0.0",
