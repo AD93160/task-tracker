@@ -2,10 +2,23 @@ name: Build Desktop
 
 on:
   release:
-    types: [created]
+    # 'published' se déclenche une seule fois, que la release ait été
+    # enregistrée en brouillon avant ou publiée directement.
+    # Ne PAS ajouter 'created'/'released' : publier directement les émet
+    # tous les trois, ce qui relancerait le build en double.
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la release à builder (ex: v2.0.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   build-mac:
