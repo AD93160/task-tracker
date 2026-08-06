@@ -456,6 +456,11 @@ export default function App() {
 
   const [theme, setTheme] = useState(THEMES.green.light);
 
+  // Le carré du logo suit la famille de thème, pas le mode : il reste
+  // identique en clair et en sombre. Le F et la coche, eux, prennent
+  // theme.logoF — l'accent de la famille opposée.
+  const LOGO_SQUARE = theme.family === "hermes" ? "#E8966A" : "#4FC287";
+
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
   const ghostRef         = useRef(null);
@@ -2144,7 +2149,7 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <FlyntLogo width={160} style={{ marginBottom:28 }} />
+      <FlyntLogo width={160} style={{ marginBottom:28 }} square={LOGO_SQUARE} mark={theme.logoF} />
       <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
@@ -2301,7 +2306,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <FlyntLogo height={42} />
+              <FlyntLogo height={42} square={LOGO_SQUARE} mark={theme.logoF} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
@@ -2394,7 +2399,7 @@ export default function App() {
           /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <FlyntLogo height={72} />
+              <FlyntLogo height={72} square={LOGO_SQUARE} mark={theme.logoF} />
               <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
