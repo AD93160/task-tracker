@@ -13,6 +13,12 @@ export default function FlyntLogo({ width, height, style, square = "#4FC287", ma
   const RATIO = 730 / 780;
   const w = width  || (height ? Math.round(height * RATIO) : 200);
   const h = height || Math.round(w / RATIO);
+  // Les id SVG sont globaux au document : deux logos de couleurs différentes
+  // affichés en même temps (ex. le sélecteur de thème) se voleraient leur
+  // dégradé. On les dérive donc des couleurs pour qu'ils restent distincts.
+  const uid      = `${square}${mark}`.replace(/[^a-zA-Z0-9]/g, "");
+  const gradId   = `fl-g-${uid}`;
+  const shadowId = `fl-s-${uid}`;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="55 150 730 780" width={w} height={h} style={style}>
       <defs>
