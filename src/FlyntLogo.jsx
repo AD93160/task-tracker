@@ -1,4 +1,15 @@
-export default function FlyntLogo({ width, height, style }) {
+/**
+ * Logo Flynt.
+ *
+ * `square` : couleur du carré de fond.
+ * `mark`   : couleur du F ET de la coche — c'est l'accent de la famille de
+ *            thème opposée, ce qui donne au logo son inversion bicolore.
+ *
+ * Les valeurs par défaut correspondent à l'identité canonique (carré vert,
+ * marque orange) — celle utilisée par le favicon et l'icône PWA, qui sont
+ * des fichiers statiques et ne peuvent pas suivre le thème choisi.
+ */
+export default function FlyntLogo({ width, height, style, square = "#4FC287", mark = "#E8966A" }) {
   const RATIO = 730 / 780;
   const w = width  || (height ? Math.round(height * RATIO) : 200);
   const h = height || Math.round(w / RATIO);
