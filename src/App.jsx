@@ -461,6 +461,13 @@ export default function App() {
   // theme.logoF — l'accent de la famille opposée.
   const LOGO_SQUARE = theme.family === "hermes" ? "#E8966A" : "#4FC287";
 
+  // La page de connexion est pré-authentification : aucun thème utilisateur
+  // n'est encore chargé, et elle doit porter l'identité canonique de la
+  // marque — le vert, comme le favicon et l'icône PWA. Elle ne suit donc
+  // volontairement pas theme.*, y compris si l'utilisateur se déconnecte
+  // alors qu'il avait choisi le thème Hermès.
+  const CANON = THEMES.green.light;
+
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
   const ghostRef         = useRef(null);
@@ -2048,7 +2055,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>AVANCEMENT ÉQUIPE</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#22C55E":rate>40?"#F59E0B":"#EF4444",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2100,7 +2107,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>EFFICACITÉ</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#22C55E":rate>40?"#F59E0B":"#EF4444",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2147,16 +2154,16 @@ export default function App() {
   );
 
   if (!user) return (
-    <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
+    <div style={{ height:"100vh", background:CANON.grad, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <FlyntLogo width={160} style={{ marginBottom:28 }} square={LOGO_SQUARE} mark={theme.logoF} />
-      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
+      <FlyntLogo width={160} style={{ marginBottom:28 }} square="#4FC287" mark={CANON.logoF} />
+      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.ctaGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
         <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #86EFAC66" }}>
-          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
-          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?CANON.ctaGrad:"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?CANON.ctaGrad:"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
         </div>
         <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#f0faf5", border:"1px solid #86EFAC88", borderRadius:8, color:"#1a3a2a", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
         <div style={{ position:"relative", marginBottom:16 }}>
@@ -2171,7 +2178,7 @@ export default function App() {
           </button>
         </div>
         {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#3a9a5a",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
-        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"linear-gradient(to right, #ffffff, #86EFAC)", border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:CANON.ctaGrad, border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
         <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #86EFAC88", borderRadius:8, color:"#2a4a3a", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
@@ -2192,7 +2199,7 @@ export default function App() {
   const renderTomorrowStr = renderTomDate.toISOString().split("T")[0];
 
   return (
-    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:"linear-gradient(to right, #ffffff, #86EFAC)", fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
+    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:theme.grad, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Playfair+Display:wght@400;600;700;800&family=Syne:wght@700;800&display=swap');
         * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
@@ -2297,7 +2304,7 @@ export default function App() {
       <div style={{
         padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
-        background: "linear-gradient(to right, #ffffff, #86EFAC)",
+        background: theme.grad,
         display:"flex",
         flexDirection: "column",
         position: "relative",
@@ -2400,7 +2407,7 @@ export default function App() {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
               <FlyntLogo height={72} square={LOGO_SQUARE} mark={theme.logoF} />
-              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
+              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.ctaGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
@@ -2662,7 +2669,7 @@ export default function App() {
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
                 <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
-                  style={{ flex:1,background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:8,padding:"9px 16px",color:"#2a4a3a",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                  style={{ flex:1,background:theme.ctaGrad,border:"none",borderRadius:8,padding:"9px 16px",color:theme.ctaText,fontSize:12,fontWeight:700,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
                 <div style={{ position:"relative" }}>
@@ -3251,7 +3258,7 @@ export default function App() {
                   </div>
                   {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
-                    <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?"#86EFAC22":"transparent",border:`1px solid ${task.status==="Terminé"?"#86EFAC88":"#86EFAC66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#86EFAC",fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
+                    <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?theme.accent+"22":"transparent",border:`1px solid ${theme.accent}${task.status==="Terminé"?"88":"66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
                     <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:false});}} style={{ background:"transparent",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</button>
@@ -3437,11 +3444,31 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>PARAMÈTRES</div>
 
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>THÈME</div>
+            <div style={{ display:"flex",gap:8,marginBottom:14 }}>
+              {[{ k:"green", label:"Vert", sq:"#4FC287" },
+                { k:"hermes", label:"Hermès", sq:"#E8966A" }].map(({k,label,sq})=>{
+                const on = theme.family===k;
+                const t  = THEMES[k][theme.mode==="dark"?"dark":"light"];
+                return (
+                  <button key={k} onClick={()=>setTheme(pickTheme(k, theme.mode))}
+                    style={{ flex:1,background:on?theme.accent+"22":"transparent",border:`1.5px solid ${on?theme.accent:theme.border}`,borderRadius:8,padding:"8px 6px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6 }}>
+                    {/* Aperçu : carré de la famille + pastille de la marque inversée */}
+                    <span style={{ display:"flex",alignItems:"center",gap:5 }}>
+                      <span style={{ width:16,height:16,borderRadius:5,background:sq,display:"inline-block" }}/>
+                      <span style={{ width:9,height:9,borderRadius:"50%",background:t.logoF,display:"inline-block" }}/>
+                    </span>
+                    <span style={{ color:on?theme.accent:theme.textMuted,fontSize:10,fontWeight:on?700:400 }}>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
               {["light","dark"].map(m=>(
-                <button key={m} onClick={()=>setTheme(m==="dark" ? FLYNT_DARK : FLYNT_LIGHT)}
-                  style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?"#fff":theme.textMuted,fontSize:11,cursor:"pointer" }}>
+                <button key={m} onClick={()=>setTheme(pickTheme(theme.family, m))}
+                  style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?theme.ctaText:theme.textMuted,fontSize:11,cursor:"pointer",fontWeight:theme.mode===m?700:400 }}>
                   {m==="dark"?"🌙 Sombre":"☀️ Clair"}
                 </button>
               ))}
@@ -3734,7 +3761,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:theme.ctaGrad,border:"none",borderRadius:50,padding:"13px 18px",color:theme.ctaText,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             + Ajouter
           </button>
         </div>
@@ -3754,7 +3781,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:theme.ctaGrad,border:"none",borderRadius:50,padding:"13px 18px",color:theme.ctaText,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
         </div>
