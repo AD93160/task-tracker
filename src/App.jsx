@@ -3078,7 +3078,7 @@ export default function App() {
                   return 0;
                 }).map(task => {
                   const tc  = teamTaskColor(task);
-                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : "rgba(255,255,255,0.55)") : theme.bgCard;
+                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : theme.cardBg) : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
                   const blC = tc ? `${tc.blWidth} solid ${tc.light}` : `1px solid ${theme.border}`;
                   const shadowC = tc?.shadow || undefined;
@@ -3203,7 +3203,7 @@ export default function App() {
               const dot     = STATUS_DOT[task.status];
               const isGhost = ghost?.id===task.id;
               const tc      = taskColor(task);
-              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?(tc.bgOpacity?tc.base+tc.bgOpacity:"rgba(255,255,255,0.55)"):hl?theme.accent+"22":theme.bgCard);
+              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?(tc.bgOpacity?tc.base+tc.bgOpacity:theme.cardBg):hl?theme.accent+"22":theme.bgCard);
               const bdC = task.status==="Terminé"&&task.completion ? `1px solid ${task.completion.color}55` : (tc?`1px solid ${tc.light}66`:hl?`1px solid ${theme.accent}66`:`1px solid ${theme.border}`);
               const blC = task.status==="Terminé"&&task.completion ? `3px solid ${task.completion.color}` : (tc?`${tc.blWidth} solid ${tc.light}`:hl?`3px solid ${theme.accent}`:`1px solid ${theme.border}`);
               const shadowC = task.status==="Terminé"||!tc ? undefined : tc.shadow||undefined;
