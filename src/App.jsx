@@ -425,6 +425,7 @@ export default function App() {
         ctaGrad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
         ctaText:"#10281C", logoF:"#E8966A",
         sloganGrad:"linear-gradient(to right, #8A3D18, #E8966A)",
+        logoMark:["#C9713F","#7A3414"],
         bg:"#F2FBF6", bgLeft:"#E8F7EF", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.55)",
         accent:"#3DAA6B", text:"#10281C", textMuted:"#5A7A68", border:"#B8E6CC" },
       dark:  { ...FONT_BASE, family:"green", mode:"dark",
@@ -432,6 +433,7 @@ export default function App() {
         ctaGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
         ctaText:"#06140E", logoF:"#E8966A",
         sloganGrad:"linear-gradient(to right, #C9713F, #FFD9BE)",
+        logoMark:["#FFD9BE","#E8966A"],
         bg:"#0B1F16", bgLeft:"#0E2519", bgCard:"#12281D", cardBg:"rgba(255,255,255,0.07)",
         accent:"#4FC287", text:"#E8F5ED", textMuted:"#8FB3A0", border:"#2A5240" },
     },
@@ -441,6 +443,7 @@ export default function App() {
         ctaGrad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
         ctaText:"#2C1A0E", logoF:"#3DAA6B",
         sloganGrad:"linear-gradient(to right, #0E4F2C, #4FC287)",
+        logoMark:["#2E8A55","#0C4426"],
         bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.6)",
         // #E8966A est réservé au logo : en texte sur blanc il ne contraste
         // qu'à ~2.2:1. #C9713F monte à ~4.6:1 et reste dans le ton.
@@ -450,6 +453,7 @@ export default function App() {
         ctaGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
         ctaText:"#1C0F08", logoF:"#4FC287",
         sloganGrad:"linear-gradient(to right, #2A7A4C, #A7F3C8)",
+        logoMark:["#A7F3C8","#4FC287"],
         bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", cardBg:"rgba(255,255,255,0.07)",
         accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#4A2A14" },
     },
@@ -460,12 +464,10 @@ export default function App() {
 
   const [theme, setTheme] = useState(THEMES.green.light);
 
-  // Le logo suit la famille de thème, pas le mode : c'est un actif de marque,
-  // il ne doit pas changer entre clair et sombre. Carré et marque sont tous
-  // deux en dégradé, la marque en sens inverse pour tenir le contraste.
-  const LOGO = theme.family === "hermes"
-    ? { square:["#C9713F","#F5C9A8"], mark:["#A7F3C8","#1F6B42"] }
-    : { square:["#3DAA6B","#86EFAC"], mark:["#F5C9A8","#8A3D18"] };
+  // Le carré du logo n'est pas peint dans l'app : le dégradé de la page passe
+  // au travers. La marque (F + coche + « lynt ») repose donc directement sur
+  // ce fond et doit contraster avec lui — d'où theme.logoMark, qui dépend à
+  // la fois de la famille et du mode.
 
   // La page de connexion est pré-authentification : aucun thème utilisateur
   // n'est encore chargé, et elle doit porter l'identité canonique de la
@@ -2162,7 +2164,7 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:CANON.grad, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <FlyntLogo width={160} style={{ marginBottom:28 }} square={["#3DAA6B","#86EFAC"]} mark={["#F5C9A8","#8A3D18"]} />
+      <FlyntLogo width={160} style={{ marginBottom:28 }} mark={CANON.logoMark} />
       <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
@@ -2319,7 +2321,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <FlyntLogo height={42} square={LOGO.square} mark={LOGO.mark} />
+              <FlyntLogo height={42} mark={theme.logoMark} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
@@ -2412,7 +2414,7 @@ export default function App() {
           /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <FlyntLogo height={72} square={LOGO.square} mark={LOGO.mark} />
+              <FlyntLogo height={72} mark={theme.logoMark} />
               <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
