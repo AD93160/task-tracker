@@ -424,12 +424,14 @@ export default function App() {
         grad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
         ctaGrad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
         ctaText:"#10281C", logoF:"#E8966A",
+        sloganGrad:"linear-gradient(to right, #C9713F, #E8966A)",
         bg:"#F2FBF6", bgLeft:"#E8F7EF", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.55)",
         accent:"#3DAA6B", text:"#10281C", textMuted:"#5A7A68", border:"#B8E6CC" },
       dark:  { ...FONT_BASE, family:"green", mode:"dark",
         grad:"linear-gradient(to right, #0B1F16, #1E6844)",
         ctaGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
         ctaText:"#06140E", logoF:"#E8966A",
+        sloganGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
         bg:"#0B1F16", bgLeft:"#0E2519", bgCard:"#12281D", cardBg:"rgba(255,255,255,0.07)",
         accent:"#4FC287", text:"#E8F5ED", textMuted:"#8FB3A0", border:"#2A5240" },
     },
@@ -438,6 +440,7 @@ export default function App() {
         grad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
         ctaGrad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
         ctaText:"#2C1A0E", logoF:"#3DAA6B",
+        sloganGrad:"linear-gradient(to right, #2A7A4C, #3DAA6B)",
         bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.6)",
         // #E8966A est réservé au logo : en texte sur blanc il ne contraste
         // qu'à ~2.2:1. #C9713F monte à ~4.6:1 et reste dans le ton.
@@ -446,6 +449,7 @@ export default function App() {
         grad:"linear-gradient(to right, #1C0F08, #6B3A1E)",
         ctaGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
         ctaText:"#1C0F08", logoF:"#4FC287",
+        sloganGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
         bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", cardBg:"rgba(255,255,255,0.07)",
         accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#4A2A14" },
     },
@@ -2157,7 +2161,7 @@ export default function App() {
     <div style={{ height:"100vh", background:CANON.grad, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
       <FlyntLogo width={160} style={{ marginBottom:28 }} square="#4FC287" mark={CANON.logoF} />
-      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.ctaGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
+      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
@@ -2407,7 +2411,7 @@ export default function App() {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
               <FlyntLogo height={72} square={LOGO_SQUARE} mark={theme.logoF} />
-              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.ctaGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
+              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
@@ -3536,7 +3540,7 @@ export default function App() {
             <button onClick={async()=>{
               if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
-              await setDoc(ref,{theme:{mode:theme.mode}},{merge:true});
+              await setDoc(ref,{theme:{family:theme.family,mode:theme.mode}},{merge:true});
               toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder les préférences
