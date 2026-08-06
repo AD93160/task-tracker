@@ -10,15 +10,11 @@
  *            Les formes pleines servent aux contextes qui ne peuvent pas
  *            compter sur un fond derrière : favicon, icône PWA, aperçu du
  *            sélecteur de thème.
- * `mark`   : couleur du F ET de la coche — l'accent de la famille de thème
- *            opposée, ce qui donne au logo son inversion bicolore. Accepte
- *            aussi deux bornes. Son dégradé est appliqué en sens INVERSE de
- *            celui du carré : le côté clair de la marque tombe ainsi sur le
- *            côté sombre du carré, et le contraste tient sur toute la largeur.
- *
- * Les valeurs par défaut correspondent à l'identité canonique (carré vert,
- * marque orange) — celle du favicon et de l'icône PWA, fichiers statiques
- * qui ne peuvent pas suivre le thème choisi.
+ * `mark`   : couleur du F, de la coche et de « lynt » — l'accent de la
+ *            famille de thème opposée, ce qui donne au logo son inversion
+ *            bicolore. Accepte aussi deux bornes. Son dégradé est appliqué
+ *            en sens INVERSE de celui du carré, pour que le côté clair de la
+ *            marque ne tombe pas sur le côté clair du fond.
  */
 export default function FlyntLogo({
   width, height, style,
