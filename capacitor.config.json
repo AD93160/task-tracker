@@ -1,0 +1,11 @@
+{
+  "appId": "com.flynt.app",
+  "appName": "Flynt",
+  "webDir": "apps/mobile/www",
+  "android": {
+    "backgroundColor": "#FFFFFF"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
