@@ -22,7 +22,7 @@
  */
 export default function FlyntLogo({
   width, height, style,
-  square = ["#3DAA6B", "#86EFAC"],
+  square = null,
   mark = ["#F5C9A8", "#C9713F"],
 }) {
   const RATIO = 730 / 780;
