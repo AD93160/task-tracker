@@ -1,11 +1,11 @@
 {
-  "name": "Task Tracker Pro",
-  "short_name": "TaskTracker",
+  "name": "Flynt",
+  "short_name": "Flynt",
   "description": "Gérez vos tâches efficacement",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FDF6EC",
-  "theme_color": "#E8630A",
+  "background_color": "#86EFAC",
+  "theme_color": "#4FC287",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

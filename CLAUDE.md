@@ -1,4 +1,4 @@
-# Task Tracker Pro — Contexte projet
+# Flynt — Contexte projet
 
 ## Règles de travail
 
@@ -9,6 +9,7 @@
 3. **Après chaque changement** : Vérifie que rien n'est cassé. Ne marque jamais une tâche comme terminée sans avoir testé.
 4. Ne jamais lancer les tests (npx playwright test, npm test, etc.) sauf si l'utilisateur le demande explicitement.
 5. **Avant toute modification de doc ou config** : Explorer la structure complète du repo pour identifier tous les fichiers concernés (ex : CLAUDE.md ET NOMENCLATURE.txt pour la nomenclature). Ne jamais modifier un seul fichier sans avoir vérifié qu'il n'en existe pas d'autres liés.
+6. **URL de test stables** : Toujours pousser le travail sur la branche `develop` (en plus de la branche feature) afin que le preview Vercel de `develop` reste à jour et que son URL ne change pas entre les sessions. Ne jamais demander à l'utilisateur de mettre à jour les domaines autorisés Firebase entre deux sessions.
 
 ## Stack
 - React 18 + Vite
@@ -157,9 +158,22 @@ isMobile          // bool, screen.width <= 768
 - `fromFirestore.current = true` avant `setTasks` depuis Firestore pour éviter boucle de sync
 - Firebase Storage paths : `users/${uid}/attachments/...` et `teams/${teamId}/attachments/...`
 
-## Branche de travail
-- Production : `main` → Vercel déploie automatiquement
-- Features : `claude/resume-work-ZxXiO` (branche active)
+## Branches de travail
+
+| Branche | Rôle |
+|---|---|
+| `main` | Production — Vercel déploie automatiquement, NE PAS toucher directement |
+| `develop` | Intégration — branche de travail principale, preview Vercel automatique |
+| `feature/...` ou `fix/...` | Branches courtes → PR vers `develop` |
+
+### Workflow de release
+1. Développer sur `develop` (ou branches courtes mergées dans `develop`)
+2. Tester via l'URL de preview Vercel de `develop`
+3. Quand prêt : PR `develop` → `main` (web en prod) + créer une release GitHub `vX.Y.Z` (build Electron déclenché, users notifiés)
+
+### Règle importante
+- Les commits sur `main` et `develop` n'affectent PAS les utilisateurs Electron installés
+- Seule la création d'une release GitHub avec un tag `vX.Y.Z` supérieur déclenche la notification de mise à jour dans l'app desktop
 
 ## Nomenclature des tickets
 

@@ -13,6 +13,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "fi
 import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { GoogleAuthProvider } from "firebase/auth";
 import TeamChat from "./TeamChat";
+import FlyntLogo from "./FlyntLogo";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
@@ -402,45 +403,12 @@ export default function App() {
 
   const [theme, setTheme] = useState({
     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
-    accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A",
-    border:"#E8D5B0", font:"Inter", titleFont:"Playfair Display", mode:"light",
+    accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A",
+    border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
   });
 
-  const FONTS = [
-    { label:"Inter",       value:"Inter" },
-    { label:"DM Mono",     value:"DM Mono" },
-    { label:"Space Mono",  value:"Space Mono" },
-    { label:"Courier",     value:"Courier New" },
-    { label:"Roboto Mono", value:"Roboto Mono" },
-  ];
-  const TITLE_FONTS = [
-    { label:"Playfair Display", value:"Playfair Display" },
-    { label:"Cormorant",        value:"Cormorant Garamond" },
-    { label:"Syne",             value:"Syne" },
-    { label:"Bebas Neue",       value:"Bebas Neue" },
-    { label:"Oswald",           value:"Oswald" },
-    { label:"Rajdhani",         value:"Rajdhani" },
-    { label:"Orbitron",         value:"Orbitron" },
-  ];
-  const PRESETS = {
-    dark: [
-      { name:"Nuit",       bg:"#0d0d1a", bgLeft:"#0a0a18", bgCard:"#0f0f22", accent:"#5050dd", text:"#e0e0f0", textMuted:"#8888aa", border:"#1a1a3a" },
-      { name:"Forêt",      bg:"#0a120a", bgLeft:"#081008", bgCard:"#0d180d", accent:"#40a040", text:"#e0f0e0", textMuted:"#6a9a6a", border:"#1a3a1a" },
-      { name:"Braise",     bg:"#1a0d0d", bgLeft:"#180a0a", bgCard:"#220d0d", accent:"#dd5020", text:"#f0e0e0", textMuted:"#9a7878", border:"#3a1a1a" },
-      { name:"Océan",      bg:"#0a0d1a", bgLeft:"#080a18", bgCard:"#0d1022", accent:"#2080cc", text:"#e0e8f8", textMuted:"#6a8aaa", border:"#1a2a3a" },
-      { name:"Encre",      bg:"#111111", bgLeft:"#0a0a0a", bgCard:"#181818", accent:"#888888", text:"#dddddd", textMuted:"#888888", border:"#222222" },
-      { name:"Améthyste",  bg:"#120a1a", bgLeft:"#0e0814", bgCard:"#180d22", accent:"#9040cc", text:"#f0e0ff", textMuted:"#8870aa", border:"#2a1a3a" },
-    ],
-    light: [
-      { name:"Cognac",     bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#E8630A", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#E8D5B0" },
-      { name:"Papier",     bg:"#f8f8f4", bgLeft:"#f0f0ea", bgCard:"#ffffff", accent:"#5050dd", text:"#1a1a2e", textMuted:"#9090a0", border:"#e0e0e8" },
-      { name:"Sauge",      bg:"#f4f8f4", bgLeft:"#ebf2eb", bgCard:"#ffffff", accent:"#2a8a2a", text:"#0a1a0a", textMuted:"#7a9a7a", border:"#d0e8d0" },
-      { name:"Terracotta", bg:"#faf5f2", bgLeft:"#f5ede8", bgCard:"#ffffff", accent:"#cc4820", text:"#1a0a08", textMuted:"#aa8878", border:"#e8d5cc" },
-      { name:"Ciel",       bg:"#f2f6fc", bgLeft:"#e8f0f8", bgCard:"#ffffff", accent:"#1a70cc", text:"#08102a", textMuted:"#6080aa", border:"#ccdaee" },
-      { name:"Craie",      bg:"#f8f8f8", bgLeft:"#f0f0f0", bgCard:"#ffffff", accent:"#555555", text:"#111111", textMuted:"#999999", border:"#dddddd" },
-      { name:"Lavande",    bg:"#f6f4fc", bgLeft:"#eeebf8", bgCard:"#ffffff", accent:"#7040bb", text:"#180a2a", textMuted:"#9080aa", border:"#ddd0ee" },
-    ],
-  };
+  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
+  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
@@ -698,7 +666,7 @@ export default function App() {
         if (data.tomorrowIds)  setTomorrowIds(data.tomorrowIds);
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
-        if (data.theme)        setTheme(t => ({...t, ...data.theme}));
+        if (data.theme?.mode)  setTheme(data.theme.mode === "dark" ? FLYNT_DARK : FLYNT_LIGHT);
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
@@ -873,7 +841,7 @@ export default function App() {
                 : "member";
               if (prevTeamRole !== null && prevTeamRole !== "co-admin" && derived === "co-admin") {
                 if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification("Task Tracker — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
+                  new Notification("Flynt — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
                 }
               }
               prevTeamRole = derived;
@@ -1059,7 +1027,7 @@ export default function App() {
         if (teamTasksPrevIds.current !== null && !isAdminRole(teamRole)) {
           const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
           if (newTasks.length > 0 && Notification.permission === "granted") {
-            new Notification("Task Tracker — Nouvelle tâche équipe 📋", {
+            new Notification("Flynt — Nouvelle tâche équipe 📋", {
               body: newTasks.map(tk => tk.title).join(" • "),
               icon: "/favicon.ico", tag: "team-task-added"
             });
@@ -1079,7 +1047,7 @@ export default function App() {
           if (Notification.permission === "granted") {
             const newest = items[items.length - 1];
             const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
-            new Notification("Task Tracker — Modification proposée 🔔", {
+            new Notification("Flynt — Modification proposée 🔔", {
               body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
               icon: "/favicon.ico", tag: "team-pending"
             });
@@ -2028,7 +1996,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>AVANCEMENT ÉQUIPE</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#3aaa3a":rate>40?"#ccaa00":"#cc3030",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2080,7 +2048,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>EFFICACITÉ</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#3aaa3a":rate>40?"#ccaa00":"#cc3030",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2127,40 +2095,39 @@ export default function App() {
   );
 
   if (!user) return (
-    <div style={{ height:"100vh", background:"#0e0e1a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#c8c8e8" }}>
+    <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <img src="/favicon.svg" alt="logo" style={{ width:56, height:56, marginBottom:24 }} />
-      <div style={{ fontSize:20, fontWeight:800, letterSpacing:3, color:"#E8630A", marginBottom:8 }}>TASK TRACKER PRO</div>
-      <div style={{ fontSize:12, color:"#666688", marginBottom:32 }}>Connectez-vous pour accéder à vos tâches</div>
-      {authError && <div style={{ color:"#ff6b6b", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
-      {authInfo  && <div style={{ color:"#6bcb77", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
-      <div style={{ background:"#1a1a2e", border:"1px solid #2a2a4a", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320 }}>
-        <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #2a2a4a" }}>
-          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"#E8630A":"transparent", border:"none", color:emailMode==="login"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Connexion</button>
-          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"#E8630A":"transparent", border:"none", color:emailMode==="register"?"#fff":"#666688", fontSize:12, cursor:"pointer" }}>Inscription</button>
+      <FlyntLogo width={160} style={{ marginBottom:28 }} />
+      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
+      {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
+      {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
+      <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
+        <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #86EFAC66" }}>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
         </div>
-        <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#0e0e1a", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
+        <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#f0faf5", border:"1px solid #86EFAC88", borderRadius:8, color:"#1a3a2a", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
         <div style={{ position:"relative", marginBottom:16 }}>
           <input type={showPassword?"text":"password"} placeholder="Mot de passe" value={emailForm.password} onChange={e=>setEmailForm(f=>({...f,password:e.target.value}))}
             onKeyDown={e=>{ if(e.key==="Enter") loginEmail(); }}
-            style={{ width:"100%", padding:"10px 12px", paddingRight:42, background:"#0e0e1a", border:"1px solid #2a2a4a", borderRadius:8, color:"#c8c8e8", fontSize:13, boxSizing:"border-box" }} />
-          <button onClick={()=>setShowPassword(s=>!s)} style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"#666688",cursor:"pointer",padding:0,lineHeight:1 }}>
+            style={{ width:"100%", padding:"10px 12px", paddingRight:42, background:"#f0faf5", border:"1px solid #86EFAC88", borderRadius:8, color:"#1a3a2a", fontSize:13, boxSizing:"border-box" }} />
+          <button onClick={()=>setShowPassword(s=>!s)} style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"#4a7a5a",cursor:"pointer",padding:0,lineHeight:1 }}>
             {showPassword
               ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             }
           </button>
         </div>
-        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#E8630A",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
-        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"#E8630A", border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+        {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#3a9a5a",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"linear-gradient(to right, #ffffff, #86EFAC)", border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
-        <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #dadce0", borderRadius:8, color:"#3c4043", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+        <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #86EFAC88", borderRadius:8, color:"#2a4a3a", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continuer avec Google
         </button>
         {unverifiedEmail && (
-          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #E8630A44", borderRadius:8, color:"#E8630A", fontSize:11, cursor:"pointer" }}>
+          <button onClick={resendVerification} style={{ width:"100%", marginTop:10, padding:"8px 0", background:"transparent", border:"1px solid #86EFAC66", borderRadius:8, color:"#3a9a5a", fontSize:11, cursor:"pointer" }}>
             Renvoyer l'email de vérification
           </button>
         )}
@@ -2173,9 +2140,9 @@ export default function App() {
   const renderTomorrowStr = renderTomDate.toISOString().split("T")[0];
 
   return (
-    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:theme.bg, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
+    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:"linear-gradient(to right, #ffffff, #86EFAC)", fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500&family=Roboto+Mono:wght@400;500&family=Bebas+Neue&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Orbitron:wght@700;800&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Playfair+Display:wght@400;600;700;800&family=Syne:wght@700;800&display=swap');
         * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
         html, body { height:100%; overflow:hidden; margin:0; padding:0; }
         #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -2278,6 +2245,7 @@ export default function App() {
       <div style={{
         padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
+        background: "linear-gradient(to right, #ffffff, #86EFAC)",
         display:"flex",
         flexDirection: "column",
         position: "relative",
@@ -2286,8 +2254,8 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <img src="/favicon.svg" alt="logo" style={{ width:22, height:22, flexShrink:0 }} />
-              <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:14, fontWeight:800, color:theme.accent, letterSpacing:1, flex:1 }}>TASK TRACKER PRO</div>
+              <FlyntLogo height={42} />
+              <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
               {/* Avatar / login */}
@@ -2376,11 +2344,11 @@ export default function App() {
             </div>
           </>
         ) : (
-          /* Desktop : ligne unique inchangée */
+          /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
-            <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:18, fontWeight:800, color:theme.accent, letterSpacing:3, whiteSpace:"nowrap" }}>TASK TRACKER PRO</div>
-            <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", pointerEvents:"none" }}>
-              <img src="/favicon.svg" alt="logo" style={{ width:34, height:34, display:"block" }} />
+            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+              <FlyntLogo height={72} />
+              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
@@ -2486,12 +2454,12 @@ export default function App() {
       <div style={{ display:"flex", flex:1, flexDirection: isMobile ? "column" : "row", height:"calc(100vh - 61px)", overflow: "hidden" }}>
 
         {/* ── LEFT — masqué en mode équipe ── */}
-        <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? theme.bgLeft : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
+        <div ref={leftRef} style={{ position: isMobile ? "sticky" : undefined, top: isMobile ? 0 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? "transparent" : undefined, width: isMobile ? "100%" : "38%", borderRight: isMobile ? "none" : `1px solid ${theme.border}`, borderBottom: isMobile ? `1px solid ${theme.border}` : "none", display:"flex", flexDirection:"column", overflowY: isMobile ? "visible" : "auto", flexShrink:0 }}>
 
           {teamSpace && team ? (<>
             {/* TODAY — équipe */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"transparent", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2525,7 +2493,7 @@ export default function App() {
 
             {/* TOMORROW — équipe */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":"transparent", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2560,7 +2528,7 @@ export default function App() {
           </>) : (<>
             {/* TODAY — perso */}
             <div onDragOver={e=>{e.preventDefault();setDropZone("today");}} onDrop={onDropToday}
-              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":theme.bgLeft, borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:isOverToday?theme.accent+"22":"transparent", borderBottom:`1px solid ${theme.border}`, display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>AUJOURD'HUI</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2595,7 +2563,7 @@ export default function App() {
 
             {/* TOMORROW — perso */}
             <div data-zone="tomorrow" onDragOver={e=>{e.preventDefault();setDropZone("tomorrow");}} onDrop={onDropTomorrow}
-              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":theme.bgLeft+"cc", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
+              style={{ flex:1, padding:"18px 16px", background:dropZone==="tomorrow"?theme.accent+"11":"transparent", display:"flex", flexDirection:"column", transition:"background .2s", minHeight: isMobile ? 0 : "45%", overflow: "visible" }}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontFamily:`'${theme.titleFont}',sans-serif`, fontSize:12, fontWeight:900, color:theme.accent, letterSpacing:3 }}>DEMAIN</div>
                 <div style={{ fontSize:10, color:theme.textMuted, marginTop:3 }}>
@@ -2637,12 +2605,12 @@ export default function App() {
 
           {/* ── Contrôles fixes (desktop/tablet uniquement) ── */}
           {!isMobile && (
-            <div style={{ flexShrink:0, background:theme.bg, padding:"20px 16px 0", zIndex:10 }}>
+            <div style={{ flexShrink:0, background:"transparent", padding:"20px 16px 0", zIndex:10 }}>
 
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
                 <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
-                  style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:12,cursor:"pointer" }}>
+                  style={{ flex:1,background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:8,padding:"9px 16px",color:"#2a4a3a",fontSize:12,fontWeight:700,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
                 <div style={{ position:"relative" }}>
@@ -3047,9 +3015,10 @@ export default function App() {
                   return 0;
                 }).map(task => {
                   const tc  = teamTaskColor(task);
-                  const bgC = tc ? tc.base+"33" : theme.bgCard;
+                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : "rgba(255,255,255,0.55)") : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
-                  const blC = tc ? `3px solid ${tc.light}` : `1px solid ${theme.border}`;
+                  const blC = tc ? `${tc.blWidth} solid ${tc.light}` : `1px solid ${theme.border}`;
+                  const shadowC = tc?.shadow || undefined;
                   const dot = STATUS_DOT[task.status]||"#888";
                   const isTeamGhost = ghost?.id===task.id;
                   const hasPending = isAdminRole(teamRole) ? teamPending.some(p=>p.taskId===task.id) : myPendingProposals.some(p=>p.taskId===task.id);
@@ -3062,7 +3031,7 @@ export default function App() {
                       onDragEnd={isAdminRole(teamRole)?onDragEndTeam:undefined}
                       onTouchStart={isAdminRole(teamRole)?e=>onTouchStart(e,task.id,"team-list"):undefined}
                       onClick={()=>openEdit(task)}
-                      style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
+                      style={{ background:bgC,border:bdC,borderLeft:blC,boxShadow:shadowC,borderRadius:9,padding:"10px 13px",cursor:"pointer",transition:"background .15s",touchAction:"pan-y",opacity:isTeamGhost?0.3:1 }}>
 
                       {/* ── Ligne principale (commune desktop + mobile) ── */}
                       <div style={{ display:"flex",alignItems:"center",gap:9 }}>
@@ -3074,6 +3043,7 @@ export default function App() {
                             <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:(PRIO_COLOR[task.priority]||"#888")+"22",color:PRIO_COLOR[task.priority]||"#888",border:`1px solid ${(PRIO_COLOR[task.priority]||"#888")}44`,flexShrink:0 }}>{(task.priority||"?").toUpperCase()}</span>
                             {!isMobile && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:STATUS_DOT[task.status]+"22",color:STATUS_DOT[task.status] }}>{task.status}</span>}
                             {hasPending && <span style={{ fontSize:9,padding:"1px 5px",borderRadius:3,background:"#cc303022",color:"#cc3030",border:"1px solid #cc303044",flexShrink:0 }}>⏳</span>}
+                            {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                           </div>
                           {!isMobile && <>
                             {task.due && <div style={{ fontSize:9,color:theme.accent+"aa",marginTop:2 }}>📅 {formatDate(task.due)}</div>}
@@ -3170,9 +3140,10 @@ export default function App() {
               const dot     = STATUS_DOT[task.status];
               const isGhost = ghost?.id===task.id;
               const tc      = taskColor(task);
-              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?tc.base+"33":hl?theme.accent+"22":theme.bgCard);
+              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?(tc.bgOpacity?tc.base+tc.bgOpacity:"rgba(255,255,255,0.55)"):hl?theme.accent+"22":theme.bgCard);
               const bdC = task.status==="Terminé"&&task.completion ? `1px solid ${task.completion.color}55` : (tc?`1px solid ${tc.light}66`:hl?`1px solid ${theme.accent}66`:`1px solid ${theme.border}`);
-              const blC = task.status==="Terminé"&&task.completion ? `3px solid ${task.completion.color}` : (tc?`3px solid ${tc.light}`:hl?`3px solid ${theme.accent}`:`1px solid ${theme.border}`);
+              const blC = task.status==="Terminé"&&task.completion ? `3px solid ${task.completion.color}` : (tc?`${tc.blWidth} solid ${tc.light}`:hl?`3px solid ${theme.accent}`:`1px solid ${theme.border}`);
+              const shadowC = task.status==="Terminé"||!tc ? undefined : tc.shadow||undefined;
               return (
                 <div key={task.id} className="row"
                   draggable={!inToday&&!inTom}
@@ -3180,7 +3151,7 @@ export default function App() {
                   onDragEnd={onDragEnd}
                   onTouchStart={e=>!inToday&&!inTom&&onTouchStart(e,task.id,"list")}
                   onClick={()=>!dragRef.current?.moved&&openEdit(task)}
-                  style={{ background:bgC,border:bdC,borderLeft:blC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,opacity:isGhost?0.3:1,cursor:"pointer",transition:"background .15s, border .15s",touchAction:(inToday||inTom)?"auto":"pan-y" }}>
+                  style={{ background:bgC,border:bdC,borderLeft:blC,boxShadow:shadowC,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:9,opacity:isGhost?0.3:1,cursor:"pointer",transition:"background .15s, border .15s",touchAction:(inToday||inTom)?"auto":"pan-y" }}>
                   <div style={{ fontSize:10,color:hl?theme.accent:theme.textMuted,fontFamily:"'Syne',sans-serif",fontWeight:700,minWidth:22,textAlign:"right" }}>#{taskNum(task.id)}</div>
                   <button onClick={e=>{e.stopPropagation();cycleStatus(task.id);}} style={{ width:11,height:11,borderRadius:"50%",background:dot,border:"none",cursor:"pointer",flexShrink:0,boxShadow:`0 0 5px ${dot}99` }} />
                   <div style={{ flex:1,minWidth:0 }}>
@@ -3204,7 +3175,7 @@ export default function App() {
                             : task.completion.doneDate}
                         </span>
                         {task.completion.deltaLabel && (
-                          <span style={{ fontSize:9,fontWeight:700,color:task.completion.deltaMin<0?"#3aaa3a":"#cc3030",background:task.completion.deltaMin<0?"#3aaa3a22":"#cc303022",padding:"1px 5px",borderRadius:3 }}>
+                          <span style={{ fontSize:9,fontWeight:700,color:task.completion.deltaMin<0?"#22C55E":"#EF4444",background:task.completion.deltaMin<0?"#22C55E22":"#EF444422",padding:"1px 5px",borderRadius:3 }}>
                             {task.completion.deltaMin<0?"⚡ ":"⚠ "}{task.completion.deltaLabel}
                           </span>
                         )}
@@ -3226,7 +3197,9 @@ export default function App() {
                     )}
                     {task.notes && <div style={{ fontSize:9,color:theme.textMuted,marginTop:1 }}>{task.notes}</div>}
                   </div>
+                  {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
+                    <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?"#86EFAC22":"transparent",border:`1px solid ${task.status==="Terminé"?"#86EFAC88":"#86EFAC66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#86EFAC",fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
                     <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:false});}} style={{ background:"transparent",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</button>
@@ -3410,56 +3383,17 @@ export default function App() {
         <div style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"flex-end",paddingTop:70,paddingRight:16 }}
           onClick={()=>setShowTheme(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
-            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>APPARENCE</div>
+            <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>PARAMÈTRES</div>
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
-              {["dark","light"].map(m=>(
-                <button key={m} onClick={()=>{ const p=PRESETS[m][0]; setTheme(t=>({...t,mode:m,bg:p.bg,bgLeft:p.bgLeft,bgCard:p.bgCard,accent:p.accent,text:p.text,textMuted:p.textMuted,border:p.border})); }}
+              {["light","dark"].map(m=>(
+                <button key={m} onClick={()=>setTheme(m==="dark" ? FLYNT_DARK : FLYNT_LIGHT)}
                   style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?"#fff":theme.textMuted,fontSize:11,cursor:"pointer" }}>
                   {m==="dark"?"🌙 Sombre":"☀️ Clair"}
                 </button>
               ))}
             </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>PALETTE</div>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:7,marginBottom:18 }}>
-              {PRESETS[theme.mode].map(p=>(
-                <button key={p.name} onClick={()=>setTheme(t=>({...t,...p,font:t.font,titleFont:t.titleFont,mode:t.mode}))}
-                  style={{ background:p.bg,border:`2px solid ${theme.bg===p.bg?theme.accent:"transparent"}`,borderRadius:8,padding:"6px 10px",cursor:"pointer",color:theme.bg===p.bg?theme.accent:theme.textMuted,fontSize:11,display:"flex",alignItems:"center",gap:6 }}>
-                  <span style={{ width:8,height:8,borderRadius:"50%",background:p.accent,display:"inline-block" }}/>
-                  {p.name}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>ACCENT</div>
-            <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
-              <input type="color" value={theme.accent} onChange={e=>setTheme(t=>({...t,accent:e.target.value}))}
-                style={{ width:40,height:32,border:"none",borderRadius:6,cursor:"pointer" }} />
-              <span style={{ fontSize:11,color:theme.textMuted }}>{theme.accent}</span>
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TEXTE</div>
-            <div style={{ display:"grid",gap:5,marginBottom:18 }}>
-              {FONTS.map(f=>(
-                <button key={f.value} onClick={()=>setTheme(t=>({...t,font:f.value}))}
-                  style={{ background:theme.font===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.font===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.font===f.value?theme.accent:theme.textMuted,fontSize:12,fontFamily:`'${f.value}',monospace`,textAlign:"left" }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>POLICE TITRE</div>
-            <div style={{ display:"grid",gap:5,marginBottom:18 }}>
-              {TITLE_FONTS.map(f=>(
-                <button key={f.value} onClick={()=>setTheme(t=>({...t,titleFont:f.value}))}
-                  style={{ background:theme.titleFont===f.value?theme.accent+"33":"transparent",border:`1px solid ${theme.titleFont===f.value?theme.accent:theme.border}`,borderRadius:7,padding:"7px 12px",cursor:"pointer",color:theme.titleFont===f.value?theme.accent:theme.textMuted,fontSize:14,fontFamily:`'${f.value}',sans-serif`,textAlign:"left",fontWeight:700 }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>LANGUE / FORMAT DATE</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:18 }}>
@@ -3498,7 +3432,7 @@ export default function App() {
                 const p = await Notification.requestPermission();
                 if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
-              new Notification("Task Tracker Pro 🔔", {
+              new Notification("Flynt 🔔", {
                 body: "Test de notification — tout fonctionne !",
                 icon: "/favicon.ico",
                 tag: "test-notif",
@@ -3523,10 +3457,10 @@ export default function App() {
             <button onClick={async()=>{
               if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
-              await setDoc(ref,{theme},{merge:true});
+              await setDoc(ref,{theme:{mode:theme.mode}},{merge:true});
               toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
-              💾 Sauvegarder le thème
+              💾 Sauvegarder les préférences
             </button>
 
             <button onClick={async()=>{
@@ -3748,7 +3682,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             + Ajouter
           </button>
         </div>
@@ -3768,7 +3702,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:theme.accent,border:"none",borderRadius:50,padding:"13px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
         </div>
