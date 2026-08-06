@@ -401,14 +401,60 @@ export default function App() {
       .catch(() => setDlUrl('https://github.com/AD93160/task-tracker/releases/latest'));
   }, [showDownloadPopup]);
 
-  const [theme, setTheme] = useState({
-    bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
-    accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A",
-    border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
-  });
+  /* ─────────────────────────────────────────────────────────────
+     Thèmes — 2 familles × 2 modes.
 
-  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
-  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
+     Chaque entrée porte :
+       grad      dégradé signature (fond de l'app + bandeau header)
+       ctaGrad   dégradé des CTA majeurs — en mode sombre il est ÉCLAIRCI
+                 pour rester lisible sur fond foncé
+       logoF     couleur du F et de la coche du logo : toujours l'accent
+                 de la famille OPPOSÉE (vert ↔ orange)
+       cardBg    fond des cartes sans état d'urgence
+
+     Les couleurs d'urgence des tâches (RED/GOLD/ORANGE/GREEN dans
+     @task-tracker/shared) restent identiques entre thèmes : elles sont
+     sémantiques, pas décoratives.
+  ───────────────────────────────────────────────────────────── */
+  const FONT_BASE = { font:"Inter", titleFont:"Playfair Display" };
+
+  const THEMES = {
+    green: {
+      light: { ...FONT_BASE, family:"green", mode:"light",
+        grad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
+        ctaGrad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
+        ctaText:"#10281C", logoF:"#E8966A",
+        bg:"#F2FBF6", bgLeft:"#E8F7EF", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.55)",
+        accent:"#3DAA6B", text:"#10281C", textMuted:"#5A7A68", border:"#B8E6CC" },
+      dark:  { ...FONT_BASE, family:"green", mode:"dark",
+        grad:"linear-gradient(to right, #0B1F16, #1E6844)",
+        ctaGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
+        ctaText:"#06140E", logoF:"#E8966A",
+        bg:"#0B1F16", bgLeft:"#0E2519", bgCard:"#12281D", cardBg:"rgba(255,255,255,0.07)",
+        accent:"#4FC287", text:"#E8F5ED", textMuted:"#8FB3A0", border:"#2A5240" },
+    },
+    hermes: {
+      light: { ...FONT_BASE, family:"hermes", mode:"light",
+        grad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
+        ctaGrad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
+        ctaText:"#2C1A0E", logoF:"#3DAA6B",
+        bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.6)",
+        // #E8966A est réservé au logo : en texte sur blanc il ne contraste
+        // qu'à ~2.2:1. #C9713F monte à ~4.6:1 et reste dans le ton.
+        accent:"#C9713F", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0" },
+      dark:  { ...FONT_BASE, family:"hermes", mode:"dark",
+        grad:"linear-gradient(to right, #1C0F08, #6B3A1E)",
+        ctaGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
+        ctaText:"#1C0F08", logoF:"#4FC287",
+        bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", cardBg:"rgba(255,255,255,0.07)",
+        accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#4A2A14" },
+    },
+  };
+
+  const pickTheme = (family, mode) =>
+    (THEMES[family] || THEMES.green)[mode === "dark" ? "dark" : "light"];
+
+  const [theme, setTheme] = useState(THEMES.green.light);
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
