@@ -1,5 +1,5 @@
 {
-  "appId": "com.flynt.app",
+  "appId": "com.flynt.tasks",
   "appName": "Flynt",
   "webDir": "apps/mobile/www",
   "android": {

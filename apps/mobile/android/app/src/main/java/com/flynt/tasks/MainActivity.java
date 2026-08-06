@@ -1,4 +1,4 @@
-package com.flynt.app;
+package com.flynt.tasks;
 
 import com.getcapacitor.BridgeActivity;
 
