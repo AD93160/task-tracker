@@ -424,14 +424,14 @@ export default function App() {
         grad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
         ctaGrad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
         ctaText:"#10281C", logoF:"#E8966A",
-        sloganGrad:"linear-gradient(to right, #C9713F, #E8966A)",
+        sloganGrad:"linear-gradient(to right, #8A3D18, #E8966A)",
         bg:"#F2FBF6", bgLeft:"#E8F7EF", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.55)",
         accent:"#3DAA6B", text:"#10281C", textMuted:"#5A7A68", border:"#B8E6CC" },
       dark:  { ...FONT_BASE, family:"green", mode:"dark",
         grad:"linear-gradient(to right, #0B1F16, #1E6844)",
         ctaGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
         ctaText:"#06140E", logoF:"#E8966A",
-        sloganGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
+        sloganGrad:"linear-gradient(to right, #C9713F, #FFD9BE)",
         bg:"#0B1F16", bgLeft:"#0E2519", bgCard:"#12281D", cardBg:"rgba(255,255,255,0.07)",
         accent:"#4FC287", text:"#E8F5ED", textMuted:"#8FB3A0", border:"#2A5240" },
     },
@@ -440,7 +440,7 @@ export default function App() {
         grad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
         ctaGrad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
         ctaText:"#2C1A0E", logoF:"#3DAA6B",
-        sloganGrad:"linear-gradient(to right, #2A7A4C, #3DAA6B)",
+        sloganGrad:"linear-gradient(to right, #0E4F2C, #4FC287)",
         bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.6)",
         // #E8966A est réservé au logo : en texte sur blanc il ne contraste
         // qu'à ~2.2:1. #C9713F monte à ~4.6:1 et reste dans le ton.
@@ -449,7 +449,7 @@ export default function App() {
         grad:"linear-gradient(to right, #1C0F08, #6B3A1E)",
         ctaGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
         ctaText:"#1C0F08", logoF:"#4FC287",
-        sloganGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
+        sloganGrad:"linear-gradient(to right, #2A7A4C, #A7F3C8)",
         bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", cardBg:"rgba(255,255,255,0.07)",
         accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#4A2A14" },
     },
@@ -460,10 +460,12 @@ export default function App() {
 
   const [theme, setTheme] = useState(THEMES.green.light);
 
-  // Le carré du logo suit la famille de thème, pas le mode : il reste
-  // identique en clair et en sombre. Le F et la coche, eux, prennent
-  // theme.logoF — l'accent de la famille opposée.
-  const LOGO_SQUARE = theme.family === "hermes" ? "#E8966A" : "#4FC287";
+  // Le logo suit la famille de thème, pas le mode : c'est un actif de marque,
+  // il ne doit pas changer entre clair et sombre. Carré et marque sont tous
+  // deux en dégradé, la marque en sens inverse pour tenir le contraste.
+  const LOGO = theme.family === "hermes"
+    ? { square:["#C9713F","#F5C9A8"], mark:["#A7F3C8","#1F6B42"] }
+    : { square:["#3DAA6B","#86EFAC"], mark:["#F5C9A8","#8A3D18"] };
 
   // La page de connexion est pré-authentification : aucun thème utilisateur
   // n'est encore chargé, et elle doit porter l'identité canonique de la
@@ -2160,7 +2162,7 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:CANON.grad, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <FlyntLogo width={160} style={{ marginBottom:28 }} square="#4FC287" mark={CANON.logoF} />
+      <FlyntLogo width={160} style={{ marginBottom:28 }} square={["#3DAA6B","#86EFAC"]} mark={["#F5C9A8","#8A3D18"]} />
       <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
@@ -2317,7 +2319,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <FlyntLogo height={42} square={LOGO_SQUARE} mark={theme.logoF} />
+              <FlyntLogo height={42} square={LOGO.square} mark={LOGO.mark} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
@@ -2410,7 +2412,7 @@ export default function App() {
           /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <FlyntLogo height={72} square={LOGO_SQUARE} mark={theme.logoF} />
+              <FlyntLogo height={72} square={LOGO.square} mark={LOGO.mark} />
               <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
@@ -3450,17 +3452,16 @@ export default function App() {
 
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>THÈME</div>
             <div style={{ display:"flex",gap:8,marginBottom:14 }}>
-              {[{ k:"green", label:"Vert", sq:"#4FC287" },
-                { k:"hermes", label:"Hermès", sq:"#E8966A" }].map(({k,label,sq})=>{
+              {[{ k:"green",  label:"Vert",   sq:["#3DAA6B","#86EFAC"], mk:"#8A3D18" },
+                { k:"hermes", label:"Hermès", sq:["#C9713F","#F5C9A8"], mk:"#1F6B42" }].map(({k,label,sq,mk})=>{
                 const on = theme.family===k;
-                const t  = THEMES[k][theme.mode==="dark"?"dark":"light"];
                 return (
                   <button key={k} onClick={()=>setTheme(pickTheme(k, theme.mode))}
                     style={{ flex:1,background:on?theme.accent+"22":"transparent",border:`1.5px solid ${on?theme.accent:theme.border}`,borderRadius:8,padding:"8px 6px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6 }}>
-                    {/* Aperçu : carré de la famille + pastille de la marque inversée */}
+                    {/* Aperçu : carré en dégradé de la famille + pastille de la marque inversée */}
                     <span style={{ display:"flex",alignItems:"center",gap:5 }}>
-                      <span style={{ width:16,height:16,borderRadius:5,background:sq,display:"inline-block" }}/>
-                      <span style={{ width:9,height:9,borderRadius:"50%",background:t.logoF,display:"inline-block" }}/>
+                      <span style={{ width:18,height:18,borderRadius:5,background:`linear-gradient(to right, ${sq[0]}, ${sq[1]})`,display:"inline-block" }}/>
+                      <span style={{ width:9,height:9,borderRadius:"50%",background:mk,display:"inline-block" }}/>
                     </span>
                     <span style={{ color:on?theme.accent:theme.textMuted,fontSize:10,fontWeight:on?700:400 }}>{label}</span>
                   </button>
