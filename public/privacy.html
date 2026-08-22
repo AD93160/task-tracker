@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Politique de confidentialité — Flynt</title>
+  <meta name="description" content="Quelles données Flynt collecte, pourquoi, avec qui elles sont partagées et comment les supprimer.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    :root {
+      --accent: #4FC287;
+      --bg: #ffffff;
+      --card: #f7f9f8;
+      --text: #1a1f1c;
+      --muted: #5a655e;
+      --border: #dfe6e2;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #10151a;
+        --card: #171d24;
+        --text: #e8eeea;
+        --muted: #96a39c;
+        --border: #263039;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px 64px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    main { max-width: 760px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    header img { width: 40px; height: 40px; border-radius: 9px; }
+    h1 { font-size: 25px; margin: 0; letter-spacing: -0.3px; }
+    h2 { font-size: 17px; margin: 34px 0 10px; letter-spacing: -0.2px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 28px; }
+    ol, ul { padding-left: 22px; margin: 10px 0; }
+    li { margin-bottom: 5px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 14px 0; }
+    .card h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+    a { color: var(--accent); }
+    .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; min-width: 480px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+    code { background: var(--card); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+    footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="/favicon.svg" alt="">
+    <h1>Politique de confidentialité</h1>
+  </header>
+  <p class="sub">Application <strong>Flynt</strong> · Dernière mise à jour : 22 août 2026</p>
+
+  <p>
+    Flynt est une application de gestion de tâches, personnelles et en équipe. Cette page décrit
+    exactement quelles données sont collectées, pourquoi, qui y a accès et comment les faire
+    supprimer. Elle est rédigée conformément au Règlement général sur la protection des données
+    (RGPD).
+  </p>
+
+  <h2>1. Qui est responsable de vos données</h2>
+  <div class="card">
+    <p style="margin:0">
+      <strong>Adrien Scognamillo</strong>, personne physique, France.<br>
+      Contact : <a href="mailto:flynt.contact@gmail.com">flynt.contact@gmail.com</a>
+    </p>
+  </div>
+
+  <h2>2. Quelles données sont collectées</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Catégorie</th><th>Détail</th><th>Origine</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Compte</td>
+        <td>Adresse e-mail, mot de passe (jamais stocké en clair — haché par Firebase Authentication), pseudo, photo de profil</td>
+        <td>Vous</td>
+      </tr>
+      <tr>
+        <td>Contenu personnel</td>
+        <td>Tâches (titre, notes, priorité, échéance, statut, récurrence), corbeille, pièces jointes</td>
+        <td>Vous</td>
+      </tr>
+      <tr>
+        <td>Contenu d'équipe</td>
+        <td>Nom de l'équipe, liste des membres et leurs rôles, tâches partagées, commentaires, messages du chat de groupe et des conversations privées, fichiers échangés</td>
+        <td>Vous et les autres membres</td>
+      </tr>
+      <tr>
+        <td>Préférences</td>
+        <td>Thème, polices, langue, mode de numérotation, heure de la notification quotidienne</td>
+        <td>Vous</td>
+      </tr>
+      <tr>
+        <td>Notifications</td>
+        <td>Jeton d'appareil Firebase Cloud Messaging, généré uniquement si vous autorisez les notifications</td>
+        <td>Votre appareil</td>
+      </tr>
+      <tr>
+        <td>Signalements</td>
+        <td>Si vous signalez un message : copie du message, son auteur, votre identifiant et le motif choisi</td>
+        <td>Vous</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card">
+    <h3>Ce que Flynt ne collecte pas</h3>
+    <p style="margin:0">
+      Aucune donnée de localisation, aucun accès à vos contacts, à votre agenda, à vos SMS ou à
+      votre appareil photo. Aucune donnée de santé ni bancaire. Aucun outil d'analyse d'audience
+      n'est installé : ni Google Analytics, ni équivalent. Aucune publicité n'est diffusée à ce
+      jour, et aucun identifiant publicitaire n'est collecté.
+    </p>
+  </div>
+
+  <h2>3. Pourquoi, et sur quelle base légale</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Finalité</th><th>Base légale</th></tr></thead>
+    <tbody>
+      <tr><td>Créer et gérer votre compte, afficher et synchroniser vos tâches entre vos appareils</td><td>Exécution du contrat</td></tr>
+      <tr><td>Faire fonctionner les équipes : partage de tâches, commentaires, messagerie</td><td>Exécution du contrat</td></tr>
+      <tr><td>Envoyer des notifications push et le rappel quotidien</td><td>Votre consentement, retirable à tout moment dans les réglages</td></tr>
+      <tr><td>Envoyer un e-mail d'invitation quand vous invitez quelqu'un dans une équipe</td><td>Exécution du contrat</td></tr>
+      <tr><td>Traiter les signalements et faire respecter les règles d'usage</td><td>Intérêt légitime : garantir un espace d'échange sain</td></tr>
+      <tr><td>Assurer la sécurité du service et prévenir les abus</td><td>Intérêt légitime</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>4. Qui a accès à vos données</h2>
+  <p>
+    Vos données ne sont ni vendues, ni louées, ni cédées à des fins publicitaires. Elles sont
+    accessibles à trois catégories de destinataires :
+  </p>
+  <ul>
+    <li><strong>Les autres membres de vos équipes</strong>, pour le contenu que vous partagez avec eux : tâches d'équipe, commentaires, messages, fichiers. Votre contenu personnel ne leur est jamais visible.</li>
+    <li><strong>Nos prestataires techniques</strong>, qui hébergent le service et agissent sur nos instructions (voir le tableau ci-dessous).</li>
+    <li><strong>Les autorités</strong>, uniquement sur réquisition judiciaire valide.</li>
+  </ul>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Prestataire</th><th>Rôle</th><th>Localisation</th></tr></thead>
+    <tbody>
+      <tr><td>Google — Firebase (Authentication, Firestore, Storage, Cloud Messaging, Cloud Functions)</td><td>Authentification, base de données, stockage des fichiers, notifications</td><td>États-Unis</td></tr>
+      <tr><td>Vercel</td><td>Hébergement de l'application web</td><td>États-Unis / UE</td></tr>
+      <tr><td>EmailJS</td><td>Envoi des e-mails d'invitation d'équipe</td><td>États-Unis</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>5. Transferts hors de l'Union européenne</h2>
+  <p>
+    Les serveurs Firebase utilisés par Flynt sont situés aux États-Unis. Ces transferts sont
+    encadrés par le <em>EU-U.S. Data Privacy Framework</em>, auquel Google LLC est certifié, et
+    par les clauses contractuelles types de la Commission européenne. Les données sont chiffrées
+    en transit (TLS) et au repos.
+  </p>
+
+  <h2>6. Combien de temps vos données sont conservées</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Donnée</th><th>Durée</th></tr></thead>
+    <tbody>
+      <tr><td>Compte et contenu personnel</td><td>Tant que le compte existe, puis supprimés immédiatement</td></tr>
+      <tr><td>Contenu partagé en équipe</td><td>Conservé après suppression du compte, mais anonymisé (votre nom est remplacé par « Utilisateur supprimé »)</td></tr>
+      <tr><td>Jeton de notification</td><td>Supprimé avec le compte, ou dès que vous désactivez les notifications</td></tr>
+      <tr><td>Signalements</td><td>2 ans, pour pouvoir traiter les récidives</td></tr>
+      <tr><td>Sauvegardes techniques chiffrées</td><td>90 jours maximum avant rotation</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>7. Vos droits</h2>
+  <p>Le RGPD vous donne les droits suivants, que vous pouvez exercer à tout moment :</p>
+  <ul>
+    <li><strong>Accès</strong> — savoir quelles données nous détenons sur vous.</li>
+    <li><strong>Rectification</strong> — corriger une donnée inexacte. Votre pseudo, votre avatar et vos tâches sont modifiables directement dans l'application.</li>
+    <li><strong>Effacement</strong> — supprimer votre compte et vos données. Voir la <a href="/delete-account.html">page dédiée</a>.</li>
+    <li><strong>Portabilité</strong> — récupérer vos tâches. L'application propose un export au format <code>.ics</code>, lisible par Apple Calendar et Google Agenda.</li>
+    <li><strong>Limitation et opposition</strong> — demander la suspension d'un traitement fondé sur notre intérêt légitime.</li>
+    <li><strong>Retrait du consentement</strong> — désactiver les notifications à tout moment dans les réglages, sans justification.</li>
+  </ul>
+  <p>
+    Pour exercer ces droits : <a href="mailto:flynt.contact@gmail.com">flynt.contact@gmail.com</a>.
+    Nous répondons sous 30 jours au maximum. Si la réponse ne vous satisfait pas, vous pouvez
+    saisir la <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener">CNIL</a>.
+  </p>
+
+  <h2>8. Sécurité</h2>
+  <ul>
+    <li>Toutes les communications passent en HTTPS/TLS.</li>
+    <li>Les mots de passe sont hachés par Firebase Authentication : ils ne sont jamais visibles, y compris par nous.</li>
+    <li>Des règles de sécurité Firestore et Storage restreignent chaque donnée à son propriétaire ou aux membres autorisés de l'équipe concernée.</li>
+    <li>La suppression d'un compte exige une authentification récente, pour qu'une session laissée ouverte sur un appareil partagé ne puisse pas être exploitée.</li>
+  </ul>
+
+  <h2>9. Stockage local, pas de cookies publicitaires</h2>
+  <p>
+    Flynt n'utilise <strong>aucun cookie publicitaire ni traceur tiers</strong>. L'application
+    conserve vos tâches et vos préférences dans le stockage local de votre navigateur (clés
+    préfixées <code>tt_</code>), ce qui lui permet de fonctionner hors ligne. Ces données restent
+    sur votre appareil et sont effacées si vous videz les données du site.
+  </p>
+
+  <h2>10. Mineurs</h2>
+  <p>
+    Flynt n'est pas destiné aux personnes de moins de 15 ans et ne leur est pas adressé. Si vous
+    constatez qu'un compte a été créé par un mineur de moins de 15 ans sans autorisation
+    parentale, écrivez-nous : le compte sera supprimé.
+  </p>
+
+  <h2>11. Modifications de cette politique</h2>
+  <p>
+    Cette page peut évoluer si le service change — notamment si de la publicité est introduite,
+    auquel cas les données concernées et vos moyens de vous y opposer seront décrits ici avant
+    toute activation. La date de dernière mise à jour figure en haut de page. Un changement
+    substantiel vous sera signalé dans l'application.
+  </p>
+
+  <footer>
+    Une question sur vos données ? <a href="mailto:flynt.contact@gmail.com">flynt.contact@gmail.com</a><br>
+    Voir aussi : <a href="/delete-account.html">supprimer son compte</a>.
+  </footer>
+</main>
+</body>
+</html>

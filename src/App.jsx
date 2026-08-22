@@ -3610,6 +3610,13 @@ export default function App() {
               </button>
             )}
 
+            {/* Liens légaux — Google Play exige un accès à la politique de
+                confidentialité depuis l'application elle-même */}
+            <div style={{ marginTop:18,paddingTop:12,borderTop:`1px solid ${theme.border}44`,display:"flex",gap:12,flexWrap:"wrap" }}>
+              <a href="/privacy.html" target="_blank" rel="noopener" style={{ fontSize:10,color:theme.textMuted,textDecoration:"underline" }}>Confidentialité</a>
+              <a href="/delete-account.html" target="_blank" rel="noopener" style={{ fontSize:10,color:theme.textMuted,textDecoration:"underline" }}>Supprimer mon compte</a>
+            </div>
+
           </div>
         </div>
       )}
