@@ -12,6 +12,7 @@ import { getToken, onMessage } from "firebase/messaging";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { GoogleAuthProvider } from "firebase/auth";
+import { isNativeApp, nativeGoogleIdToken, setupNativePush } from "./native";
 import TeamChat from "./TeamChat";
 import FlyntLogo from "./FlyntLogo";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
@@ -380,7 +381,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || isElectronEnv || isMobile) return;
+    if (!user || isElectronEnv || isMobile || isNativeApp()) return;
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if (/Mac/i.test(navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent)) return;
     if (localStorage.getItem('tt_dl_done') === 'true') return;
@@ -522,7 +523,20 @@ export default function App() {
 
   // ── Push notifications en arrière-plan (FCM) ──
   useEffect(() => {
-    if (!user || !import.meta.env.VITE_FIREBASE_VAPID_KEY) return;
+    if (!user) return;
+
+    // Android natif : FCM passe par le plugin, pas par le service worker.
+    if (isNativeApp()) {
+      let cleanup = null;
+      setupNativePush(
+        fcmToken => { setDoc(doc(db, "users", user.uid), { fcmToken }, { merge:true }).catch(()=>{}); },
+        (title, body, tag) => sendNotif(title, body, tag),
+      ).then(fn => { cleanup = fn; })
+       .catch(e => console.warn("Push natif:", e));
+      return () => cleanup?.();
+    }
+
+    if (!import.meta.env.VITE_FIREBASE_VAPID_KEY) return;
     let unsubMsg = null;
     const setup = async () => {
       try {
@@ -717,6 +731,11 @@ export default function App() {
         const { idToken, accessToken } = await window.electronAPI.startGoogleAuth();
         const credential = GoogleAuthProvider.credential(idToken, accessToken);
         await signInWithCredential(auth, credential);
+      } else if (isNativeApp()) {
+        // WebView Android : pas de popup possible, on passe par le sélecteur
+        // de compte Google natif et on échange l'idToken contre une session.
+        const idToken = await nativeGoogleIdToken();
+        await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
       } else {
         await signInWithPopup(auth, provider);
       }

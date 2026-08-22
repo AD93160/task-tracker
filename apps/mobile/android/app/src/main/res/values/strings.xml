@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Flynt</string>
+    <string name="title_activity_main">Flynt</string>
+    <string name="package_name">com.flynt.app</string>
+    <string name="custom_url_scheme">com.flynt.app</string>
+</resources>

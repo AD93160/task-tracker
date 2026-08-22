@@ -8,6 +8,8 @@
  *   public/icon-512.png            — PWA, coins arrondis (purpose "any")
  *   public/icon-maskable-512.png   — PWA, plein cadre + zone de sécurité 80 % (purpose "maskable")
  *   store-assets/play-icon-512.png — Google Play : carré plein, Play applique lui-même le masque
+ *   apps/mobile/android/…/mipmap-*   — icônes de lanceur Android (legacy, round, adaptative)
+ *   apps/mobile/android/…/drawable*  — écran de démarrage
  */
 
 import { chromium } from "@playwright/test";
@@ -62,6 +64,54 @@ const TARGETS = [
 // attendue par Playwright : PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH permet de le pointer
 // explicitement (même variable que les scripts de test du repo).
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined;
+/* ── Android ──────────────────────────────────────────────────────
+   Icône adaptative : le calque avant mesure 108 dp, dont seuls les 72 dp
+   centraux sont garantis visibles quel que soit le masque du constructeur.
+   Le tracé d'origine est décalé de 140 px pour être centré, puis réduit à
+   85 % pour tenir dans cette zone de sécurité.
+─────────────────────────────────────────────────────────────────── */
+
+const ANDROID_RES = "apps/mobile/android/app/src/main/res";
+const DENSITIES = [["mdpi", 1], ["hdpi", 1.5], ["xhdpi", 2], ["xxhdpi", 3], ["xxxhdpi", 4]];
+
+const centeredContent = `<g transform="translate(140,0)">${innerNoBgNoDefs}</g>`;
+
+/** Icône héritée : carré arrondi plein, utilisée par les lanceurs anciens. */
+const launcher = wrap(
+  `${defs}<rect width="1024" height="1024" rx="230" fill="#4FC287"/>${centeredContent}`
+);
+/** Variante ronde, réclamée par certains lanceurs. */
+const launcherRound = wrap(
+  `${defs}<circle cx="512" cy="512" r="512" fill="#4FC287"/>${centeredContent}`
+);
+/** Calque avant de l'icône adaptative : fond transparent, contenu à 85 %. */
+const launcherForeground = wrap(
+  `${defs}<g transform="translate(512,512) scale(0.85) translate(-512,-512)">${centeredContent}</g>`
+);
+/** Écran de démarrage : logo centré sur le vert de la marque. */
+const splash = wrap(
+  `${defs}<rect width="1024" height="1024" fill="#4FC287"/>` +
+  `<g transform="translate(512,512) scale(0.42) translate(-512,-512)">` +
+  `<rect width="1024" height="1024" rx="230" fill="#ffffff"/>${centeredContent}</g>`
+);
+
+for (const [density, factor] of DENSITIES) {
+  TARGETS.push(
+    { svg: launcher,           size: Math.round(48 * factor),  out: `${ANDROID_RES}/mipmap-${density}/ic_launcher.png` },
+    { svg: launcherRound,      size: Math.round(48 * factor),  out: `${ANDROID_RES}/mipmap-${density}/ic_launcher_round.png` },
+    { svg: launcherForeground, size: Math.round(108 * factor), out: `${ANDROID_RES}/mipmap-${density}/ic_launcher_foreground.png` },
+  );
+}
+
+// L'écran de démarrage est décliné en portrait et paysage par densité ;
+// une image carrée en centerCrop couvre correctement les deux.
+for (const [density] of DENSITIES) {
+  for (const orient of ["port", "land"]) {
+    TARGETS.push({ svg: splash, size: 960, out: `${ANDROID_RES}/drawable-${orient}-${density}/splash.png` });
+  }
+}
+TARGETS.push({ svg: splash, size: 960, out: `${ANDROID_RES}/drawable/splash.png` });
+
 const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const page    = await browser.newPage();
 

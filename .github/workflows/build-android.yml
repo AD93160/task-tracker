@@ -1,0 +1,126 @@
+name: Build Android
+
+# Produit l'Android App Bundle (.aab) à envoyer sur la Play Console.
+# Le SDK Android est préinstallé sur les runners ubuntu-latest : rien à
+# installer localement pour obtenir un build signé.
+#
+# Secrets requis (Settings → Secrets and variables → Actions) :
+#   VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID,
+#   VITE_FIREBASE_STORAGE_BUCKET, VITE_FIREBASE_MESSAGING_SENDER_ID,
+#   VITE_FIREBASE_APP_ID   — déjà utilisés par build-desktop.yml
+#   VITE_GOOGLE_WEB_CLIENT_ID       — client OAuth « Web » du projet Firebase,
+#                                     nécessaire à la connexion Google native
+#   ANDROID_GOOGLE_SERVICES_JSON    — contenu de google-services.json, en base64
+#   ANDROID_KEYSTORE_BASE64         — keystore d'upload, en base64
+#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Version affichée (ex: 1.0.0)"
+        required: true
+        type: string
+      versionCode:
+        description: "Version code — entier, strictement croissant à chaque envoi Play"
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.versionName }}" ]; then
+            NAME="${{ inputs.versionName }}"
+            CODE="${{ inputs.versionCode }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+            NAME="${TAG#[vV]}"
+            # Pas de version code dans le tag : le numéro de run fait l'affaire,
+            # il est strictement croissant sur la durée de vie du dépôt.
+            CODE="${{ github.run_number }}"
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Build $NAME (code $CODE)"
+
+      - name: Build web assets (Vite)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
+        run: npx vite build
+
+      - name: Write google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Secret ANDROID_GOOGLE_SERVICES_JSON manquant — sans lui, les notifications push ne fonctionneront pas."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > apps/mobile/android/app/google-services.json
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Decode upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 manquant — impossible de signer le bundle."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build signed AAB
+        working-directory: apps/mobile/android
+        run: |
+          ./gradlew bundleRelease \
+            -PflyntKeystore="$RUNNER_TEMP/upload.jks" \
+            -PflyntKeystorePassword="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -PflyntKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -PflyntKeyPassword="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            -PflyntVersionName="${{ steps.version.outputs.name }}" \
+            -PflyntVersionCode="${{ steps.version.outputs.code }}"
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: flynt-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}.aab
+          path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
