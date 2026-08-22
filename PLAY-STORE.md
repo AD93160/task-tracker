@@ -11,7 +11,7 @@
 
 | # | Bloquant | Où ça bloque dans la console | État |
 |---|---|---|---|
-| 1 | **Aucun `.aab`** — `apps/mobile/` ne contient qu'un `.gitkeep` | Onglet *Versions* : rien à envoyer | ❌ |
+| 1 | **Aucun `.aab`** | Onglet *Versions* : rien à envoyer | ✅ projet Capacitor + workflow `build-android.yml` — reste à fournir keystore et `google-services.json` |
 | 2 | **Pas de politique de confidentialité** en ligne | *Contenu de l'application → Règles de confidentialité* (URL obligatoire) | ✅ `public/privacy.html` |
 | 3 | **Pas d'URL de suppression de compte** | *Sécurité des données* (obligatoire dès qu'il y a des comptes) | ✅ `public/delete-account.html` + Cloud Function `deleteAccount` — reste l'adresse de contact à renseigner |
 | 4 | **Icônes PNG absentes** — `public/manifest.json` ne déclare qu'un SVG | Icône Play 512×512 PNG + requis pour un build TWA | ✅ `store-assets/play-icon-512.png` |
@@ -246,6 +246,58 @@ garder le même nom de package et de gérer la migration.
 
 ---
 
+## 7 bis. Produire l'AAB — mode d'emploi
+
+Le projet Capacitor est en place (`apps/mobile/android`, appId `com.flynt.app`,
+targetSdk 36). Il reste quatre choses à fournir, qui ne peuvent venir que de toi.
+
+### 1. Déclarer l'app Android dans Firebase
+Console Firebase → ⚙️ *Paramètres du projet* → *Tes applications* → **Ajouter une app Android**
+- Nom du package : `com.flynt.app` (exactement, il est définitif)
+- Télécharge le `google-services.json` produit
+
+### 2. Créer le keystore d'upload
+```bash
+keytool -genkeypair -v -keystore flynt-upload.jks -keyalg RSA -keysize 2048 \
+        -validity 10000 -alias flynt
+```
+⚠️ **Sauvegarde ce fichier et son mot de passe hors du dépôt.** Il est gitignoré, et
+le perdre impose une demande de réinitialisation auprès de Google.
+
+Récupère ensuite ses empreintes et **colle-les dans la console Firebase** (app Android →
+*Empreintes de certificat SHA*), sinon la connexion Google échouera sur mobile :
+```bash
+keytool -list -v -keystore flynt-upload.jks -alias flynt | grep -E "SHA1|SHA256"
+```
+
+### 3. Le client OAuth « Web »
+La connexion Google native a besoin de l'ID client **Web** du projet (pas l'Android) :
+console Google Cloud → *API et services* → *Identifiants* → client OAuth de type
+« Application Web ». C'est le secret `VITE_GOOGLE_WEB_CLIENT_ID`.
+
+### 4. Les secrets GitHub
+*Settings → Secrets and variables → Actions* :
+
+| Secret | Contenu |
+|---|---|
+| `VITE_GOOGLE_WEB_CLIENT_ID` | l'ID client Web ci-dessus |
+| `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 flynt-upload.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
+| `ANDROID_KEY_ALIAS` | `flynt` |
+| `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
+
+Les six secrets `VITE_FIREBASE_*` existent déjà pour le build Electron.
+
+### 5. Lancer le build
+Onglet *Actions* → **Build Android** → *Run workflow*, en saisissant la version affichée
+(`1.0.0`) et le version code (`1`). L'AAB signé est déposé en artefact du run.
+
+⚠️ Le **version code** doit être un entier strictement croissant à chaque envoi sur la
+Play Console. Un renvoi avec le même code est refusé.
+
+---
+
 ## 8. Ordre de travail conseillé
 
 **En parallèle, dès maintenant (délais externes) :**
@@ -279,5 +331,8 @@ garder le même nom de package et de gérer la migration.
 - [x] `public/privacy.html` — politique de confidentialité + liens légaux dans les Paramètres
 - [x] Signalement / blocage d'utilisateur dans `TeamChat.jsx` (exigence UGC, §3.6)
 - [ ] Déployer les règles Firestore : `firebase deploy --only firestore:rules --project task-tracker-2ea82`
-- [ ] `apps/mobile/` — projet Capacitor
+- [x] `apps/mobile/` — projet Capacitor Android (Capacitor 8, targetSdk 36)
+- [ ] Générer le keystore d'upload et le stocker hors du dépôt
 - [ ] SHA-1 / SHA-256 de la clé d'upload ajoutés dans la console Firebase
+- [ ] Télécharger `google-services.json` depuis Firebase (app Android `com.flynt.app`)
+- [ ] Renseigner les 5 secrets GitHub du workflow Android
