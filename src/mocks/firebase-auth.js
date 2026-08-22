@@ -33,6 +33,14 @@ export function sendEmailVerification() {
   return Promise.resolve();
 }
 
+export function sendPasswordResetEmail() {
+  return Promise.resolve();
+}
+
+export function signInWithCredential() {
+  return Promise.resolve({ user: mockUser });
+}
+
 export class GoogleAuthProvider {}
 
 export function getAuth() {
