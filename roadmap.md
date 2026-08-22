@@ -130,7 +130,7 @@
 - [ ] Vrai bandeau pub AdMob — remplacer le placeholder
 - [ ] Outlook / Microsoft To Do — intégration via Microsoft Graph API + Azure
 - [ ] Soumission App Store (compte Apple 99€/an)
-- [ ] Soumission Play Store (compte Google 25€ unique)
+- [ ] Soumission Play Store (compte Google 25€ unique) — voir [PLAY-STORE.md](PLAY-STORE.md) pour la checklist complète de la console
 
 ---
 
