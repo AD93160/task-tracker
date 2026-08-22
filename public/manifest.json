@@ -2,11 +2,41 @@
   "name": "Flynt",
   "short_name": "Flynt",
   "description": "Gérez vos tâches efficacement",
+  "id": "/",
+  "lang": "fr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "background_color": "#86EFAC",
   "theme_color": "#4FC287",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
