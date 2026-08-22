@@ -1,4 +1,4 @@
-# Flynt — Guide de publication Google Play
+# Kewa — Guide de publication Google Play
 
 > État du repo au moment de la rédaction : `apps/mobile/` est vide (placeholder), aucun
 > `.aab` n'existe encore, aucune politique de confidentialité n'est publiée.
@@ -16,7 +16,7 @@
 | 3 | **Pas d'URL de suppression de compte** | *Sécurité des données* (obligatoire dès qu'il y a des comptes) | ✅ `public/delete-account.html` + Cloud Function `deleteAccount` — reste l'adresse de contact à renseigner |
 | 4 | **Icônes PNG absentes** — `public/manifest.json` ne déclare qu'un SVG | Icône Play 512×512 PNG + requis pour un build TWA | ✅ `store-assets/play-icon-512.png` |
 | 5 | **Compte de test à fournir** — l'app est derrière un login Firebase | *Accès à l'application* | ⚠️ à créer |
-| 6 | **Nom « Flynt »** — vérifier qu'aucune app/marque ne le porte déjà | Fiche Play Store | ⚠️ à vérifier |
+| 6 | **Nom « Kewa »** — vérifier qu'aucune app/marque ne le porte déjà | Fiche Play Store | ⚠️ à vérifier |
 
 ---
 
@@ -44,16 +44,16 @@
 
 *Toutes les applications → Créer une application*
 
-| Champ | Valeur pour Flynt |
+| Champ | Valeur pour Kewa |
 |---|---|
-| Nom de l'application | `Flynt` (30 caractères max) |
+| Nom de l'application | `Kewa` (30 caractères max) |
 | Langue par défaut | Français (France) |
 | App ou jeu | **Application** |
 | Gratuite ou payante | **Gratuite** — ⚠️ passer de gratuit à payant est **impossible** après publication (l'inverse est possible) |
 | Déclarations | Cocher règles du programme + lois US export |
 
 **Nom du package** (défini dans le build, pas dans la console, et **définitif à vie**) :
-`com.flynt.app` — cohérent avec l'appId Electron `com.flynt.desktop` déjà utilisé dans
+`com.kewa.app` — cohérent avec l'appId Electron `com.kewa.desktop` déjà utilisé dans
 `apps/desktop/electron-builder.yml`.
 
 ---
@@ -62,18 +62,18 @@
 
 ### 3.1 Règles de confidentialité — ❌ bloquant
 URL publique, accessible sans login, sur un domaine que tu contrôles.
-Prévu : `https://<domaine-flynt>/privacy.html`.
+Prévu : `https://<domaine-kewa>/privacy.html`.
 Elle doit nommer explicitement : Firebase Auth, Firestore, Firebase Storage, Firebase Cloud
 Messaging, les Cloud Functions, EmailJS (utilisé dans `functions/index.js`) et, le jour où la
 pub est activée, AdMob/AdSense.
 
 ### 3.2 Accès à l'application — ⚠️
-Flynt est **intégralement derrière un login** : sans identifiants, le relecteur Google voit un
+Kewa est **intégralement derrière un login** : sans identifiants, le relecteur Google voit un
 écran de connexion et **rejette la version**.
 → Choisir « *Un accès restreint est nécessaire* » et fournir un compte de démo :
 
 ```
-Nom des identifiants : Compte de test Flynt
+Nom des identifiants : Compte de test Kewa
 E-mail    : review@<domaine>            (compte email/mot de passe Firebase)
 Mot de passe : <mot de passe dédié>
 Instructions : Se connecter avec e-mail/mot de passe. Le bouton Google n'est pas
@@ -92,9 +92,9 @@ fausse est un motif de suspension.
 
 ### 3.4 Classification du contenu (questionnaire IARC)
 Catégorie : **Utilitaire / Productivité / Communication**.
-Réponses attendues pour Flynt : pas de violence, pas de contenu sexuel, pas de drogue, pas de
+Réponses attendues pour Kewa : pas de violence, pas de contenu sexuel, pas de drogue, pas de
 jeu d'argent.
-⚠️ **Point sensible** : Flynt contient un **chat d'équipe** (`src/TeamChat.jsx`, groupe + DM +
+⚠️ **Point sensible** : Kewa contient un **chat d'équipe** (`src/TeamChat.jsx`, groupe + DM +
 upload de fichiers). Le questionnaire demande si les utilisateurs peuvent **interagir /
 échanger du contenu** → répondre **Oui**. Le nier est un motif de suspension immédiate.
 Réponds aussi « oui » au partage de fichiers entre utilisateurs.
@@ -130,7 +130,7 @@ demander comment tu traites les signalements.
 ## 4. Sécurité des données (Data safety) — le gros morceau
 
 Section *Contenu de l'application → Sécurité des données*. Elle doit correspondre **exactement**
-au code, Google audite. Voici la grille pour Flynt telle que le code se comporte aujourd'hui.
+au code, Google audite. Voici la grille pour Kewa telle que le code se comporte aujourd'hui.
 
 **Questions générales**
 - Votre application collecte-t-elle des données utilisateur ? → **Oui**
@@ -165,7 +165,7 @@ aucune finalité « Analyses ». Si tu ajoutes Firebase Analytics plus tard, la 
 
 | Élément | Contrainte | À produire |
 |---|---|---|
-| Nom | 30 caractères | `Flynt` |
+| Nom | 30 caractères | `Kewa` |
 | Description courte | 80 caractères | ex. « Vos tâches, seul ou en équipe. Simple, rapide, synchronisé. » |
 | Description complète | 4 000 caractères | tâches, récurrence, corbeille, équipe, chat, PJ, 12 thèmes, sync temps réel |
 | Icône | **512 × 512 PNG 32 bits**, avec alpha, < 1 Mo | ✅ `store-assets/play-icon-512.png` |
@@ -248,18 +248,18 @@ garder le même nom de package et de gérer la migration.
 
 ## 7 bis. Produire l'AAB — mode d'emploi
 
-Le projet Capacitor est en place (`apps/mobile/android`, appId `com.flynt.app`,
+Le projet Capacitor est en place (`apps/mobile/android`, appId `com.kewa.app`,
 targetSdk 36). Il reste quatre choses à fournir, qui ne peuvent venir que de toi.
 
 ### 1. Déclarer l'app Android dans Firebase
 Console Firebase → ⚙️ *Paramètres du projet* → *Tes applications* → **Ajouter une app Android**
-- Nom du package : `com.flynt.app` (exactement, il est définitif)
+- Nom du package : `com.kewa.app` (exactement, il est définitif)
 - Télécharge le `google-services.json` produit
 
 ### 2. Créer le keystore d'upload
 ```bash
-keytool -genkeypair -v -keystore flynt-upload.jks -keyalg RSA -keysize 2048 \
-        -validity 10000 -alias flynt
+keytool -genkeypair -v -keystore kewa-upload.jks -keyalg RSA -keysize 2048 \
+        -validity 10000 -alias kewa
 ```
 ⚠️ **Sauvegarde ce fichier et son mot de passe hors du dépôt.** Il est gitignoré, et
 le perdre impose une demande de réinitialisation auprès de Google.
@@ -267,7 +267,7 @@ le perdre impose une demande de réinitialisation auprès de Google.
 Récupère ensuite ses empreintes et **colle-les dans la console Firebase** (app Android →
 *Empreintes de certificat SHA*), sinon la connexion Google échouera sur mobile :
 ```bash
-keytool -list -v -keystore flynt-upload.jks -alias flynt | grep -E "SHA1|SHA256"
+keytool -list -v -keystore kewa-upload.jks -alias kewa | grep -E "SHA1|SHA256"
 ```
 
 ### 3. Le client OAuth « Web »
@@ -282,9 +282,9 @@ console Google Cloud → *API et services* → *Identifiants* → client OAuth d
 |---|---|
 | `VITE_GOOGLE_WEB_CLIENT_ID` | l'ID client Web ci-dessus |
 | `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` |
-| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 flynt-upload.jks` |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 kewa-upload.jks` |
 | `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
-| `ANDROID_KEY_ALIAS` | `flynt` |
+| `ANDROID_KEY_ALIAS` | `kewa` |
 | `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
 
 Les six secrets `VITE_FIREBASE_*` existent déjà pour le build Electron.
@@ -334,5 +334,5 @@ Play Console. Un renvoi avec le même code est refusé.
 - [x] `apps/mobile/` — projet Capacitor Android (Capacitor 8, targetSdk 36)
 - [ ] Générer le keystore d'upload et le stocker hors du dépôt
 - [ ] SHA-1 / SHA-256 de la clé d'upload ajoutés dans la console Firebase
-- [ ] Télécharger `google-services.json` depuis Firebase (app Android `com.flynt.app`)
+- [ ] Télécharger `google-services.json` depuis Firebase (app Android `com.kewa.app`)
 - [ ] Renseigner les 5 secrets GitHub du workflow Android

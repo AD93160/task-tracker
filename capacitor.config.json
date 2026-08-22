@@ -1,6 +1,6 @@
 {
-  "appId": "com.flynt.app",
-  "appName": "Flynt",
+  "appId": "com.kewa.app",
+  "appName": "Kewa",
   "webDir": "dist",
   "android": {
     "path": "apps/mobile/android"

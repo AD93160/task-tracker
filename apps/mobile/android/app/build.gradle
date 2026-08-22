@@ -1,16 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.flynt.app"
+    namespace = "com.kewa.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.flynt.app"
+        applicationId "com.kewa.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Pilotables depuis la CI : -PflyntVersionCode=12 -PflyntVersionName=1.2.0
+        // Pilotables depuis la CI : -PkewaVersionCode=12 -PkewaVersionName=1.2.0
         // Le versionCode doit croître à chaque envoi sur la Play Console.
-        versionCode project.hasProperty('flyntVersionCode') ? project.flyntVersionCode.toInteger() : 1
-        versionName project.hasProperty('flyntVersionName') ? project.flyntVersionName : "1.0"
+        versionCode project.hasProperty('kewaVersionCode') ? project.kewaVersionCode.toInteger() : 1
+        versionName project.hasProperty('kewaVersionName') ? project.kewaVersionName : "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -22,11 +22,11 @@ android {
     // propriétés. En local, un build release non signé reste possible.
     signingConfigs {
         release {
-            if (project.hasProperty('flyntKeystore')) {
-                storeFile     file(project.property('flyntKeystore'))
-                storePassword project.property('flyntKeystorePassword')
-                keyAlias      project.property('flyntKeyAlias')
-                keyPassword   project.property('flyntKeyPassword')
+            if (project.hasProperty('kewaKeystore')) {
+                storeFile     file(project.property('kewaKeystore'))
+                storePassword project.property('kewaKeystorePassword')
+                keyAlias      project.property('kewaKeyAlias')
+                keyPassword   project.property('kewaKeyPassword')
             }
         }
     }
@@ -34,7 +34,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (project.hasProperty('flyntKeystore')) {
+            if (project.hasProperty('kewaKeystore')) {
                 signingConfig signingConfigs.release
             }
         }

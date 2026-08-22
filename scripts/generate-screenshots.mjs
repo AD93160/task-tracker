@@ -193,15 +193,13 @@ const FEATURE_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   </svg>
   <svg class="mark" viewBox="0 0 1024 1024">
     <rect width="1024" height="1024" rx="230" fill="#ffffff"/>
-    <path d="M 220,228 A 28,28 0 0,1 248,200 L 622,200 A 28,28 0 0,1 650,228
-             L 650,272 A 28,28 0 0,1 622,300 L 332,300 A 12,12 0 0,0 320,312
-             L 320,796 A 28,28 0 0,1 292,824 L 248,824 A 28,28 0 0,1 220,796 Z"
-          fill="#35996A"/>
-    <path d="M 138,526 L 270,590 L 477,440" stroke="#4FC287" stroke-width="88"
+    <rect x="240" y="205" width="104" height="614" rx="52" fill="#35996A"/>
+    <path d="M 330,545 L 645,800" stroke="#35996A" stroke-width="104" stroke-linecap="round" fill="none"/>
+    <path d="M 168,470 L 292,592 L 645,240" stroke="#4FC287" stroke-width="92"
           stroke-linecap="round" stroke-linejoin="round" fill="none"/>
   </svg>
   <div class="copy">
-    <h1>Flynt</h1>
+    <h1>Kewa</h1>
     <p>Vos tâches, seul ou en équipe.</p>
     <div class="tags">
       <span class="tag">Sync temps réel</span>

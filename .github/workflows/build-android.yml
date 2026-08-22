@@ -106,12 +106,12 @@ jobs:
         working-directory: apps/mobile/android
         run: |
           ./gradlew bundleRelease \
-            -PflyntKeystore="$RUNNER_TEMP/upload.jks" \
-            -PflyntKeystorePassword="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -PflyntKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
-            -PflyntKeyPassword="${{ secrets.ANDROID_KEY_PASSWORD }}" \
-            -PflyntVersionName="${{ steps.version.outputs.name }}" \
-            -PflyntVersionCode="${{ steps.version.outputs.code }}"
+            -PkewaKeystore="$RUNNER_TEMP/upload.jks" \
+            -PkewaKeystorePassword="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -PkewaKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -PkewaKeyPassword="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            -PkewaVersionName="${{ steps.version.outputs.name }}" \
+            -PkewaVersionCode="${{ steps.version.outputs.code }}"
 
       - name: Remove keystore
         if: always()
@@ -120,7 +120,7 @@ jobs:
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: flynt-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}.aab
+          name: kewa-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}.aab
           path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30

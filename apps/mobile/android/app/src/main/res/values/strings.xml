@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Flynt</string>
-    <string name="title_activity_main">Flynt</string>
-    <string name="package_name">com.flynt.app</string>
-    <string name="custom_url_scheme">com.flynt.app</string>
+    <string name="app_name">Kewa</string>
+    <string name="title_activity_main">Kewa</string>
+    <string name="package_name">com.kewa.app</string>
+    <string name="custom_url_scheme">com.kewa.app</string>
 </resources>

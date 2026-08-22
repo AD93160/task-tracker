@@ -14,7 +14,7 @@ import { signInWithPopup, signInWithCredential, signOut, onAuthStateChanged, cre
 import { GoogleAuthProvider } from "firebase/auth";
 import { isNativeApp, nativeGoogleIdToken, setupNativePush } from "./native";
 import TeamChat from "./TeamChat";
-import FlyntLogo from "./FlyntLogo";
+import KewaLogo from "./KewaLogo";
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export class ErrorBoundary extends Component {
@@ -413,8 +413,8 @@ export default function App() {
     border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
   });
 
-  const FLYNT_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
-  const FLYNT_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
+  const KEWA_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
+  const KEWA_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
@@ -685,7 +685,7 @@ export default function App() {
         if (data.tomorrowIds)  setTomorrowIds(data.tomorrowIds);
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
-        if (data.theme?.mode)  setTheme(data.theme.mode === "dark" ? FLYNT_DARK : FLYNT_LIGHT);
+        if (data.theme?.mode)  setTheme(data.theme.mode === "dark" ? KEWA_DARK : KEWA_LIGHT);
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
@@ -866,7 +866,7 @@ export default function App() {
                 : "member";
               if (prevTeamRole !== null && prevTeamRole !== "co-admin" && derived === "co-admin") {
                 if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification("Flynt — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
+                  new Notification("Kewa — Félicitations ! ⭐", { body:"Vous avez été nommé co-admin de l'équipe.", icon:"/favicon.ico" });
                 }
               }
               prevTeamRole = derived;
@@ -1052,7 +1052,7 @@ export default function App() {
         if (teamTasksPrevIds.current !== null && !isAdminRole(teamRole)) {
           const newTasks = t.filter(task => !teamTasksPrevIds.current.has(task.id));
           if (newTasks.length > 0 && Notification.permission === "granted") {
-            new Notification("Flynt — Nouvelle tâche équipe 📋", {
+            new Notification("Kewa — Nouvelle tâche équipe 📋", {
               body: newTasks.map(tk => tk.title).join(" • "),
               icon: "/favicon.ico", tag: "team-task-added"
             });
@@ -1072,7 +1072,7 @@ export default function App() {
           if (Notification.permission === "granted") {
             const newest = items[items.length - 1];
             const typeLabel = newest?.type === "add" ? "propose une tâche" : newest?.type === "edit" ? "propose une modif" : "propose une suppression";
-            new Notification("Flynt — Modification proposée 🔔", {
+            new Notification("Kewa — Modification proposée 🔔", {
               body: `${newest?.proposedByEmail || "Un membre"} ${typeLabel}`,
               icon: "/favicon.ico", tag: "team-pending"
             });
@@ -2167,7 +2167,7 @@ export default function App() {
   if (!user) return (
     <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <FlyntLogo width={160} style={{ marginBottom:28 }} />
+      <KewaLogo width={160} style={{ marginBottom:28 }} />
       <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
@@ -2324,7 +2324,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <FlyntLogo height={42} />
+              <KewaLogo height={42} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
@@ -2418,7 +2418,7 @@ export default function App() {
           /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <FlyntLogo height={72} />
+              <KewaLogo height={72} />
               <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
@@ -3326,7 +3326,7 @@ export default function App() {
               <li>ton profil, ton pseudo et ton avatar</li>
               <li>toutes tes tâches personnelles et ta corbeille</li>
               <li>tes pièces jointes personnelles</li>
-              <li>ton compte et ton accès à Flynt</li>
+              <li>ton compte et ton accès à Kewa</li>
             </ul>
 
             <div style={{ fontSize:11,color:theme.textMuted,lineHeight:1.7,marginBottom:6 }}>Sont conservés, mais anonymisés :</div>
@@ -3527,7 +3527,7 @@ export default function App() {
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
               {["light","dark"].map(m=>(
-                <button key={m} onClick={()=>setTheme(m==="dark" ? FLYNT_DARK : FLYNT_LIGHT)}
+                <button key={m} onClick={()=>setTheme(m==="dark" ? KEWA_DARK : KEWA_LIGHT)}
                   style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?"#fff":theme.textMuted,fontSize:11,cursor:"pointer" }}>
                   {m==="dark"?"🌙 Sombre":"☀️ Clair"}
                 </button>
@@ -3571,7 +3571,7 @@ export default function App() {
                 const p = await Notification.requestPermission();
                 if (p !== "granted") { toast("Permission refusée.", true); return; }
               }
-              new Notification("Flynt 🔔", {
+              new Notification("Kewa 🔔", {
                 body: "Test de notification — tout fonctionne !",
                 icon: "/favicon.ico",
                 tag: "test-notif",

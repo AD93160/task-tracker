@@ -1,4 +1,4 @@
-# Flynt — Contexte projet
+# Kewa — Contexte projet
 
 ## Règles de travail
 

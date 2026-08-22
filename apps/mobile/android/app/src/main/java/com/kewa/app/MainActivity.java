@@ -1,4 +1,4 @@
-package com.flynt.app;
+package com.kewa.app;
 
 import com.getcapacitor.BridgeActivity;
 

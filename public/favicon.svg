@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <filter id="ef" x="-4%" y="-4%" width="112%" height="115%">
+    <filter id="ef" x="-6%" y="-6%" width="115%" height="118%">
       <feDropShadow dx="5" dy="8" stdDeviation="9" flood-color="#000000" flood-opacity="0.20"/>
     </filter>
     <filter id="ec" x="-20%" y="-25%" width="145%" height="150%">
@@ -8,13 +8,9 @@
     </filter>
   </defs>
   <rect width="1024" height="1024" rx="230" fill="#4FC287"/>
-  <path d="
-    M 220,228 A 28,28 0 0,1 248,200 L 622,200 A 28,28 0 0,1 650,228
-    L 650,272 A 28,28 0 0,1 622,300 L 332,300 A 12,12 0 0,0 320,312
-    L 320,796 A 28,28 0 0,1 292,824 L 248,824 A 28,28 0 0,1 220,796 Z"
-    fill="white" filter="url(#ef)"/>
-  <path d="M 138,526 L 270,590 L 477,440"
-    stroke="#86EFAC" stroke-width="88"
-    stroke-linecap="round" stroke-linejoin="round" fill="none"
-    filter="url(#ec)"/>
+  <rect x="240" y="205" width="104" height="614" rx="52" fill="white" filter="url(#ef)"/>
+  <path d="M 330,545 L 645,800" stroke="white" stroke-width="104"
+        stroke-linecap="round" fill="none" filter="url(#ef)"/>
+  <path d="M 168,470 L 292,592 L 645,240" stroke="#86EFAC" stroke-width="92"
+        stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#ec)"/>
 </svg>

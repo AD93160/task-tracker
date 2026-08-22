@@ -44,7 +44,7 @@ const square  = wrap(inner.replace(/(<rect width="1024" height="1024"[^>]*?)rx="
  */
 const centered = wrap(
   `${defs}<rect width="1024" height="1024" fill="#4FC287"/>` +
-  `<g transform="translate(140,0)">${innerNoBgNoDefs}</g>`
+  `<g transform="translate(103,0)">${innerNoBgNoDefs}</g>`
 );
 /** Maskable : fond plein cadre + contenu réduit à 80 % (zone de sécurité Android). */
 const maskable = wrap(
@@ -67,14 +67,14 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefi
 /* ── Android ──────────────────────────────────────────────────────
    Icône adaptative : le calque avant mesure 108 dp, dont seuls les 72 dp
    centraux sont garantis visibles quel que soit le masque du constructeur.
-   Le tracé d'origine est décalé de 140 px pour être centré, puis réduit à
-   85 % pour tenir dans cette zone de sécurité.
+   Le tracé est décalé de 103 px pour être centré, puis réduit à 85 %
+   pour tenir dans cette zone de sécurité.
 ─────────────────────────────────────────────────────────────────── */
 
 const ANDROID_RES = "apps/mobile/android/app/src/main/res";
 const DENSITIES = [["mdpi", 1], ["hdpi", 1.5], ["xhdpi", 2], ["xxhdpi", 3], ["xxxhdpi", 4]];
 
-const centeredContent = `<g transform="translate(140,0)">${innerNoBgNoDefs}</g>`;
+const centeredContent = `<g transform="translate(103,0)">${innerNoBgNoDefs}</g>`;
 
 /** Icône héritée : carré arrondi plein, utilisée par les lanceurs anciens. */
 const launcher = wrap(
