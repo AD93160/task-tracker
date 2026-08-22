@@ -83,7 +83,7 @@ function hexLuminance(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
-export default function TeamChat({ team, user, theme, isMobile, userPseudo, members = [] }) {
+export default function TeamChat({ team, user, theme, isMobile, userPseudo, members = [], blockedUsers = [], onToggleBlock }) {
   // Texte clair ⇒ thème sombre ⇒ bulles et fonds sombres (et inversement).
   const isDark = hexLuminance(theme.text) > 0.5;
   const [open, setOpen]           = useState(false);
@@ -102,6 +102,9 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     try { return JSON.parse(localStorage.getItem(`tt_openConvs_${team?.id}`) || "[]"); } catch { return []; }
   });
   const [showMembers, setShowMembers] = useState(false);
+  const [reportMsg, setReportMsg]   = useState(null);   // message en cours de signalement
+  const [reportReason, setReportReason] = useState("");
+  const [reportSent, setReportSent] = useState(false);
   const bottomRef   = useRef(null);
   const fileRef     = useRef(null);
   const inputRef    = useRef(null);
@@ -236,6 +239,37 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
     setShowMembers(false);
     setMessages([]);
   };
+
+  const isBlocked = (uid) => !!uid && uid !== user.uid && blockedUsers.includes(uid);
+
+  /**
+   * Enregistre un signalement. La collection `reports` est en écriture seule
+   * côté client : la modération se fait depuis la console Firebase.
+   */
+  const submitReport = async () => {
+    if (!reportMsg || !reportReason || !team?.id) return;
+    try {
+      await addDoc(collection(db, "reports"), {
+        reporterUid:   user.uid,
+        reporterEmail: user.email || "",
+        targetUid:     reportMsg.authorUid || null,
+        targetName:    reportMsg.authorName || "",
+        teamId:        team.id,
+        conversation:  activeConv ? `dm:${activeConv.id}` : "group",
+        messageId:     reportMsg.id,
+        messageText:   (reportMsg.text || "").slice(0, 2000),
+        hasAttachment: !!reportMsg.attachment,
+        reason:        reportReason,
+        createdAt:     serverTimestamp(),
+      });
+      setReportSent(true);
+    } catch (e) {
+      console.error("submitReport:", e);
+      setReportSent("error");
+    }
+  };
+
+  const closeReport = () => { setReportMsg(null); setReportReason(""); setReportSent(false); };
 
   const CHAT_ALLOWED_TYPES = ["image/","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","message/rfc822","application/vnd.ms-outlook"];
   const CHAT_MAX_SIZE = 10 * 1024 * 1024;
@@ -386,6 +420,51 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
           {menuPos.isMe && (
             <button style={menuBtnStyle("#cc5555")} onClick={() => deleteMessage(menuPos.msg)}>🗑 Supprimer</button>
           )}
+          {!menuPos.isMe && (
+            <button style={menuBtnStyle()} onClick={() => { setReportMsg(menuPos.msg); setMenuMsgId(null); setMenuPos(null); }}>⚑ Signaler</button>
+          )}
+          {!menuPos.isMe && menuPos.msg.authorUid && (
+            <button style={menuBtnStyle("#cc5555")} onClick={() => { onToggleBlock?.(menuPos.msg.authorUid, true); setMenuMsgId(null); setMenuPos(null); }}>🚫 Bloquer</button>
+          )}
+        </div>
+      )}
+
+      {/* Signalement d'un message (exigence Google Play pour le contenu utilisateur) */}
+      {reportMsg && (
+        <div style={{ position:"fixed",inset:0,zIndex:10000,background:"#00000099",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }} onClick={closeReport}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.border}`,borderRadius:14,padding:20,width:"100%",maxWidth:340,boxShadow:"0 8px 40px #00000099" }}>
+            {reportSent === true ? (
+              <>
+                <div style={{ fontSize:11,color:theme.accent,letterSpacing:1.5,fontWeight:700,marginBottom:10 }}>SIGNALEMENT ENVOYÉ</div>
+                <div style={{ fontSize:12,color:theme.text,lineHeight:1.6,marginBottom:16 }}>
+                  Merci. Le message a été transmis pour examen. Tu peux aussi bloquer cette personne pour ne plus voir ses messages.
+                </div>
+                <div style={{ display:"flex",gap:8 }}>
+                  {reportMsg.authorUid && (
+                    <button onClick={()=>{onToggleBlock?.(reportMsg.authorUid,true);closeReport();}} style={{ flex:1,background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.text,fontSize:11,cursor:"pointer" }}>Bloquer aussi</button>
+                  )}
+                  <button onClick={closeReport} style={{ flex:1,background:theme.accent,border:"none",borderRadius:8,padding:"8px",color:"#fff",fontSize:11,cursor:"pointer" }}>Fermer</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize:11,color:theme.accent,letterSpacing:1.5,fontWeight:700,marginBottom:10 }}>SIGNALER CE MESSAGE</div>
+                <div style={{ fontSize:11,color:theme.textMuted,marginBottom:10,lineHeight:1.5 }}>
+                  Message de <strong style={{ color:theme.text }}>{reportMsg.authorName || "?"}</strong>. Choisis un motif :
+                </div>
+                {["Spam ou publicité","Harcèlement ou insultes","Contenu inapproprié","Autre"].map(r => (
+                  <button key={r} onClick={()=>setReportReason(r)} style={{ display:"block",width:"100%",textAlign:"left",background:reportReason===r?theme.accent+"22":"transparent",border:`1px solid ${reportReason===r?theme.accent:theme.border}`,borderRadius:8,padding:"7px 10px",color:reportReason===r?theme.accent:theme.text,fontSize:11,cursor:"pointer",marginBottom:6 }}>{r}</button>
+                ))}
+                {reportSent === "error" && (
+                  <div style={{ fontSize:10,color:"#cc3030",margin:"8px 0",padding:"6px 9px",background:"#cc303022",borderRadius:6 }}>Envoi impossible. Réessaie dans un instant.</div>
+                )}
+                <div style={{ display:"flex",gap:8,marginTop:10 }}>
+                  <button onClick={closeReport} style={{ flex:1,background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"8px",color:theme.text,fontSize:11,cursor:"pointer" }}>Annuler</button>
+                  <button onClick={submitReport} disabled={!reportReason} style={{ flex:1,background:reportReason?theme.accent:theme.border,border:"none",borderRadius:8,padding:"8px",color:"#fff",fontSize:11,cursor:reportReason?"pointer":"not-allowed" }}>Signaler</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -456,8 +535,10 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
               <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
                 {members.length === 0 ? (
                   <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:theme.textMuted,fontSize:11,padding:20 }}>Aucun autre membre</div>
-                ) : members.map(m => (
-                  <div key={m.uid} onClick={()=>startDM(m)} style={{ padding:"10px 14px", borderBottom:`1px solid ${theme.border}22`, cursor:"pointer", display:"flex", alignItems:"center", gap:10 }}>
+                ) : members.map(m => {
+                  const blocked = isBlocked(m.uid);
+                  return (
+                  <div key={m.uid} onClick={()=>{ if(!blocked) startDM(m); }} style={{ padding:"10px 14px", borderBottom:`1px solid ${theme.border}22`, cursor:blocked?"default":"pointer", display:"flex", alignItems:"center", gap:10, opacity:blocked?0.6:1 }}>
                     <div style={{ width:28,height:28,borderRadius:"50%",background:theme.accent+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:theme.accent,flexShrink:0 }}>
                       {(m.displayName||m.email||"?")[0].toUpperCase()}
                     </div>
@@ -465,9 +546,14 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                       <div style={{ fontSize:12,color:theme.text,fontWeight:500 }}>{m.displayName || m.email}</div>
                       {m.displayName && <div style={{ fontSize:10,color:theme.textMuted }}>{m.email}</div>}
                     </div>
-                    <span style={{ marginLeft:"auto",fontSize:10,color:theme.accent }}>Message →</span>
+                    {blocked ? (
+                      <button onClick={e=>{e.stopPropagation();onToggleBlock?.(m.uid,false);}} style={{ marginLeft:"auto",background:"transparent",border:`1px solid ${theme.border}`,borderRadius:6,padding:"3px 8px",color:theme.textMuted,fontSize:10,cursor:"pointer",whiteSpace:"nowrap" }}>Bloqué · Débloquer</button>
+                    ) : (
+                      <span style={{ marginLeft:"auto",fontSize:10,color:theme.accent }}>Message →</span>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -502,6 +588,23 @@ export default function TeamChat({ team, user, theme, isMobile, userPseudo, memb
                 const replyLabel = msg.replyTo
                   ? (msg.replyTo.hasAttachment ? `📎 ${msg.replyTo.attName || "PJ"}` : msg.replyTo.text)
                   : null;
+
+                // Auteur bloqué : le contenu est masqué, le fil reste lisible
+                if (isBlocked(msg.authorUid)) {
+                  return (
+                    <div key={msg.id}>
+                      {showDay && (
+                        <div style={{ textAlign:"center",margin:"10px 0 6px",fontSize:9,color:theme.textMuted,letterSpacing:0.5 }}>
+                          {msgDay}
+                        </div>
+                      )}
+                      <div style={{ display:"flex",alignItems:"center",gap:8,alignSelf:"flex-start",maxWidth:"78%",marginBottom:6,padding:"7px 11px",borderRadius:14,background:isDark?"#ffffff0d":"#00000008",border:`1px dashed ${theme.border}` }}>
+                        <span style={{ fontSize:10,color:theme.textMuted,fontStyle:"italic" }}>Message masqué — utilisateur bloqué</span>
+                        <button onClick={()=>onToggleBlock?.(msg.authorUid, false)} style={{ background:"transparent",border:"none",color:theme.accent,fontSize:10,cursor:"pointer",padding:0,whiteSpace:"nowrap" }}>Débloquer</button>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={msg.id}>

@@ -298,6 +298,7 @@ export default function App() {
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);   // uids bloqués dans le chat équipe
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -675,6 +676,7 @@ export default function App() {
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
         if (data.pseudo !== undefined) setUserPseudo(data.pseudo || "");
+        setBlockedUsers(data.blockedUsers || []);
       }
     });
     return unsub;
@@ -1281,6 +1283,23 @@ export default function App() {
   };
 
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
+
+  /**
+   * Bloque ou débloque un membre dans la messagerie d'équipe.
+   * Blocage unilatéral : la personne bloquée n'est pas notifiée et continue
+   * de voir la conversation, c'est l'auteur du blocage qui cesse de la voir.
+   */
+  const toggleBlockUser = async (uid, blocked) => {
+    if (!user || !uid || uid === user.uid) return;
+    try {
+      await setDoc(doc(db, "users", user.uid),
+        { blockedUsers: blocked ? arrayUnion(uid) : arrayRemove(uid) }, { merge: true });
+      setBlockedUsers(prev => blocked ? [...new Set([...prev, uid])] : prev.filter(u => u !== uid));
+    } catch (e) {
+      console.error("toggleBlockUser:", e);
+      toast("Action impossible pour le moment.", true);
+    }
+  };
 
   /**
    * Suppression définitive du compte (RGPD + exigence Google Play).
@@ -3810,7 +3829,7 @@ export default function App() {
       )}
 
       {/* Messagerie équipe */}
-      {teamSpace && team && user && <TeamChat team={team} user={user} theme={theme} isMobile={isMobile} userPseudo={userPseudo} members={(team.members||[]).filter(m=>m.uid!==user.uid)} />}
+      {teamSpace && team && user && <TeamChat team={team} user={user} theme={theme} isMobile={isMobile} userPseudo={userPseudo} members={(team.members||[]).filter(m=>m.uid!==user.uid)} blockedUsers={blockedUsers} onToggleBlock={toggleBlockUser} />}
 
       {/* Toast notifications */}
       {toastMsg && (

@@ -59,6 +59,16 @@ service cloud.firestore {
       allow delete: if isAuth() && request.auth.token.email.lower() == email;
     }
 
+    // ── Signalements de contenu ──────────────────────────────────────
+    // Exigence Google Play pour le contenu généré par les utilisateurs.
+    // Écriture seule côté client, et uniquement en son propre nom : personne
+    // ne peut lire, modifier ni effacer les signalements depuis l'app.
+    // La modération se fait depuis la console Firebase.
+    match /reports/{reportId} {
+      allow create: if isAuth() && request.resource.data.reporterUid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
     // ── Équipes ───────────────────────────────────────────────────────
     match /teams/{teamId} {
       allow read: if isMemberOf(teamId) || isAdminOrCoAdminOf(teamId) ||
