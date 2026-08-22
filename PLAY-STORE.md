@@ -272,8 +272,8 @@ garder le même nom de package et de gérer la migration.
 - [x] Icônes PNG 192 / 512 / maskable + icône Play 512 + `public/manifest.json` complété
 - [x] Suppression de compte : Cloud Function `deleteAccount` (perso supprimé, contenu d'équipe
       anonymisé, transfert d'admin automatique) + parcours in-app + `public/delete-account.html`
-- [x] Éditeur et adresse de contact renseignés (Adrien Scognamillo · flynt.contact@gmail.com)
-- [ ] **Créer la boîte `flynt.contact@gmail.com`** — l'adresse est déjà publiée dans les deux pages
+- [x] Éditeur et adresse de contact renseignés (Adrien Scognamillo · tasktpro.2026@gmail.com)
+- [ ] **Créer la boîte `tasktpro.2026@gmail.com`** — l'adresse est déjà publiée dans les deux pages
 - [ ] Déployer sur Vercel pour que `/privacy.html` et `/delete-account.html` soient en ligne
 - [ ] Déployer la Cloud Function : `firebase deploy --only functions --project task-tracker-2ea82`
 - [x] `public/privacy.html` — politique de confidentialité + liens légaux dans les Paramètres
