@@ -9,20 +9,22 @@ export default function KewaLogo({ width, height, style }) {
           <stop offset="0%"   stopColor="#FFFFFF"/>
           <stop offset="100%" stopColor="#86EFAC"/>
         </linearGradient>
-        <filter id="kw-s" x="-5%" y="-8%" width="118%" height="130%">
-          <feDropShadow dx="5" dy="8" stdDeviation="9" floodColor="#000000" floodOpacity="0.22"/>
+        <filter id="kw-s" x="-8%" y="-8%" width="120%" height="120%">
+          <feDropShadow dx="4" dy="7" stdDeviation="8" floodColor="#000000" floodOpacity="0.20"/>
         </filter>
       </defs>
       <rect x="60" y="155" width="710" height="770" rx="60" fill="#4FC287"/>
       {/* Hampe du K */}
-      <rect x="240" y="285" width="100" height="470" rx="50" fill="white" filter="url(#kw-s)"/>
-      {/* Jambe basse — s'arrête au-dessus du lettrage */}
-      <path d="M 322,525 L 570,700" stroke="white" strokeWidth="100"
-            strokeLinecap="round" fill="none" filter="url(#kw-s)"/>
-      {/* Bras haut : la coche, dont la longue branche forme le bras du K */}
-      <path d="M 160,455 L 284,570 L 610,285" stroke="#86EFAC" strokeWidth="88"
-            strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <text x="352" y="835" fontFamily="'Open Sans', sans-serif" fontSize="177"
+      <rect x="214" y="229" width="72" height="507" rx="36" fill="white" filter="url(#kw-s)"/>
+      {/* Bras haut : flèche */}
+      <path d="M 263,482 L 405,338 L 530,338" stroke="#86EFAC" strokeWidth="72"
+            strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#kw-s)"/>
+      <path d="M 675,338 L 522,258 L 522,418 Z" fill="#86EFAC" filter="url(#kw-s)"/>
+      {/* Bras bas : flèche */}
+      <path d="M 263,482 L 405,626 L 530,626" stroke="white" strokeWidth="72"
+            strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#kw-s)"/>
+      <path d="M 675,626 L 522,546 L 522,706 Z" fill="white" filter="url(#kw-s)"/>
+      <text x="330" y="860" fontFamily="'Open Sans', sans-serif" fontSize="160"
         fill="url(#kw-g)" filter="url(#kw-s)">ewa</text>
     </svg>
   );
