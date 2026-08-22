@@ -110,10 +110,11 @@ Le chat + les pièces jointes = UGC. Google exige alors :
 - un **moyen de bloquer** un utilisateur,
 - une **modération** (au minimum : suppression sur signalement).
 
-L'app n'a actuellement **aucun de ces trois mécanismes**. Sur un chat fermé (uniquement entre
-membres d'une équipe qu'on rejoint sur invitation) le risque de rejet est plus faible, mais
-c'est une cause de refus classique. À prévoir : bouton « Signaler » + « Bloquer » dans
-`TeamChat.jsx`.
+✅ **En place** : le menu contextuel d'un message propose « Signaler » (4 motifs, écrit dans la
+collection `reports`) et « Bloquer ». Un auteur bloqué voit ses messages remplacés par
+« Message masqué », et les DM avec lui sont impossibles. La modération se fait depuis la
+console Firebase — pense à consulter la collection `reports` régulièrement, Google peut
+demander comment tu traites les signalements.
 
 ### 3.7 Les autres déclarations
 | Déclaration | Réponse |
@@ -275,6 +276,7 @@ garder le même nom de package et de gérer la migration.
       (3 marqueurs `À_COMPLÉTER`)
 - [ ] Déployer la Cloud Function : `firebase deploy --only functions --project task-tracker-2ea82`
 - [ ] `public/privacy.html` — politique de confidentialité (bloquant n°2)
-- [ ] Signalement / blocage d'utilisateur dans `TeamChat.jsx` (exigence UGC, §3.6)
+- [x] Signalement / blocage d'utilisateur dans `TeamChat.jsx` (exigence UGC, §3.6)
+- [ ] Déployer les règles Firestore : `firebase deploy --only firestore:rules --project task-tracker-2ea82`
 - [ ] `apps/mobile/` — projet Capacitor
 - [ ] SHA-1 / SHA-256 de la clé d'upload ajoutés dans la console Firebase
