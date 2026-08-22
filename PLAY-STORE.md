@@ -12,7 +12,7 @@
 | # | Bloquant | Où ça bloque dans la console | État |
 |---|---|---|---|
 | 1 | **Aucun `.aab`** — `apps/mobile/` ne contient qu'un `.gitkeep` | Onglet *Versions* : rien à envoyer | ❌ |
-| 2 | **Pas de politique de confidentialité** en ligne | *Contenu de l'application → Règles de confidentialité* (URL obligatoire) | ❌ |
+| 2 | **Pas de politique de confidentialité** en ligne | *Contenu de l'application → Règles de confidentialité* (URL obligatoire) | ✅ `public/privacy.html` |
 | 3 | **Pas d'URL de suppression de compte** | *Sécurité des données* (obligatoire dès qu'il y a des comptes) | ✅ `public/delete-account.html` + Cloud Function `deleteAccount` — reste l'adresse de contact à renseigner |
 | 4 | **Icônes PNG absentes** — `public/manifest.json` ne déclare qu'un SVG | Icône Play 512×512 PNG + requis pour un build TWA | ✅ `store-assets/play-icon-512.png` |
 | 5 | **Compte de test à fournir** — l'app est derrière un login Firebase | *Accès à l'application* | ⚠️ à créer |
@@ -84,8 +84,8 @@ Pré-remplis ce compte avec quelques tâches et une équipe de démo, sinon le r
 une app vide.
 
 ### 3.3 Annonces
-Le code contient un placeholder AdSense (`ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXXXX"` dans
-`src/App.jsx`) qui **n'affiche rien** tant qu'il n'est pas remplacé.
+Le placeholder AdSense (`ADSENSE_CLIENT` dans `src/App.jsx`) n'affiche rien, et la balise
+script qui contactait Google à chaque visite a été retirée de `index.html`.
 → Aujourd'hui : **« Non, mon application ne contient pas d'annonces »**.
 → ⚠️ À rebasculer sur « Oui » **le jour même** où tu actives AdMob/AdSense — une déclaration
 fausse est un motif de suspension.
@@ -272,10 +272,11 @@ garder le même nom de package et de gérer la migration.
 - [x] Icônes PNG 192 / 512 / maskable + icône Play 512 + `public/manifest.json` complété
 - [x] Suppression de compte : Cloud Function `deleteAccount` (perso supprimé, contenu d'équipe
       anonymisé, transfert d'admin automatique) + parcours in-app + `public/delete-account.html`
-- [ ] Renseigner l'éditeur et l'adresse de contact dans `public/delete-account.html`
-      (3 marqueurs `À_COMPLÉTER`)
+- [x] Éditeur et adresse de contact renseignés (Adrien Scognamillo · flynt.contact@gmail.com)
+- [ ] **Créer la boîte `flynt.contact@gmail.com`** — l'adresse est déjà publiée dans les deux pages
+- [ ] Déployer sur Vercel pour que `/privacy.html` et `/delete-account.html` soient en ligne
 - [ ] Déployer la Cloud Function : `firebase deploy --only functions --project task-tracker-2ea82`
-- [ ] `public/privacy.html` — politique de confidentialité (bloquant n°2)
+- [x] `public/privacy.html` — politique de confidentialité + liens légaux dans les Paramètres
 - [x] Signalement / blocage d'utilisateur dans `TeamChat.jsx` (exigence UGC, §3.6)
 - [ ] Déployer les règles Firestore : `firebase deploy --only firestore:rules --project task-tracker-2ea82`
 - [ ] `apps/mobile/` — projet Capacitor
