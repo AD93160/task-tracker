@@ -168,15 +168,15 @@ aucune finalité « Analyses ». Si tu ajoutes Firebase Analytics plus tard, la 
 | Nom | 30 caractères | `Flynt` |
 | Description courte | 80 caractères | ex. « Vos tâches, seul ou en équipe. Simple, rapide, synchronisé. » |
 | Description complète | 4 000 caractères | tâches, récurrence, corbeille, équipe, chat, PJ, 12 thèmes, sync temps réel |
-| Icône | **512 × 512 PNG 32 bits**, avec alpha, < 1 Mo | ❌ à générer depuis `public/favicon.svg` |
-| Image de présentation | **1024 × 500 PNG/JPG**, obligatoire | ❌ à créer |
-| Captures téléphone | **min. 2**, max. 8 · 16:9 ou 9:16 · côté 320–3840 px | ❌ à faire (viewport 390×844) |
-| Captures tablette 7" et 10" | facultatives, mais **requises pour être mis en avant** par Google | conseillé (viewport 820×1180) |
+| Icône | **512 × 512 PNG 32 bits**, avec alpha, < 1 Mo | ✅ `store-assets/play-icon-512.png` |
+| Image de présentation | **1024 × 500 PNG/JPG**, obligatoire | ✅ `store-assets/feature-graphic.jpg` |
+| Captures téléphone | **min. 2**, max. 8 · côté 320–3840 px | ✅ 6 captures 1080×1816 dans `store-assets/` |
+| Captures tablette 7" et 10" | facultatives, mais **requises pour être mis en avant** par Google | ✅ 2 captures 1640×2256 |
 | Vidéo YouTube | facultative | non |
 
-Astuce : les captures peuvent être générées automatiquement avec Playwright, déjà installé dans
-le repo (les viewports 390×844 / 820×1180 / 1280×720 sont déjà configurés dans
-`playwright.config.js`).
+Les visuels sont régénérables à volonté : `node scripts/generate-screenshots.mjs` relance
+l'app avec un jeu de démo et réécrit tout `store-assets/`. Modifie les données de démo en tête
+du script pour changer ce qui apparaît à l'écran.
 
 ⚠️ **Pas de mots interdits** dans le titre ni la description courte : ni « n°1 », ni « meilleur »,
 ni « gratuit », ni emoji dans le titre, ni mention d'une autre marque (Google Tasks, Todoist…).
