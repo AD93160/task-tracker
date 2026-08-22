@@ -298,6 +298,10 @@ export default function App() {
   const [openDrop,     setOpenDrop]     = useState(null); // 'priority' | 'status' | null
   const [showAuthMenu, setShowAuthMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const [emailMode,    setEmailMode]    = useState("login"); // "login" | "register"
   const [emailForm,    setEmailForm]    = useState({ email:"", password:"" });
   const [showPassword, setShowPassword] = useState(false);
@@ -1277,6 +1281,34 @@ export default function App() {
   };
 
   const logout = () => { signOut(auth); setShowAuthMenu(false); };
+
+  /**
+   * Suppression définitive du compte (RGPD + exigence Google Play).
+   * Le gros du travail est fait côté serveur par la Cloud Function `deleteAccount`,
+   * qui seule a les droits pour toucher aux documents d'équipe et au compte Auth.
+   */
+  const deleteAccount = async () => {
+    if (!user || deletingAccount) return;
+    setDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      const call = httpsCallable(functions, "deleteAccount");
+      await call({});
+      // Les données locales survivraient à la déconnexion : on purge le préfixe tt_
+      Object.keys(localStorage).filter(k => k.startsWith("tt_")).forEach(k => localStorage.removeItem(k));
+      await signOut(auth);
+      setShowDeleteAccount(false);
+      setShowUserMenu(false);
+    } catch (e) {
+      // Le serveur exige une authentification de moins de 10 minutes
+      setDeleteError(
+        e?.code === "functions/failed-precondition"
+          ? "Pour ta sécurité, déconnecte-toi puis reconnecte-toi avant de supprimer ton compte."
+          : (e?.message || "La suppression a échoué. Réessaie dans un instant.")
+      );
+    }
+    setDeletingAccount(false);
+  };
 
   const submitQuickAdd = () => {
     if (!quickTitle.trim()) return;
@@ -2287,6 +2319,7 @@ export default function App() {
                         {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
                       </label>
                       <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
+                      <button onClick={()=>{setShowUserMenu(false);setDeleteConfirm("");setDeleteError(null);setShowDeleteAccount(true);}} style={{ width:"100%",background:"transparent",border:"none",borderTop:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.textMuted,fontSize:11,cursor:"pointer",textAlign:"left" }}>Supprimer mon compte</button>
                     </div>
                   )}
                 </div>
@@ -2395,6 +2428,7 @@ export default function App() {
                         {uploadingAvatar?"⏳ Envoi…":"🖼️ Changer l'avatar"}
                       </label>
                       <button onClick={logout} style={{ width:"100%",background:"transparent",border:"none",borderRadius:7,padding:"7px 10px",color:"#cc3030",fontSize:12,cursor:"pointer",textAlign:"left" }}>Se déconnecter</button>
+                      <button onClick={()=>{setShowUserMenu(false);setDeleteConfirm("");setDeleteError(null);setShowDeleteAccount(true);}} style={{ width:"100%",background:"transparent",border:"none",borderTop:`1px solid ${theme.border}22`,borderRadius:7,padding:"7px 10px",color:theme.textMuted,fontSize:11,cursor:"pointer",textAlign:"left" }}>Supprimer mon compte</button>
                     </div>
                   )}
                 </div>
@@ -3237,6 +3271,73 @@ export default function App() {
 
       {/* Popup prévisualisation fichier */}
       {renderFilePopup()}
+
+      {/* Suppression de compte — parcours exigé par Google Play */}
+      {showDeleteAccount && (
+        <div style={{ position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"#00000099",padding:16 }}
+          onClick={()=>{ if(!deletingAccount) setShowDeleteAccount(false); }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:"1px solid #cc303066",borderRadius:16,padding:24,width:"100%",maxWidth:420,boxShadow:"0 8px 40px #00000099",maxHeight:"85vh",overflowY:"auto" }}>
+            <div style={{ fontSize:11,color:"#cc3030",letterSpacing:2,fontWeight:700,marginBottom:16 }}>SUPPRIMER MON COMPTE</div>
+
+            <div style={{ fontSize:12,color:theme.text,lineHeight:1.6,marginBottom:14 }}>
+              Cette action est <strong>définitive</strong>. Elle ne peut pas être annulée.
+            </div>
+
+            <div style={{ fontSize:11,color:theme.textMuted,lineHeight:1.7,marginBottom:6 }}>Sont supprimés :</div>
+            <ul style={{ fontSize:11,color:theme.textMuted,lineHeight:1.7,margin:"0 0 14px 0",paddingLeft:18 }}>
+              <li>ton profil, ton pseudo et ton avatar</li>
+              <li>toutes tes tâches personnelles et ta corbeille</li>
+              <li>tes pièces jointes personnelles</li>
+              <li>ton compte et ton accès à Flynt</li>
+            </ul>
+
+            <div style={{ fontSize:11,color:theme.textMuted,lineHeight:1.7,marginBottom:6 }}>Sont conservés, mais anonymisés :</div>
+            <ul style={{ fontSize:11,color:theme.textMuted,lineHeight:1.7,margin:"0 0 14px 0",paddingLeft:18 }}>
+              <li>les tâches d'équipe que tu as créées</li>
+              <li>tes messages dans les conversations d'équipe</li>
+            </ul>
+            <div style={{ fontSize:10,color:theme.textMuted+"cc",lineHeight:1.6,marginBottom:14,fontStyle:"italic" }}>
+              Ton nom y est remplacé par « Utilisateur supprimé », pour ne pas trouer l'historique des autres membres.
+            </div>
+
+            {(adminTeams||[]).length > 0 && (
+              <div style={{ fontSize:11,color:theme.text,lineHeight:1.6,marginBottom:14,padding:"9px 11px",background:theme.accent+"14",border:`1px solid ${theme.accent}44`,borderRadius:8 }}>
+                Tu es administrateur d'au moins une équipe : le rôle sera transmis automatiquement à un autre membre. Une équipe dont tu es le dernier membre sera dissoute.
+              </div>
+            )}
+
+            <div style={{ fontSize:11,color:theme.textMuted,marginBottom:6 }}>
+              Pour confirmer, tape <strong style={{ color:theme.text }}>SUPPRIMER</strong> :
+            </div>
+            <input
+              value={deleteConfirm}
+              onChange={e=>setDeleteConfirm(e.target.value)}
+              disabled={deletingAccount}
+              placeholder="SUPPRIMER"
+              style={{ width:"100%",boxSizing:"border-box",background:theme.bg,border:`1px solid ${theme.border}`,borderRadius:8,padding:"9px 11px",color:theme.text,fontSize:16,marginBottom:12 }}
+            />
+
+            {deleteError && (
+              <div style={{ fontSize:11,color:"#cc3030",marginBottom:12,padding:"8px 11px",background:"#cc303022",borderRadius:8,lineHeight:1.5 }}>{deleteError}</div>
+            )}
+
+            <div style={{ display:"flex",gap:8 }}>
+              <button
+                onClick={()=>setShowDeleteAccount(false)}
+                disabled={deletingAccount}
+                style={{ flex:1,background:"transparent",border:`1px solid ${theme.border}`,borderRadius:8,padding:"9px",color:theme.text,fontSize:12,cursor:deletingAccount?"not-allowed":"pointer" }}>
+                Annuler
+              </button>
+              <button
+                onClick={deleteAccount}
+                disabled={deleteConfirm !== "SUPPRIMER" || deletingAccount}
+                style={{ flex:1,background:(deleteConfirm==="SUPPRIMER"&&!deletingAccount)?"#cc3030":"#cc303044",border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:12,cursor:(deleteConfirm==="SUPPRIMER"&&!deletingAccount)?"pointer":"not-allowed" }}>
+                {deletingAccount ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       {showStats && (

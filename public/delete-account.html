@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supprimer son compte — Flynt</title>
+  <meta name="description" content="Comment supprimer définitivement son compte Flynt et les données associées.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    :root {
+      --accent: #4FC287;
+      --bg: #ffffff;
+      --card: #f7f9f8;
+      --text: #1a1f1c;
+      --muted: #5a655e;
+      --border: #dfe6e2;
+      --danger: #cc3030;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #10151a;
+        --card: #171d24;
+        --text: #e8eeea;
+        --muted: #96a39c;
+        --border: #263039;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px 64px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    header img { width: 40px; height: 40px; border-radius: 9px; }
+    h1 { font-size: 25px; margin: 0; letter-spacing: -0.3px; }
+    h2 { font-size: 17px; margin: 34px 0 10px; letter-spacing: -0.2px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 28px; }
+    ol, ul { padding-left: 22px; margin: 10px 0; }
+    li { margin-bottom: 5px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 14px 0;
+    }
+    .card.warn { border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+    .card h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+    .card.warn h3 { color: var(--danger); }
+    a { color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+    code { background: var(--card); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+    footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="/favicon.svg" alt="">
+    <h1>Supprimer son compte Flynt</h1>
+  </header>
+  <p class="sub">Application : <strong>Flynt</strong> · Éditeur : ÉDITEUR_À_COMPLÉTER</p>
+
+  <p>
+    Tu peux supprimer ton compte Flynt à tout moment, depuis l'application ou en nous écrivant.
+    La suppression est <strong>immédiate et définitive</strong> : il n'y a ni période de grâce,
+    ni possibilité de restauration.
+  </p>
+
+  <h2>Depuis l'application</h2>
+  <ol>
+    <li>Ouvre Flynt et connecte-toi.</li>
+    <li>Touche ton <strong>avatar</strong>, en haut à droite.</li>
+    <li>Choisis <strong>« Supprimer mon compte »</strong>.</li>
+    <li>Lis le récapitulatif, tape <code>SUPPRIMER</code> pour confirmer, puis valide.</li>
+  </ol>
+  <p>
+    Si tu es connecté depuis longtemps, l'application te demandera de te reconnecter avant de
+    poursuivre : c'est une sécurité, pour qu'un compte laissé ouvert sur un appareil partagé ne
+    puisse pas être supprimé par quelqu'un d'autre.
+  </p>
+
+  <h2>Sans passer par l'application</h2>
+  <p>
+    Écris à <a href="mailto:EMAIL_À_COMPLÉTER">EMAIL_À_COMPLÉTER</a> depuis l'adresse e-mail
+    associée à ton compte, avec pour objet « Suppression de compte ». Nous traitons la demande
+    sous 30 jours au maximum, et te confirmons la suppression par retour d'e-mail.
+  </p>
+
+  <h2>Ce qui est supprimé</h2>
+  <table>
+    <thead>
+      <tr><th>Donnée</th><th>Traitement</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Compte, adresse e-mail, pseudo, avatar</td><td>Supprimés immédiatement</td></tr>
+      <tr><td>Tâches personnelles, corbeille, historique</td><td>Supprimés immédiatement</td></tr>
+      <tr><td>Pièces jointes personnelles</td><td>Supprimées immédiatement</td></tr>
+      <tr><td>Jeton de notification push</td><td>Supprimé immédiatement</td></tr>
+      <tr><td>Invitations d'équipe en attente</td><td>Supprimées immédiatement</td></tr>
+      <tr><td>Propositions de modification en attente</td><td>Supprimées immédiatement</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Ce qui est conservé, sous forme anonymisée</h2>
+  <div class="card">
+    <h3>Contenu partagé avec une équipe</h3>
+    <p style="margin:0">
+      Les tâches d'équipe que tu as créées et les messages que tu as envoyés dans les
+      conversations d'équipe restent visibles par les autres membres, mais ton nom, ton adresse
+      e-mail et ton identifiant en sont retirés et remplacés par la mention
+      « Utilisateur supprimé ». Ce contenu n'est alors plus rattachable à ta personne.
+    </p>
+    <p style="margin:10px 0 0">
+      Ce choix évite de trouer l'historique de travail des autres membres, qui n'ont pas demandé
+      la suppression de leurs propres données.
+    </p>
+  </div>
+
+  <h2>Si tu administres une équipe</h2>
+  <div class="card">
+    <ul style="margin:0">
+      <li>S'il reste des membres, ton rôle d'administrateur est <strong>transmis automatiquement</strong> à un autre membre de l'équipe.</li>
+      <li>Si tu es le <strong>dernier membre</strong>, l'équipe est dissoute et l'intégralité de son contenu — tâches, messages, pièces jointes — est supprimée.</li>
+    </ul>
+  </div>
+
+  <h2>Sauvegardes</h2>
+  <p>
+    Nos données sont hébergées chez Google Firebase, qui conserve des sauvegardes techniques
+    chiffrées. Les informations supprimées peuvent y subsister au maximum <strong>90 jours</strong>
+    avant rotation complète. Elles ne sont ni consultables ni exploitables durant cette période.
+  </p>
+
+  <div class="card warn">
+    <h3>Avant de supprimer</h3>
+    <p style="margin:0">
+      Pense à exporter ton agenda au format <code>.ics</code> depuis l'application si tu souhaites
+      conserver une trace de tes tâches. Après suppression, aucune récupération n'est possible.
+    </p>
+  </div>
+
+  <footer>
+    Une question sur tes données ? Écris-nous à
+    <a href="mailto:EMAIL_À_COMPLÉTER">EMAIL_À_COMPLÉTER</a>.<br>
+    Voir aussi notre <a href="/privacy.html">politique de confidentialité</a>.
+  </footer>
+</main>
+</body>
+</html>
