@@ -13,8 +13,8 @@
 |---|---|---|---|
 | 1 | **Aucun `.aab`** — `apps/mobile/` ne contient qu'un `.gitkeep` | Onglet *Versions* : rien à envoyer | ❌ |
 | 2 | **Pas de politique de confidentialité** en ligne | *Contenu de l'application → Règles de confidentialité* (URL obligatoire) | ❌ |
-| 3 | **Pas d'URL de suppression de compte** | *Sécurité des données* (obligatoire dès qu'il y a des comptes) | ❌ |
-| 4 | **Icônes PNG absentes** — `public/manifest.json` ne déclare qu'un SVG | Icône Play 512×512 PNG + requis pour un build TWA | ❌ |
+| 3 | **Pas d'URL de suppression de compte** | *Sécurité des données* (obligatoire dès qu'il y a des comptes) | ✅ `public/delete-account.html` + Cloud Function `deleteAccount` — reste l'adresse de contact à renseigner |
+| 4 | **Icônes PNG absentes** — `public/manifest.json` ne déclare qu'un SVG | Icône Play 512×512 PNG + requis pour un build TWA | ✅ `store-assets/play-icon-512.png` |
 | 5 | **Compte de test à fournir** — l'app est derrière un login Firebase | *Accès à l'application* | ⚠️ à créer |
 | 6 | **Nom « Flynt »** — vérifier qu'aucune app/marque ne le porte déjà | Fiche Play Store | ⚠️ à vérifier |
 
@@ -268,11 +268,13 @@ garder le même nom de package et de gérer la migration.
 
 ## 9. Ce qui manque encore côté code
 
+- [x] Icônes PNG 192 / 512 / maskable + icône Play 512 + `public/manifest.json` complété
+- [x] Suppression de compte : Cloud Function `deleteAccount` (perso supprimé, contenu d'équipe
+      anonymisé, transfert d'admin automatique) + parcours in-app + `public/delete-account.html`
+- [ ] Renseigner l'éditeur et l'adresse de contact dans `public/delete-account.html`
+      (3 marqueurs `À_COMPLÉTER`)
+- [ ] Déployer la Cloud Function : `firebase deploy --only functions --project task-tracker-2ea82`
 - [ ] `public/privacy.html` — politique de confidentialité (bloquant n°2)
-- [ ] Page/procédure de suppression de compte + URL publique (bloquant n°3)
-- [ ] Suppression effective des données côté Firebase (Auth + Firestore + Storage) via une
-      Cloud Function, pour que la promesse de suppression soit réelle
-- [ ] Icônes PNG 192 / 512 + `public/manifest.json` complété
 - [ ] Signalement / blocage d'utilisateur dans `TeamChat.jsx` (exigence UGC, §3.6)
-- [ ] `apps/mobile/` — projet Capacitor ou Bubblewrap
-- [ ] SHA-1 / SHA-256 de la clé d'upload ajoutés dans la console Firebase (voie Capacitor)
+- [ ] `apps/mobile/` — projet Capacitor
+- [ ] SHA-1 / SHA-256 de la clé d'upload ajoutés dans la console Firebase
