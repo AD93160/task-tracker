@@ -396,14 +396,14 @@ test.describe('Desktop — Page perso', () => {
   test('ouvre le panneau d\'apparence', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('passe en mode sombre', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(13, 13, 26)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(11, 31, 22), rgb(30, 104, 68))');
   });
 
   test('passe en mode clair', async ({ page }) => {
@@ -411,15 +411,15 @@ test.describe('Desktop — Page perso', () => {
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
     await page.getByRole('button', { name: /☀️ Clair/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(253, 246, 236)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(255, 255, 255), rgb(134, 239, 172))');
   });
 
   test('ferme le panneau thème en cliquant en dehors', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
     await page.mouse.click(10, 10);
-    await expect(page.getByText('APPARENCE')).not.toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).not.toBeVisible();
   });
 
   // ── 12. Dropdowns priorité / statut ───────────────────────────────────
@@ -600,7 +600,7 @@ test.describe('Tablet — Page perso', () => {
   test('ouvre le panneau thème', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('trie par statut', async ({ page }) => {
@@ -682,14 +682,14 @@ test.describe('Mobile — Page perso', () => {
   test('ouvre le panneau thème via le bouton ⚙️ mobile', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('passe en mode sombre en mobile', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(13, 13, 26)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(11, 31, 22), rgb(30, 104, 68))');
   });
 
   test('affiche le menu utilisateur en mobile', async ({ page }) => {
