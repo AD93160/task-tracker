@@ -1,7 +1,5 @@
 # Kewa — Guide de publication Google Play
 
-> État du repo au moment de la rédaction : `apps/mobile/` est vide (placeholder), aucun
-> `.aab` n'existe encore, aucune politique de confidentialité n'est publiée.
 > Ce document couvre **la console Play** (ce qui peut être rempli tout de suite) et
 > **les bloquants techniques** (ce qu'il faut produire avant de pouvoir envoyer une version).
 
@@ -167,7 +165,7 @@ aucune finalité « Analyses ». Si tu ajoutes Firebase Analytics plus tard, la 
 |---|---|---|
 | Nom | 30 caractères | `Kewa` |
 | Description courte | 80 caractères | ex. « Vos tâches, seul ou en équipe. Simple, rapide, synchronisé. » |
-| Description complète | 4 000 caractères | tâches, récurrence, corbeille, équipe, chat, PJ, 12 thèmes, sync temps réel |
+| Description complète | 4 000 caractères | tâches, récurrence, corbeille, équipe, chat, PJ, thèmes vert / Hermès clair et sombre, sync temps réel |
 | Icône | **512 × 512 PNG 32 bits**, avec alpha, < 1 Mo | ✅ `store-assets/play-icon-512.png` |
 | Image de présentation | **1024 × 500 PNG/JPG**, obligatoire | ✅ `store-assets/feature-graphic.jpg` |
 | Captures téléphone | **min. 2**, max. 8 · côté 320–3840 px | ✅ 6 captures 1080×1816 dans `store-assets/` |
@@ -214,7 +212,7 @@ trop bas fait rejeter l'upload immédiatement.
 
 ## 7. Produire le `.aab` — les deux voies
 
-`apps/mobile/` est vide, il faut choisir.
+Choix retenu : **voie B (Capacitor)** — voir §7 bis.
 
 ### Voie A — TWA (Trusted Web Activity) via Bubblewrap / PWABuilder
 Emballe la PWA déjà en ligne dans une coquille Android.

@@ -15,3 +15,16 @@ release/
 .DS_Store
 playwright-report/
 test-results/
+
+# Android / Capacitor
+apps/mobile/www/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/app/src/main/assets/public/
+# Le keystore de signature ne doit JAMAIS entrer dans le dépôt : il vit en
+# secret GitHub (base64) et dans une sauvegarde hors ligne. Le perdre rend
+# toute mise à jour de l'app impossible sur le Play Store.
+*.keystore
+*.jks

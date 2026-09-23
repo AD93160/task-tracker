@@ -28,6 +28,8 @@ src/
   TeamChat.jsx    # Messagerie équipe (groupe + DMs), ~734 lignes
   main.jsx        # Point d'entrée, monte ErrorBoundary + App
   firebase.js     # Config Firebase (Auth, Firestore, Storage, Messaging, Functions)
+  native.js       # Pont Capacitor : isNativeApp(), login Google natif, push FCM natif
+  KewaLogo.jsx    # Logo (props square / mark — dans l'app : square={null}, mark={theme.logoMark})
   mocks/
     firebase-auth.js       # Mock Firebase Auth pour les tests E2E
     firebase-firestore.js  # Mock Firestore pour les tests E2E
@@ -40,7 +42,7 @@ packages/
 
 apps/
   desktop/           # App Electron (structure en place, build en cours)
-  mobile/            # Placeholder app native
+  mobile/android/    # Projet Capacitor Android (appId com.kewa.app) — build AAB via .github/workflows/build-android.yml
 ```
 
 ## Schéma d'une tâche personnelle
@@ -104,7 +106,9 @@ sortDir           // "asc" | "desc"
 recurDay, recurMonthDay, recurError
 
 // Thème
-theme             // { mode, bg, bgLeft, bgCard, accent, text, textMuted, border, font, titleFont }
+theme             // entrée de THEMES[family][mode] — family "green" | "hermes", mode "light" | "dark"
+                  // { family, mode, grad, ctaGrad, ctaText, logoMark, sloganGrad, bg, bgLeft, bgCard, cardBg, accent, text, textMuted, border, font, titleFont }
+                  // pickTheme(family, mode) ; CANON = THEMES.green.light (page de connexion)
 
 // Auth / User
 user              // Firebase user

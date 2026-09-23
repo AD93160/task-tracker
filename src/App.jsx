@@ -407,14 +407,80 @@ export default function App() {
       .catch(() => setDlUrl('https://github.com/AD93160/task-tracker/releases/latest'));
   }, [showDownloadPopup]);
 
-  const [theme, setTheme] = useState({
-    bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF",
-    accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A",
-    border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light",
-  });
+  /* ─────────────────────────────────────────────────────────────
+     Thèmes — 2 familles × 2 modes.
 
-  const KEWA_LIGHT = { bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", accent:"#3DAA6B", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0", font:"Inter", titleFont:"Playfair Display", mode:"light" };
-  const KEWA_DARK  = { bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", accent:"#3DAA6B", text:"#F5E4CC", textMuted:"#B8906A", border:"#3A1E0C", font:"Inter", titleFont:"Playfair Display", mode:"dark"  };
+     Chaque entrée porte :
+       grad      dégradé signature (fond de l'app + bandeau header)
+       ctaGrad   dégradé des CTA majeurs — en mode sombre il est ÉCLAIRCI
+                 pour rester lisible sur fond foncé
+       logoF     couleur du F et de la coche du logo : toujours l'accent
+                 de la famille OPPOSÉE (vert ↔ orange)
+       cardBg    fond des cartes sans état d'urgence
+
+     Les couleurs d'urgence des tâches (RED/GOLD/ORANGE/GREEN dans
+     @task-tracker/shared) restent identiques entre thèmes : elles sont
+     sémantiques, pas décoratives.
+  ───────────────────────────────────────────────────────────── */
+  const FONT_BASE = { font:"Inter", titleFont:"Playfair Display" };
+
+  const THEMES = {
+    green: {
+      light: { ...FONT_BASE, family:"green", mode:"light",
+        grad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
+        ctaGrad:"linear-gradient(to right, #FFFFFF, #86EFAC)",
+        ctaText:"#10281C", logoF:"#E8966A",
+        sloganGrad:"linear-gradient(to right, #8A3D18, #E8966A)",
+        logoMark:["#C9713F","#7A3414"],
+        bg:"#F2FBF6", bgLeft:"#E8F7EF", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.55)",
+        accent:"#3DAA6B", text:"#10281C", textMuted:"#5A7A68", border:"#B8E6CC" },
+      dark:  { ...FONT_BASE, family:"green", mode:"dark",
+        grad:"linear-gradient(to right, #0B1F16, #1E6844)",
+        ctaGrad:"linear-gradient(to right, #4FC287, #86EFAC)",
+        ctaText:"#06140E", logoF:"#E8966A",
+        sloganGrad:"linear-gradient(to right, #C9713F, #FFD9BE)",
+        logoMark:["#FFD9BE","#E8966A"],
+        bg:"#0B1F16", bgLeft:"#0E2519", bgCard:"#12281D", cardBg:"rgba(255,255,255,0.07)",
+        accent:"#4FC287", text:"#E8F5ED", textMuted:"#8FB3A0", border:"#2A5240" },
+    },
+    hermes: {
+      light: { ...FONT_BASE, family:"hermes", mode:"light",
+        grad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
+        ctaGrad:"linear-gradient(to right, #FFFFFF, #F5C9A8)",
+        ctaText:"#2C1A0E", logoF:"#3DAA6B",
+        sloganGrad:"linear-gradient(to right, #0E4F2C, #4FC287)",
+        logoMark:["#2E8A55","#0C4426"],
+        bg:"#FDF6EC", bgLeft:"#F5EDD8", bgCard:"#FFFFFF", cardBg:"rgba(255,255,255,0.6)",
+        // #E8966A est réservé au logo : en texte sur blanc il ne contraste
+        // qu'à ~2.2:1. #C9713F monte à ~4.6:1 et reste dans le ton.
+        accent:"#C9713F", text:"#2C1A0E", textMuted:"#9C7B5A", border:"#F0C4A0" },
+      dark:  { ...FONT_BASE, family:"hermes", mode:"dark",
+        grad:"linear-gradient(to right, #1C0F08, #6B3A1E)",
+        ctaGrad:"linear-gradient(to right, #E8966A, #F5C9A8)",
+        ctaText:"#1C0F08", logoF:"#4FC287",
+        sloganGrad:"linear-gradient(to right, #2A7A4C, #A7F3C8)",
+        logoMark:["#A7F3C8","#4FC287"],
+        bg:"#1C0F08", bgLeft:"#160C06", bgCard:"#241508", cardBg:"rgba(255,255,255,0.07)",
+        accent:"#E8966A", text:"#F5E4CC", textMuted:"#B8906A", border:"#4A2A14" },
+    },
+  };
+
+  const pickTheme = (family, mode) =>
+    (THEMES[family] || THEMES.green)[mode === "dark" ? "dark" : "light"];
+
+  const [theme, setTheme] = useState(THEMES.green.light);
+
+  // Le carré du logo n'est pas peint dans l'app : le dégradé de la page passe
+  // au travers. La marque (K + « ewa ») repose donc directement sur
+  // ce fond et doit contraster avec lui — d'où theme.logoMark, qui dépend à
+  // la fois de la famille et du mode.
+
+  // La page de connexion est pré-authentification : aucun thème utilisateur
+  // n'est encore chargé, et elle doit porter l'identité canonique de la
+  // marque — le vert, comme le favicon et l'icône PWA. Elle ne suit donc
+  // volontairement pas theme.*, y compris si l'utilisateur se déconnecte
+  // alors qu'il avait choisi le thème Hermès.
+  const CANON = THEMES.green.light;
 
   const dragRef          = useRef({});
   const leftRef          = useRef(null);
@@ -685,7 +751,8 @@ export default function App() {
         if (data.tomorrowIds)  setTomorrowIds(data.tomorrowIds);
         if (data.scheduledIds) setScheduledIds(data.scheduledIds);
         if (data.highlighted)  setHighlighted(data.highlighted);
-        if (data.theme?.mode)  setTheme(data.theme.mode === "dark" ? KEWA_DARK : KEWA_LIGHT);
+        if (data.theme?.mode || data.theme?.family)
+          setTheme(pickTheme(data.theme.family || "green", data.theme.mode || "light"));
         if (data.taskCounter !== undefined) setTaskCounter(data.taskCounter);
         if (data.locale)       setLocale(data.locale);
         if (data.customPhotoURL) setUserPhotoURL(data.customPhotoURL);
@@ -2066,7 +2133,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>AVANCEMENT ÉQUIPE</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#22C55E":rate>40?"#F59E0B":"#EF4444",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2118,7 +2185,7 @@ export default function App() {
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:2 }}>EFFICACITÉ</div>
           <div style={{ height:8,background:theme.border,borderRadius:4,overflow:"hidden" }}>
-            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#86EFAC":rate>40?"#3DAA6B":"#ff6b6b",borderRadius:4,transition:"width .5s" }}/>
+            <div style={{ height:"100%",width:rate+"%",background:rate>70?"#22C55E":rate>40?"#F59E0B":"#EF4444",borderRadius:4,transition:"width .5s" }}/>
           </div>
           <div style={{ fontSize:11,color:theme.text,marginTop:4,textAlign:"right",fontWeight:700 }}>{rate}%</div>
         </div>
@@ -2165,16 +2232,16 @@ export default function App() {
   );
 
   if (!user) return (
-    <div style={{ height:"100vh", background:"linear-gradient(to right, #ffffff, #86EFAC)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
+    <div style={{ height:"100vh", background:CANON.grad, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono','Courier New',monospace", color:"#2a4a3a" }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
-      <KewaLogo width={160} style={{ marginBottom:28 }} />
-      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
+      <KewaLogo width={160} style={{ marginBottom:28 }} square={null} mark={CANON.logoMark} />
+      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:CANON.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:32, letterSpacing:0.5 }}>Everything in check.</div>
       {authError && <div style={{ color:"#cc3030", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authError}</div>}
       {authInfo  && <div style={{ color:"#1a7a3a", fontSize:11, marginBottom:12, maxWidth:280, textAlign:"center" }}>{authInfo}</div>}
       <div style={{ background:"#ffffffcc", backdropFilter:"blur(8px)", border:"1px solid #86EFAC66", borderRadius:16, padding:"28px 32px", width:"100%", maxWidth:320, boxShadow:"0 8px 32px #86EFAC33" }}>
         <div style={{ display:"flex", marginBottom:20, borderRadius:8, overflow:"hidden", border:"1px solid #86EFAC66" }}>
-          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
-          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?"linear-gradient(to right, #ffffff, #86EFAC)":"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
+          <button onClick={()=>{setEmailMode("login");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="login"?CANON.ctaGrad:"transparent", border:"none", color:emailMode==="login"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="login"?700:400, cursor:"pointer" }}>Connexion</button>
+          <button onClick={()=>{setEmailMode("register");setAuthError(null);}} style={{ flex:1, padding:"8px 0", background:emailMode==="register"?CANON.ctaGrad:"transparent", border:"none", color:emailMode==="register"?"#2a4a3a":"#4a7a5a", fontSize:12, fontWeight:emailMode==="register"?700:400, cursor:"pointer" }}>Inscription</button>
         </div>
         <input type="email" placeholder="Email" value={emailForm.email} onChange={e=>setEmailForm(f=>({...f,email:e.target.value}))} style={{ width:"100%", padding:"10px 12px", background:"#f0faf5", border:"1px solid #86EFAC88", borderRadius:8, color:"#1a3a2a", fontSize:13, marginBottom:10, boxSizing:"border-box" }} />
         <div style={{ position:"relative", marginBottom:16 }}>
@@ -2189,7 +2256,7 @@ export default function App() {
           </button>
         </div>
         {emailMode==="login" && <div style={{ textAlign:"right",marginTop:-10,marginBottom:14 }}><span onClick={sendPasswordReset} style={{ fontSize:11,color:"#3a9a5a",cursor:"pointer" }}>Mot de passe oublié ?</span></div>}
-        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:"linear-gradient(to right, #ffffff, #86EFAC)", border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+        <button onClick={loginEmail} style={{ width:"100%", padding:"11px 0", background:CANON.ctaGrad, border:"none", borderRadius:8, color:"#2a4a3a", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
           {emailMode==="login"?"Se connecter":"Créer un compte"}
         </button>
         <button onClick={loginGoogle} style={{ width:"100%", padding:"10px 12px", background:"#fff", border:"1px solid #86EFAC88", borderRadius:8, color:"#2a4a3a", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
@@ -2210,7 +2277,7 @@ export default function App() {
   const renderTomorrowStr = renderTomDate.toISOString().split("T")[0];
 
   return (
-    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:"linear-gradient(to right, #ffffff, #86EFAC)", fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
+    <div onContextMenu={e=>e.preventDefault()} style={{ height:"100vh", overflow:"hidden", background:theme.grad, fontFamily:`'${theme.font}','Courier New',monospace`, color:theme.text, display:"flex", flexDirection:"column", userSelect:"none", WebkitUserSelect:"none", "--date-icon-invert": theme.mode==="dark"?"1":"0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Playfair+Display:wght@400;600;700;800&family=Syne:wght@700;800&display=swap');
         * { box-sizing:border-box; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
@@ -2315,7 +2382,7 @@ export default function App() {
       <div style={{
         padding: isMobile ? "8px 12px 0" : "20px 28px 14px",
         borderBottom:`1px solid ${theme.border}`,
-        background: "linear-gradient(to right, #ffffff, #86EFAC)",
+        background: theme.grad,
         display:"flex",
         flexDirection: "column",
         position: "relative",
@@ -2324,7 +2391,7 @@ export default function App() {
           <>
             {/* Mobile ligne 1 : logo + titre + avatar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
-              <KewaLogo height={42} />
+              <KewaLogo height={42} square={null} mark={theme.logoMark} />
               <div style={{ flex:1 }} />
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
               {syncError && <span style={{ fontSize:9, color:"#cc3030", background:"#cc303022", borderRadius:4, padding:"2px 6px" }}>⚠ sync</span>}
@@ -2418,8 +2485,8 @@ export default function App() {
           /* Desktop */
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <KewaLogo height={72} />
-              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:"linear-gradient(to right, #ffffff, #86EFAC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
+              <KewaLogo height={72} square={null} mark={theme.logoMark} />
+              <div style={{ fontSize:18, fontWeight:800, fontFamily:"'Open Sans',sans-serif", background:theme.sloganGrad, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", letterSpacing:0.5 }}>Everything in check.</div>
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               {syncing && <span style={{ fontSize:9, color:theme.textMuted }}>↑</span>}
@@ -2682,7 +2749,7 @@ export default function App() {
               {/* Top bar */}
               <div style={{ display:"flex", alignItems:"center", marginBottom:14, gap:8 }}>
                 <button onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true}); setRecurDay(""); setRecurMonthDay("");}}
-                  style={{ flex:1,background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:8,padding:"9px 16px",color:"#2a4a3a",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                  style={{ flex:1,background:theme.ctaGrad,border:"none",borderRadius:8,padding:"9px 16px",color:theme.ctaText,fontSize:12,fontWeight:700,cursor:"pointer" }}>
                   {teamSpace && !isAdminRole(teamRole) ? "+ Proposer" : "+ Ajouter"}
                 </button>
                 <div style={{ position:"relative" }}>
@@ -3087,7 +3154,7 @@ export default function App() {
                   return 0;
                 }).map(task => {
                   const tc  = teamTaskColor(task);
-                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : "rgba(255,255,255,0.55)") : theme.bgCard;
+                  const bgC = tc ? (tc.bgOpacity ? tc.base+tc.bgOpacity : theme.cardBg) : theme.bgCard;
                   const bdC = tc ? `1px solid ${tc.light}66` : `1px solid ${theme.border}`;
                   const blC = tc ? `${tc.blWidth} solid ${tc.light}` : `1px solid ${theme.border}`;
                   const shadowC = tc?.shadow || undefined;
@@ -3212,7 +3279,7 @@ export default function App() {
               const dot     = STATUS_DOT[task.status];
               const isGhost = ghost?.id===task.id;
               const tc      = taskColor(task);
-              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?(tc.bgOpacity?tc.base+tc.bgOpacity:"rgba(255,255,255,0.55)"):hl?theme.accent+"22":theme.bgCard);
+              const bgC = task.status==="Terminé"&&task.completion ? task.completion.color+"22" : (tc?(tc.bgOpacity?tc.base+tc.bgOpacity:theme.cardBg):hl?theme.accent+"22":theme.bgCard);
               const bdC = task.status==="Terminé"&&task.completion ? `1px solid ${task.completion.color}55` : (tc?`1px solid ${tc.light}66`:hl?`1px solid ${theme.accent}66`:`1px solid ${theme.border}`);
               const blC = task.status==="Terminé"&&task.completion ? `3px solid ${task.completion.color}` : (tc?`${tc.blWidth} solid ${tc.light}`:hl?`3px solid ${theme.accent}`:`1px solid ${theme.border}`);
               const shadowC = task.status==="Terminé"||!tc ? undefined : tc.shadow||undefined;
@@ -3271,7 +3338,7 @@ export default function App() {
                   </div>
                   {tc?.badge && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:99,background:"#FEE2E2",color:"#DC2626",border:"1px solid #FCA5A5",letterSpacing:0.4,flexShrink:0 }}>{tc.badge}</span>}
                   <div style={{ display:"flex",gap:isMobile?6:4,flexShrink:0 }}>
-                    <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?"#86EFAC22":"transparent",border:`1px solid ${task.status==="Terminé"?"#86EFAC88":"#86EFAC66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:"#86EFAC",fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
+                    <button title={task.status==="Terminé"?"Rouvrir":"Marquer terminé"} onClick={e=>{e.stopPropagation();setTasks(p=>p.map(t=>t.id===task.id?t.status==="Terminé"?{...t,status:"À faire",completion:null}:{...t,status:"Terminé",completion:buildCompletion(t)}:t));}} style={{ background:task.status==="Terminé"?theme.accent+"22":"transparent",border:`1px solid ${theme.accent}${task.status==="Terminé"?"88":"66"}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.accent,fontSize:isMobile?14:10,cursor:"pointer",fontWeight:700 }}>✓</button>
                     <button title="Dupliquer" onClick={e=>{e.stopPropagation();duplicateTask(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>⧉</button>
                     {task.due && <button title="Ajouter à l'agenda" onClick={e=>{e.stopPropagation();exportIcs(task);}} style={{ background:"transparent",border:`1px solid ${theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📅</button>}
                     <button title="Pièces jointes" onClick={e=>{e.stopPropagation();setPjPopup({id:task.id,isTeam:false});}} style={{ background:"transparent",border:`1px solid ${(task.attachments||[]).length>0?theme.accent+"44":theme.border}`,borderRadius:5,padding:isMobile?"6px 10px":"2px 7px",color:(task.attachments||[]).length>0?theme.accent:theme.textMuted,fontSize:isMobile?14:10,cursor:"pointer" }}>📎{(task.attachments||[]).length>0?` ${task.attachments.length}`:""}</button>
@@ -3524,11 +3591,30 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} style={{ background:theme.bgCard,border:`1px solid ${theme.accent}44`,borderRadius:16,padding:24,width:280,boxShadow:"0 8px 40px #00000099",maxHeight:"80vh",overflowY:"auto" }}>
             <div style={{ fontSize:11,color:theme.accent,letterSpacing:2,fontWeight:700,marginBottom:16 }}>PARAMÈTRES</div>
 
+            <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>THÈME</div>
+            <div style={{ display:"flex",gap:8,marginBottom:14 }}>
+              {[{ k:"green",  label:"Vert",   sq:["#3DAA6B","#86EFAC"], mk:"#8A3D18" },
+                { k:"hermes", label:"Hermès", sq:["#C9713F","#F5C9A8"], mk:"#1F6B42" }].map(({k,label,sq,mk})=>{
+                const on = theme.family===k;
+                return (
+                  <button key={k} onClick={()=>setTheme(pickTheme(k, theme.mode))}
+                    style={{ flex:1,background:on?theme.accent+"22":"transparent",border:`1.5px solid ${on?theme.accent:theme.border}`,borderRadius:8,padding:"8px 6px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6 }}>
+                    {/* Aperçu : carré en dégradé de la famille + pastille de la marque inversée */}
+                    <span style={{ display:"flex",alignItems:"center",gap:5 }}>
+                      <span style={{ width:18,height:18,borderRadius:5,background:`linear-gradient(to right, ${sq[0]}, ${sq[1]})`,display:"inline-block" }}/>
+                      <span style={{ width:9,height:9,borderRadius:"50%",background:mk,display:"inline-block" }}/>
+                    </span>
+                    <span style={{ color:on?theme.accent:theme.textMuted,fontSize:10,fontWeight:on?700:400 }}>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div style={{ fontSize:9,color:theme.textMuted,marginBottom:6,letterSpacing:1 }}>MODE</div>
             <div style={{ display:"flex",gap:8,marginBottom:18 }}>
               {["light","dark"].map(m=>(
-                <button key={m} onClick={()=>setTheme(m==="dark" ? KEWA_DARK : KEWA_LIGHT)}
-                  style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?"#fff":theme.textMuted,fontSize:11,cursor:"pointer" }}>
+                <button key={m} onClick={()=>setTheme(pickTheme(theme.family, m))}
+                  style={{ flex:1,background:theme.mode===m?theme.accent:"transparent",border:`1px solid ${theme.accent}66`,borderRadius:8,padding:"7px",color:theme.mode===m?theme.ctaText:theme.textMuted,fontSize:11,cursor:"pointer",fontWeight:theme.mode===m?700:400 }}>
                   {m==="dark"?"🌙 Sombre":"☀️ Clair"}
                 </button>
               ))}
@@ -3596,7 +3682,7 @@ export default function App() {
             <button onClick={async()=>{
               if(!user){toast("Connecte-toi pour sauvegarder le thème.", true);return;}
               const ref=doc(db,"users",user.uid);
-              await setDoc(ref,{theme:{mode:theme.mode}},{merge:true});
+              await setDoc(ref,{theme:{family:theme.family,mode:theme.mode}},{merge:true});
               toast("Thème sauvegardé ✓");
             }} style={{ width:"100%",background:theme.accent,border:"none",borderRadius:8,padding:"9px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700,marginBottom:8 }}>
               💾 Sauvegarder les préférences
@@ -3828,7 +3914,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:theme.ctaGrad,border:"none",borderRadius:50,padding:"13px 18px",color:theme.ctaText,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             + Ajouter
           </button>
         </div>
@@ -3848,7 +3934,7 @@ export default function App() {
           </div>
           <button
             onClick={()=>{setShowForm(true);setEditingId(null);setFormStep(1);setForm({title:"",priority:"Moyenne",status:"À faire",due:"",notes:"",notify:true,recurrence:"none",memberVisible:true});setRecurDay("");setRecurMonthDay("");}}
-            style={{ background:"linear-gradient(to right, #ffffff, #86EFAC)",border:"none",borderRadius:50,padding:"13px 18px",color:"#2a4a3a",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
+            style={{ background:theme.ctaGrad,border:"none",borderRadius:50,padding:"13px 18px",color:theme.ctaText,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px #00000099",letterSpacing:0.5 }}>
             {isAdminRole(teamRole)?"+ Ajouter":"+ Proposer"}
           </button>
         </div>
