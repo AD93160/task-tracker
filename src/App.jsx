@@ -509,7 +509,7 @@ export default function App() {
     const ics = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Task Tracker//FR",
+      "PRODID:-//Kewa//FR",
       "BEGIN:VEVENT",
       `UID:${task.id}@tasktracker`,
       `DTSTAMP:${stamp}`,

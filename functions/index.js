@@ -1,5 +1,5 @@
 /**
- * Firebase Cloud Functions — Task Tracker Pro
+ * Firebase Cloud Functions — Kewa
  *
  * Envoie des push notifications FCM quand l'app est fermée :
  *   - onNewPendingChange : notifie les admins/co-admins quand un membre soumet une proposition

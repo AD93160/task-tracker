@@ -36,7 +36,8 @@ export default function KewaLogo({
   const shadowId = `kw-s-${uid}`;
 
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="55 150 730 780" width={w} height={h} style={style}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="55 150 730 780" width={w} height={h} style={style}
+         role="img" aria-label="Kewa">
       <defs>
         {filled && (
           <linearGradient id={squareId} gradientUnits="userSpaceOnUse" x1="60" y1="0" x2="770" y2="0">

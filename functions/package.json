@@ -1,6 +1,6 @@
 {
   "name": "task-tracker-functions",
-  "description": "Firebase Cloud Functions — Task Tracker Pro",
+  "description": "Firebase Cloud Functions — Kewa",
   "scripts": {
     "deploy": "firebase deploy --only functions --project task-tracker-2ea82"
   },

@@ -8,7 +8,7 @@ async function waitForApp(page) {
   await page.route('https://fonts.googleapis.com/**', r => r.abort());
   await page.route('https://fonts.gstatic.com/**', r => r.abort());
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible({ timeout: 15000 });
 }
 
 function clearStorage(page) {

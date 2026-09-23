@@ -14,7 +14,7 @@ async function waitForApp(page) {
   await page.route('https://fonts.googleapis.com/**', r => r.abort());
   await page.route('https://fonts.gstatic.com/**', r => r.abort());
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible({ timeout: 15000 });
 }
 
 async function clearStorage(page) {
@@ -161,7 +161,7 @@ test.describe('Desktop — Page perso', () => {
 
   test('affiche l\'UI principale après auth', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByText('DEMAIN')).toBeVisible();
     await expect(page.getByRole('button', { name: '+ Ajouter' })).toBeVisible();
@@ -550,7 +550,7 @@ test.describe('Tablet — Page perso', () => {
 
   test('affiche l\'UI principale', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByRole('button', { name: '+ Ajouter' })).toBeVisible();
   });
@@ -630,7 +630,7 @@ test.describe('Mobile — Page perso', () => {
 
   test('affiche l\'UI principale en mobile', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByText('DEMAIN')).toBeVisible();
   });
