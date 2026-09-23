@@ -23,6 +23,8 @@ export function collection(db, ...segments) {
 // Pass the ref through so path information is preserved.
 export function query(ref) { return ref; }
 export function where() { return {}; }
+export function orderBy() { return {}; }
+export function limit() { return {}; }
 
 export function setDoc() { return Promise.resolve(); }
 

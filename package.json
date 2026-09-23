@@ -11,17 +11,24 @@
     "dev:desktop": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron apps/desktop/main.js\"",
     "build": "vite build",
     "build:desktop": "vite build --config vite.config.desktop.js --outDir apps/desktop/www && (cd apps/desktop && npm install && CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config electron-builder.yml)",
+    "build:mobile": "vite build && cap sync android",
+    "open:android": "cap open android",
     "preview": "vite preview",
     "test:e2e": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test",
     "test:e2e:ui": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome playwright test --ui"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capgo/capacitor-social-login": "^8.4.5",
     "@task-tracker/shared": "*",
     "firebase": "^10.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@playwright/test": "^1.51.1",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^9.0.0",

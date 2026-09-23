@@ -1,0 +1,13 @@
+{
+  "appId": "com.kewa.app",
+  "appName": "Kewa",
+  "webDir": "dist",
+  "android": {
+    "path": "apps/mobile/android"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

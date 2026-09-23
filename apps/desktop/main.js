@@ -99,7 +99,7 @@ function createWindow() {
     height: 800,
     minWidth: 820,
     minHeight: 600,
-    title: "Flynt",
+    title: "Kewa",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -137,7 +137,7 @@ ipcMain.handle("google-auth", async (event) => {
     const authWin = new BrowserWindow({
       width: 500,
       height: 650,
-      title: "Connexion — Flynt",
+      title: "Connexion — Kewa",
       resizable: false,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),

@@ -32,7 +32,7 @@ self.addEventListener("push", event => {
     const n = payload.notification ?? {};
     const d = payload.data ?? {};
 
-    await self.registration.showNotification(n.title || "Flynt", {
+    await self.registration.showNotification(n.title || "Kewa", {
       body:  n.body  || "",
       icon:  n.icon  || "/favicon.svg",
       badge: "/favicon.svg",

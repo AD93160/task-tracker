@@ -72,10 +72,10 @@
 - Chat équipe (groupe + DMs privés, réponses, édition, suppression, upload fichiers, non-lus)
 
 ### Design & Thèmes
-- 12 thèmes : 6 dark (Nuit, Forêt, Braise, Océan, Encre, Améthyste) + 6 light (Cognac, Papier, Sauge, Terracotta, Ciel, Lavande)
+- 2 familles de thème (vert / Hermès) × clair / sombre
 - 5 polices texte (Inter, DM Mono, Space Mono, Courier, Roboto Mono)
 - 7 polices titre (Playfair Display, Cormorant, Syne, Bebas Neue, Oswald, Rajdhani, Orbitron)
-- Logo — favicon.svg personnalisé (3 bulles + coche, fond dégradé orange) + PWA icon
+- Logo Kewa (K à deux flèches) — favicon.svg, icônes PNG PWA / Play Store, logo in-app aux couleurs du thème
 
 ### Layout & UX
 - Layout mobile responsive — header 2 lignes, panels en colonne, scroll indépendant
@@ -130,7 +130,7 @@
 - [ ] Vrai bandeau pub AdMob — remplacer le placeholder
 - [ ] Outlook / Microsoft To Do — intégration via Microsoft Graph API + Azure
 - [ ] Soumission App Store (compte Apple 99€/an)
-- [ ] Soumission Play Store (compte Google 25€ unique)
+- [ ] Soumission Play Store (compte Google 25€ unique) — voir [PLAY-STORE.md](PLAY-STORE.md) pour la checklist complète de la console
 
 ---
 

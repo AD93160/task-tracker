@@ -2,8 +2,8 @@
   "name": "task-tracker-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "Flynt — Desktop App",
-  "author": "Flynt",
+  "description": "Kewa — Desktop App",
+  "author": "Kewa",
   "main": "main.js",
   "repository": {
     "type": "git",

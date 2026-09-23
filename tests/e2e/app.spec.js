@@ -14,7 +14,7 @@ async function waitForApp(page) {
   await page.route('https://fonts.googleapis.com/**', r => r.abort());
   await page.route('https://fonts.gstatic.com/**', r => r.abort());
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible({ timeout: 15000 });
 }
 
 async function clearStorage(page) {
@@ -161,7 +161,7 @@ test.describe('Desktop — Page perso', () => {
 
   test('affiche l\'UI principale après auth', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByText('DEMAIN')).toBeVisible();
     await expect(page.getByRole('button', { name: '+ Ajouter' })).toBeVisible();
@@ -396,14 +396,14 @@ test.describe('Desktop — Page perso', () => {
   test('ouvre le panneau d\'apparence', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('passe en mode sombre', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(13, 13, 26)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(11, 31, 22), rgb(30, 104, 68))');
   });
 
   test('passe en mode clair', async ({ page }) => {
@@ -411,15 +411,15 @@ test.describe('Desktop — Page perso', () => {
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
     await page.getByRole('button', { name: /☀️ Clair/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(253, 246, 236)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(255, 255, 255), rgb(134, 239, 172))');
   });
 
   test('ferme le panneau thème en cliquant en dehors', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
     await page.mouse.click(10, 10);
-    await expect(page.getByText('APPARENCE')).not.toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).not.toBeVisible();
   });
 
   // ── 12. Dropdowns priorité / statut ───────────────────────────────────
@@ -550,7 +550,7 @@ test.describe('Tablet — Page perso', () => {
 
   test('affiche l\'UI principale', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByRole('button', { name: '+ Ajouter' })).toBeVisible();
   });
@@ -600,7 +600,7 @@ test.describe('Tablet — Page perso', () => {
   test('ouvre le panneau thème', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('trie par statut', async ({ page }) => {
@@ -630,7 +630,7 @@ test.describe('Mobile — Page perso', () => {
 
   test('affiche l\'UI principale en mobile', async ({ page }) => {
     await waitForApp(page);
-    await expect(page.getByText('TASK TRACKER PRO').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Kewa' }).first()).toBeVisible();
     await expect(page.getByText("AUJOURD'HUI")).toBeVisible();
     await expect(page.getByText('DEMAIN')).toBeVisible();
   });
@@ -682,14 +682,14 @@ test.describe('Mobile — Page perso', () => {
   test('ouvre le panneau thème via le bouton ⚙️ mobile', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
-    await expect(page.getByText('APPARENCE')).toBeVisible();
+    await expect(page.getByText('PARAMÈTRES')).toBeVisible();
   });
 
   test('passe en mode sombre en mobile', async ({ page }) => {
     await waitForApp(page);
     await page.getByRole('button', { name: /⚙️/ }).click();
     await page.getByRole('button', { name: /🌙 Sombre/ }).click();
-    await expect(page.locator('#root > div').first()).toHaveCSS('background-color', 'rgb(13, 13, 26)');
+    await expect(page.locator('#root > div').first()).toHaveCSS('background-image', 'linear-gradient(to right, rgb(11, 31, 22), rgb(30, 104, 68))');
   });
 
   test('affiche le menu utilisateur en mobile', async ({ page }) => {
